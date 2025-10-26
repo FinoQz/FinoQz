@@ -1,7 +1,9 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  output: "export", // 👈 This enables static HTML export
-};
+  output: 'export',
+  // Optional: basePath if needed
+  // basePath: '/landing',
+}
 
-export default nextConfig;
+export default nextConfig
