@@ -44,7 +44,7 @@ const categories = [
 
 export default function QuizCategories() {
   return (
-    <section id="categories" className="py-24 bg-gray-50">
+    <section id="categories" className="py-24 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold mb-4 text-[#253A7B]">Explore Quiz Categories</h2>
