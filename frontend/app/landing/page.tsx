@@ -1,6 +1,7 @@
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import Features from "./components/Features";
+import TryQuizPreview from "./components/TryQuiz";
 import QuizCategories from "./components/QuizCategories";
 import Community from "./components/Community";
 import CTA from "./components/CTA";
@@ -12,6 +13,7 @@ export default function LandingPage() {
       <Navbar />
       <Hero />
       <Features />
+      <TryQuizPreview />
       <QuizCategories />
       <Community />
       <CTA />

@@ -13,7 +13,7 @@ export default function Hero() {
   const router = useRouter();
 
   return (
-    
+
     <section
       id="home"
       className="py-20 md:py-24 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden"
@@ -45,13 +45,12 @@ export default function Hero() {
 
           {/* Buttons Row */}
           <div className="flex flex-wrap gap-4 mb-8">
-            <Button
-              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => router.push("/landing/signup")}
-            >
-              Start Learning Free
-              <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
-            </Button>
+            <a href="#TryQuiz">
+              <Button className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 bg-blue-600 hover:bg-blue-700 text-white">
+                Try Free Quiz
+                <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
+              </Button>
+            </a>
 
             <Button
               variant="outline"
