@@ -64,7 +64,7 @@ export default function TryQuiz() {
   };
 
   return (
-    <section id="TryQuiz" className="w-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 py-24">
+    <section id="TryQuiz" className="w-screen bg-gradient-to-br from-blue-50 via-purple-50 to-white overflow-hidden py-24">
       <div className="max-w-7xl mx-auto px-6">
         <h2 className="text-4xl font-bold text-center text-blue-700 mb-12">Practice Finance Quiz</h2>
 
