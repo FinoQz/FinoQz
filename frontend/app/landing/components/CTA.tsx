@@ -10,7 +10,7 @@ export default function CTA() {
 
 
   return (
-    <section className="py-24 relative overflow-hidden bg-gradient-to-b from-[#f0f4ff] via-[#cddaff] to-[#3249b0] text-[#253A7B] text-center">
+    <section className="py-24 relative overflow-hidden bg-gradient-to-b from-[#f8faff] via-[#cddaff] to-[#3249b0] text-[#253A7B] text-center">
 
       {/* Radial glow overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.08),_transparent)] pointer-events-none z-0" />

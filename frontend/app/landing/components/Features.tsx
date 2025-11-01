@@ -7,13 +7,8 @@ export default function AboutSection() {
   return (
     <section
       id="about"
-      className="relative py-20 bg-gradient-to-br from-blue-50 via-purple-50 to-white overflow-hidden"
+      className="py-20 md:py-24 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden"
     >
-      {/* Floating background shapes */}
-      <div className="absolute top-0 left-0 w-40 h-40 bg-purple-300 opacity-20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-10 right-10 w-60 h-60 bg-blue-300 opacity-20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-indigo-300 opacity-20 rounded-full blur-2xl animate-pulse" />
-
       <div className="relative z-10 container mx-auto px-6">
         {/* Section Header */}
         <div className="text-center mb-12">

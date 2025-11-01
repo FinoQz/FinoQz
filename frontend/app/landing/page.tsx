@@ -12,8 +12,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 text-gray-900">
       <Navbar />
       <Hero />
-      <QuizCategories />
       <TryQuizPreview />
+      <QuizCategories />
       <Features />
       <Community />
       <CTA />
