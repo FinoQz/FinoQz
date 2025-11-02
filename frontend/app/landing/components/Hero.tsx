@@ -46,7 +46,7 @@ export default function Hero() {
           {/* Buttons Row */}
           <div className="flex flex-wrap gap-4 mb-8">
             <a href="#TryQuiz">
-              <Button className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 bg-blue-600 hover:bg-blue-700 text-white">
+              <Button className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 bg-[#253A7B] hover:bg-blue-700 text-white">
                 Try Free Quiz
                 <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
               </Button>
@@ -54,7 +54,7 @@ export default function Hero() {
 
             <Button
               variant="outline"
-              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 border border-black"
+              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 border border-[#253A7B]"
               onClick={() => router.push("/landing/login")}
             >
               Login

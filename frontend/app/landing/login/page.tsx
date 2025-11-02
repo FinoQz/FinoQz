@@ -6,14 +6,22 @@ import InputField from "./components/InputField";
 import TabSwitcher from "./components/TabSwitcher";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+
 
 export default function SigninPage() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<"user" | "admin">("user");
     const [emailOrUsername, setEmailOrUsername] = useState("");
     const [password, setPassword] = useState("");
 
     const handleContinue = () => {
-        console.log("Continue to OTP:", emailOrUsername);
+        if (activeTab === "admin") {
+            router.push("/landing/verify_otp");
+        } else {
+            console.log("User login flow:", emailOrUsername);
+            // You can redirect to user OTP or dashboard if needed
+        }
     };
 
     return (
@@ -63,7 +71,7 @@ export default function SigninPage() {
                     </Link>
                 </p>
             </div>
-             <p className="text-sm text-gray-500 mt-4 text-center">
+            <p className="text-sm text-gray-500 mt-4 text-center">
                 <a href="/landing" className="text-gray-500 hover:text-indigo-600 text-sm">← Back to Home</a>
             </p>
         </div>

@@ -37,12 +37,12 @@ export default function Navbar() {
           <Button
             variant="ghost"
             onClick={() => router.push("/landing/login")} 
-            className="border border-black rounded-md"
+            className="border border-[#253A7B] rounded-md"
           >
             Login
           </Button>
           <Button
-            className="rounded-md"
+            className="rounded-md bg-[#253A7B] text-white hover:bg-blue-600"
             onClick={() => router.push("/landing/signup")} 
           >
             Get Started
