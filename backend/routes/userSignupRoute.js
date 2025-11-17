@@ -11,7 +11,7 @@ const {
   getSignupStatus
 } = require('../controllers/userSignupController');
 
-const validateSignUp = require('../middlewares/validateSignUp');
+const validateSignUp = require('../middlewares/validateSignup');
 const validateOtp = require('../middlewares/validateOtp');
 const authMiddleware = require('../middlewares/authMiddleware');
 const requireAdmin = require('../middlewares/requireAdmin');
