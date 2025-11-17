@@ -6,5 +6,10 @@ const nextConfig: NextConfig = {
   // Optional: basePath if needed
   // basePath: '/landing',
 }
+module.exports = {
+  images: {
+    unoptimized: true,
+  },
+};
 
 export default nextConfig

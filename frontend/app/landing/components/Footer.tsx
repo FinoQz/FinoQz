@@ -3,7 +3,7 @@
 import { Facebook, Twitter, Linkedin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import logoImage from "@/public/finoqz.svg"; // adjust path as needed
+import logoImage from "@/public/finoqz.svg"; 
 import { useRouter } from "next/navigation";
 
 export default function Footer() {
@@ -37,10 +37,10 @@ export default function Footer() {
                     <div>
                         <h3 className="mb-4 font-semibold text-white">Quick Links</h3>
                         <ul className="space-y-2 text-sm text-gray-400">
-                            <li><button onClick={() => onNavigate("landing/aboutus")} className="hover:text-white transition">About Us</button></li>
-                            <li><button onClick={() => onNavigate("landing/courses")} className="hover:text-white transition">Courses</button></li>
-                            <li><button onClick={() => onNavigate("landing/certificate")} className="hover:text-white transition">Certificates</button></li>
-                            <li><button onClick={() => onNavigate("landing/contact")} className="hover:text-white transition">Contact</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/aboutus")} className="hover:text-white transition">About Us</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/courses")} className="hover:text-white transition">Courses</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/certificate")} className="hover:text-white transition">Certificates</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/contact")} className="hover:text-white transition">Contact</button></li>
                         </ul>
                     </div>
 
@@ -48,10 +48,10 @@ export default function Footer() {
                     <div>
                         <h3 className="mb-4 font-semibold text-white">Support</h3>
                         <ul className="space-y-2 text-sm text-gray-400">
-                            <li><button onClick={() => onNavigate("landing/faq")} className="hover:text-white transition">FAQs</button></li>
-                            <li><button onClick={() => onNavigate("landing/privacy_policy")} className="hover:text-white transition">Privacy Policy</button></li>
-                            <li><button onClick={() => onNavigate("landing/tos")} className="hover:text-white transition">Terms of Service</button></li>
-                            <li><button onClick={() => onNavigate("landing/refund")} className="hover:text-white transition">Refund Policy</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/faq")} className="hover:text-white transition">FAQs</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/privacy_policy")} className="hover:text-white transition">Privacy Policy</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/tos")} className="hover:text-white transition">Terms of Service</button></li>
+                            <li><button onClick={() => onNavigate("landing/pages/refund")} className="hover:text-white transition">Refund Policy</button></li>
                         </ul>
                     </div>
 

@@ -55,7 +55,7 @@ export default function Hero() {
             <Button
               variant="outline"
               className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 border border-[#253A7B]"
-              onClick={() => router.push("/landing/login")}
+              onClick={() => router.push("/landing/auth/user_login/login")}
             >
               Login
             </Button>

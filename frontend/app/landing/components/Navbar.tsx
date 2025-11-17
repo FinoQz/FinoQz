@@ -36,14 +36,14 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           <Button
             variant="ghost"
-            onClick={() => router.push("/landing/login")} 
+            onClick={() => router.push("/landing/auth/user_login/login")} 
             className="border border-[#253A7B] rounded-md"
           >
             Login
           </Button>
           <Button
             className="rounded-md bg-[#253A7B] text-white hover:bg-blue-600"
-            onClick={() => router.push("/landing/signup")} 
+            onClick={() => router.push("/landing/auth/user_signup/signup")} 
           >
             Get Started
           </Button>
@@ -66,13 +66,13 @@ export default function Navbar() {
             <Button
               variant="ghost"
               className="w-full justify-start px-3 py-2 border border-black text-sm rounded hover:bg-gray-100"
-              onClick={() => { router.push("/landing/login"); toggleMenu(); }}
+              onClick={() => { router.push("/landing/auth/user_login/login"); toggleMenu(); }}
             >
               Login
             </Button>
             <Button
               className="w-full justify-start px-3 py-2 text-sm rounded hover:bg-indigo-600 hover:text-white"
-              onClick={() => { router.push("/landing/signup"); toggleMenu(); }}
+              onClick={() => { router.push("/landing/auth/user_signup/signup"); toggleMenu(); }}
             >
               Get Started
             </Button>
