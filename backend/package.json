@@ -23,6 +23,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mojoauth-sdk": "^1.4.3",
+    "mongodb": "^7.0.0",
     "mongoose": "^8.19.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.10"
