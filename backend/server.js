@@ -20,20 +20,25 @@ app.use(cors({
   credentials: true
 }));
 app.use(helmet());
+
+// 👇 Trust proxy BEFORE rate-limit
+app.set('trust proxy', 1);
+
+// ⏳ Rate limit middleware
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  standardHeaders: true,   // RFC standard headers
+  legacyHeaders: false,    // disable old X-RateLimit headers
   message: 'Too many requests, please try again later.'
 }));
 
 // 🧭 Routes
-app.use('/api/admin', require('./routes/adminAuthRoute'));         // Admin login + OTP
-app.use('/api/user/signup', require('./routes/userSignupRoute'));  // User signup flow
-app.use('/api/user/login', require('./routes/userLoginRoute'));    // Approved user login
+app.use('/api/admin', require('./routes/adminAuthRoute'));         
+app.use('/api/user/signup', require('./routes/userSignupRoute'));  
+app.use('/api/user/login', require('./routes/userLoginRoute'));    
 app.use('/api/user/forgot-password', require('./routes/forgotPasswordRoute'));
-app.use('/api/admin/panel', require('./routes/adminPanelRoute'));  // Admin dashboard
-
-
+app.use('/api/admin/panel', require('./routes/adminPanelRoute'));  
 
 // ❌ Error handler
 app.use((err, req, res, next) => {
