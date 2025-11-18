@@ -3,6 +3,7 @@ import { useState } from 'react';
 import DashboardLayout from './DashboardLayout';
 import DashboardOverview from '../pages/DashboardOverview';
 import UserManagement from '../pages/UserManagement';
+import QuizManagement from '../pages/QuizManagement';
 
 export default function AdminDashPage() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -14,7 +15,7 @@ export default function AdminDashPage() {
       case 'users':
         return <UserManagement />;
       case 'quiz':
-        return <PlaceholderPage title="Quiz Management" />;
+        return <QuizManagement />;
       case 'content':
         return <PlaceholderPage title="Finance Content" />;
       case 'revenue':

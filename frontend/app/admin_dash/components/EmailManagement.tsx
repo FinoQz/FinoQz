@@ -115,19 +115,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
         </div>
 
         {/* Selected Count */}
-        {selectedUsers.length > 0 && (
-          <div className="bg-[#253A7B] bg-opacity-10 border border-[#253A7B] rounded-xl p-3 flex items-center justify-between">
-            <span className="text-[#253A7B] font-medium">
-              {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
-            </span>
-            <button
-              onClick={() => setSelectedUsers([])}
-              className="text-[#253A7B] hover:text-[#1a2a5e] transition text-sm font-medium"
-            >
-              Clear Selection
-            </button>
-          </div>
-        )}
+        
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -168,8 +156,8 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
                 onClick={() => handleSelectUser(user._id)}
                 className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                   selectedUsers.includes(user._id)
-                    ? 'border-[#253A7B] bg-[#253A7B] bg-opacity-5'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-[#253A7B]'
+                    : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-start gap-3">

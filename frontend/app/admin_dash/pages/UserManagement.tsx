@@ -81,8 +81,6 @@ export default function UserManagement() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
 
   useEffect(() => {
-    if (!token) return;
-
     const fetchUsers = async () => {
       try {
         const res = await api.get<User[]>('/admin/panel/pending-users', {
@@ -93,14 +91,18 @@ export default function UserManagement() {
           setPendingUsers(res.data);
         }
       } catch (err) {
-        console.error('Error fetching users:', err);
+        console.log('Using default users data - API not available');
         // Keep dummy data on error
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    if (token) {
+      fetchUsers();
+    } else {
+      setLoading(false);
+    }
   }, [token]);
 
   const handleAction = async (userId: string, action: UserAction): Promise<void> => {

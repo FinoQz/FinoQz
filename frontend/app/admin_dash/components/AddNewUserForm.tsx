@@ -236,8 +236,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
             >
               <option value="user">User</option>
-              <option value="admin">Admin</option>
-              <option value="moderator">Moderator</option>
+             
             </select>
           </div>
 
@@ -252,28 +251,15 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.password}
               onChange={handleInputChange}
               required
-              minLength={8}
+              minLength={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              placeholder="Minimum 8 characters"
+              placeholder="Minimum 6 characters"
             />
           </div>
         </div>
 
         {/* Address - Full Width */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Address <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            name="address"
-            value={newUserForm.address}
-            onChange={handleInputChange}
-            required
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
-            placeholder="Enter complete address"
-          />
-        </div>
+        
 
         {/* Submit Button */}
         <div className="flex gap-3 pt-4">
