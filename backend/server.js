@@ -16,7 +16,8 @@ seedSuperAdmin();
 // 🛡️ Middleware
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://finoqz.com'
+  'https://finoqz.com',
+  'https://www.finoqz.com'   // ✅ add this
 ];
 
 app.use(cors({
