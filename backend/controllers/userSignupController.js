@@ -42,7 +42,7 @@ exports.initiateSignup = async (req, res) => {
   });
 
   Promise.resolve().then(() => {
-    sendEmail(email, "FinoQz Email OTP", otpTemplate(otp)).catch((err) =>
+    sendEmail(email, "FinoQz Email OTP", userOtpTemplate(otp)).catch((err) =>
       console.error("Email OTP failed:", err)
     );
   });
