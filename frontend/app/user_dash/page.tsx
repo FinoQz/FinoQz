@@ -27,7 +27,7 @@ export default function UserDashboardPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data.user);
-      } catch (err) {
+      } catch {
         setError("Failed to load dashboard. Please login again.");
         localStorage.removeItem("userToken");
         router.push("/landing/auth/user_login/login");

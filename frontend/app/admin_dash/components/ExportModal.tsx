@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Download, CheckCircle } from 'lucide-react';
+import { X, Download} from 'lucide-react';
 
 interface ExportModalProps {
   quizId: string;
@@ -18,7 +18,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
     setExporting(true);
     setTimeout(() => {
       setExporting(false);
-      alert(`Exporting ${format.toUpperCase()} with selected options...`);
+      alert(`Exporting quiz ${quizId} as ${format.toUpperCase()} with selected options...`);
       onClose();
     }, 2000);
   };
@@ -47,7 +47,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
                 {['csv', 'xlsx', 'pdf'].map((fmt) => (
                   <button
                     key={fmt}
-                    onClick={() => setFormat(fmt as any)}
+                    onClick={() => setFormat(fmt as  'csv' | 'xlsx' | 'pdf')}
                     className={`p-3 rounded-xl border-2 text-center font-medium text-sm transition ${
                       format === fmt
                         ? 'border-[#253A7B] bg-[#253A7B] text-white'
@@ -73,7 +73,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
                 />
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 text-sm">Include Answers</p>
-                  <p className="text-xs text-gray-500">Export user's answers and correct answers</p>
+                  <p className="text-xs text-gray-500">Export user&apos;s answers and correct answers</p>
                 </div>
               </label>
 

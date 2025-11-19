@@ -16,7 +16,7 @@ export default function TodayRevenueWidget() {
           <div className="p-2 bg-white/20 rounded-lg">
             <DollarSign className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-white">Today's Revenue</h3>
+          <h3 className="text-lg font-semibold text-white">Today&apos;s Revenue</h3>
         </div>
         <div className="flex items-center gap-1 text-xs text-white bg-white/20 px-2 py-1 rounded-full">
           <TrendingUp className="w-3 h-3" />

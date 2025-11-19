@@ -18,7 +18,7 @@ interface Participant {
 interface ParticipantsTableProps {
   selectedParticipants: string[];
   onSelectionChange: (selected: string[]) => void;
-  onViewAttempt: (attemptData: any) => void;
+  onViewAttempt: (attemptData: Participant) => void;
 }
 
 export default function ParticipantsTable({

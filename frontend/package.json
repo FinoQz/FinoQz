@@ -9,7 +9,6 @@
     "start": "next start",
     "lint": "eslint"
   },
-  
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-avatar": "^1.1.10",

@@ -20,6 +20,7 @@ import ExportReports from './ExportReports';
 import ViewAttemptModal from './ViewAttemptModal';
 import ExportModal from './ExportModal';
 
+
 interface ParticipantsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,20 +39,43 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [showViewAttemptModal, setShowViewAttemptModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedAttempt, setSelectedAttempt] = useState<{
+  interface AttemptAnswer { questionId: string; answer: string; isCorrect: boolean; }
+  // Broaden timeTaken to accept Participant's number|string|null form and normalize to string for ViewAttemptModal
+  interface AttemptSource {
+    userId?: string;
+    _id?: string;
+    id?: string;
+    userName?: string;
+    name?: string;
+    score?: number | null;
+    attemptScore?: number;
+    timeTaken?: number | string | null;
+    answers?: AttemptAnswer[];
+  }
+  interface NormalizedAttempt {
     userId: string;
-    userName: string;
+    name: string;
     score: number;
-    answers: Array<{ questionId: string; answer: string; isCorrect: boolean }>;
-  } | null>(null);
+    timeTaken: string;
+    answers: AttemptAnswer[];
+  }
+  const [selectedAttempt, setSelectedAttempt] = useState<NormalizedAttempt | null>(null);
 
-  const handleViewAttempt = (attemptData: {
-    userId: string;
-    userName: string;
-    score: number;
-    answers: Array<{ questionId: string; answer: string; isCorrect: boolean }>;
-  }) => {
-    setSelectedAttempt(attemptData);
+  // Accept Participant from ParticipantsTable and normalize to attempt data shape
+  const handleViewAttempt = (attemptData: AttemptSource) => {
+    const timeTakenRaw = attemptData.timeTaken;
+    const timeTakenNumber =
+      typeof timeTakenRaw === 'string'
+        ? (parseInt(timeTakenRaw, 10) || 0)
+        : (timeTakenRaw ?? 0);
+    const normalizedAttempt: NormalizedAttempt = {
+      userId: attemptData.userId || attemptData._id || attemptData.id || '',
+      name: attemptData.userName || attemptData.name || 'Unknown',
+      score: attemptData.score ?? attemptData.attemptScore ?? 0,
+      timeTaken: String(timeTakenNumber),
+      answers: attemptData.answers || []
+    };
+    setSelectedAttempt(normalizedAttempt);
     setShowViewAttemptModal(true);
   };
 
@@ -64,7 +88,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
       />
@@ -106,21 +130,19 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
             <div className="flex gap-1 px-6 pb-0">
               <button
                 onClick={() => setActiveTab('participants')}
-                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
-                  activeTab === 'participants'
+                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${activeTab === 'participants'
                     ? 'border-[#253A7B] text-[#253A7B]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 Participants & Insights
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
-                  activeTab === 'transactions'
+                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${activeTab === 'transactions'
                     ? 'border-[#253A7B] text-[#253A7B]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 Transactions & Payments
               </button>
@@ -169,14 +191,14 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
 
                 {/* Bulk Actions */}
                 {selectedParticipants.length > 0 && (
-                  <BulkActions 
+                  <BulkActions
                     selectedCount={selectedParticipants.length}
                     onClearSelection={() => setSelectedParticipants([])}
                   />
                 )}
 
                 {/* Participants Table */}
-                <ParticipantsTable 
+                <ParticipantsTable
                   selectedParticipants={selectedParticipants}
                   onSelectionChange={setSelectedParticipants}
                   onViewAttempt={handleViewAttempt}
@@ -205,18 +227,15 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
       )}
 
       <style jsx>{`
-        @keyframes slide-in-right {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
-        .animate-slide-in-right {
-          animation: slide-in-right 0.3s ease-out;
-        }
-      `}</style>
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+`}</style>
+
     </>
   );
 }

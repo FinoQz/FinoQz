@@ -3,8 +3,13 @@
 import React, { useState } from 'react';
 import { X, Check, XCircle, Edit3, Save } from 'lucide-react';
 
+interface AttemptData {
+  name: string;
+  score: number;
+  timeTaken: string;
+}
 interface ViewAttemptModalProps {
-  attemptData: any;
+  attemptData: AttemptData;
   onClose: () => void;
 }
 
@@ -58,7 +63,7 @@ export default function ViewAttemptModal({ attemptData, onClose }: ViewAttemptMo
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{attemptData.name}'s Attempt</h2>
+              <h2 className="text-2xl font-bold text-gray-900">{attemptData.name}&apos;s Attempt</h2>
               <p className="text-sm text-gray-600 mt-1">
                 Score: <span className="font-bold text-[#253A7B]">{attemptData.score}%</span> • 
                 Time: {attemptData.timeTaken}
@@ -90,7 +95,7 @@ export default function ViewAttemptModal({ attemptData, onClose }: ViewAttemptMo
 
           {/* Content */}
           <div className="p-6 space-y-6">
-            {questions.map((question, index) => (
+            {questions.map((question) => (
               <div key={question.id} className="bg-gray-50 rounded-xl p-6 border-2 border-gray-200">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-900">
@@ -108,7 +113,7 @@ export default function ViewAttemptModal({ attemptData, onClose }: ViewAttemptMo
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* User Answer */}
                   <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
-                    <p className="text-xs font-semibold text-blue-600 uppercase mb-2">User's Answer</p>
+                    <p className="text-xs font-semibold text-blue-600 uppercase mb-2">User&apos;s Answer</p>
                     <p className="text-gray-900">{question.userAnswer}</p>
                   </div>
 
