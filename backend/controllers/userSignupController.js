@@ -10,6 +10,7 @@ const awaitingApprovalTemplate = require('../emailTemplates/userAwaitingApproval
 const approvalRequestTemplate = require('../emailTemplates/adminApprovalRequestTemplate');
 const approvalSuccessTemplate = require('../emailTemplates/userApprovalSuccessTemplate');
 const rejectionTemplate = require('../emailTemplates/userRejectionTemplate');
+const userOtpTemplate = require('../emailTemplates/userOtpTemplate');
 
 // Step 1: Initiate signup with email OTP
 exports.initiateSignup = async (req, res) => {

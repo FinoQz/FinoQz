@@ -56,7 +56,7 @@ export default function CTA() {
             size="lg"
             variant="outline"
             className="border border-[#253A7B] text-[#253A7B] hover:bg-[#253A7B] hover:text-white transition duration-300 font-semibold"
-            onClick={() => router.push("/landing/login")}
+            onClick={() => router.push("/landing/verify")}
           >
             Login
           </Button>
