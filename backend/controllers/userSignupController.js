@@ -143,7 +143,7 @@ exports.resendEmailOtp = async (req, res) => {
     await otpRecord.save();
 
     Promise.resolve().then(() => {
-      sendEmail(email, "FinoQz Email OTP", otpTemplate(newOtp)).catch((err) =>
+      sendEmail(email, "FinoQz Email OTP", userOtpTemplate(newOtp)).catch((err) =>
         console.error("Resend OTP email failed:", err)
       );
     });
