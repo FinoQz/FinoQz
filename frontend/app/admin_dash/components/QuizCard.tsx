@@ -5,7 +5,8 @@ import { Clock, IndianRupee, Users } from 'lucide-react';
 
 interface Quiz {
   _id: string;
-  title: string;
+  quizTitle: string;   // ✅ backend field
+  description: string;
   createdAt: string;
   duration: number; // in minutes
   price: number; // 0 for free
@@ -16,9 +17,10 @@ interface Quiz {
 interface QuizCardProps {
   quiz: Quiz;
   onViewParticipants?: (quizId: string) => void;
+  onEnroll?: (quizId: string) => void; // ✅ new prop
 }
 
-export default function QuizCard({ quiz, onViewParticipants }: QuizCardProps) {
+export default function QuizCard({ quiz, onViewParticipants, onEnroll }: QuizCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', { 
@@ -31,10 +33,14 @@ export default function QuizCard({ quiz, onViewParticipants }: QuizCardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-300">
       <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 items-center">
+        
         {/* Title & Date */}
         <div>
-          <h3 className="font-semibold text-gray-900 text-base mb-1">{quiz.title}</h3>
+          <h3 className="font-semibold text-gray-900 text-base mb-1">{quiz.quizTitle}</h3>
           <p className="text-xs text-gray-500">Created {formatDate(quiz.createdAt)}</p>
+          {quiz.participantCount !== undefined && (
+            <p className="text-xs text-gray-500">{quiz.participantCount} participants</p>
+          )}
         </div>
 
         {/* Duration */}
@@ -69,13 +75,20 @@ export default function QuizCard({ quiz, onViewParticipants }: QuizCardProps) {
         </div>
 
         {/* Actions */}
-        <div>
+        <div className="flex gap-3">
           <button
             onClick={() => onViewParticipants?.(quiz._id)}
             className="flex items-center gap-2 text-[#253A7B] hover:text-[#1a2a5e] transition text-sm font-medium"
           >
             <Users className="w-4 h-4" />
             Participants
+          </button>
+
+          <button
+            onClick={() => onEnroll?.(quiz._id)}
+            className="text-sm text-green-600 hover:text-green-800 font-medium"
+          >
+            Enroll
           </button>
         </div>
       </div>

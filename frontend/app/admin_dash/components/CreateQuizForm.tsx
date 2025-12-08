@@ -100,23 +100,21 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
   const handlePreview = () => {
     setShowPreview(true);
   };
-
-  const handleSubmit = () => {
-    // Simulate quiz creation
+  const handleSubmit = async () => {
     const quizData = {
       category: selectedCategory,
       pricingType,
-      price: pricingType === 'paid' ? price : '0',
+      price: pricingType === 'paid' ? Number(price) : 0,
       couponCode,
       allowOfflinePayment,
       quizTitle,
       description,
-      duration,
-      totalMarks,
+      duration: Number(duration),
+      totalMarks: Number(totalMarks),
       attemptLimit,
       shuffleQuestions,
       negativeMarking,
-      negativePerWrong,
+      negativePerWrong: Number(negativePerWrong || 0),
       startDate,
       startTime,
       endDate,
@@ -125,14 +123,36 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       assignedGroups,
       tags,
       difficultyLevel,
+      coverImage: coverImagePreview, // agar tum image upload karna chahte ho to alag API banani hogi
       saveAsDraft
     };
 
-    console.log('Creating quiz:', quizData);
-    alert(`Quiz "${quizTitle}" ${saveAsDraft ? 'saved as draft' : 'created'} successfully!`);
-    onSuccess?.();
-    onClose();
+    try {
+      const res = await fetch('http://localhost:3000/api/admin/quizzes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Agar JWT auth use kar rahe ho:
+          // 'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify(quizData),
+        credentials: 'include' // agar cookie-based auth hai
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Quiz "${quizTitle}" ${saveAsDraft ? 'saved as draft' : 'created'} successfully!`);
+        onSuccess?.(); // parent ko notify karega (QuizManagement me re-fetch)
+        onClose();
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (err) {
+      console.error('❌ Error creating quiz:', err);
+      alert('Server error creating quiz');
+    }
   };
+
 
   const renderStep = () => {
     switch (currentStep) {
@@ -336,9 +356,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             {Array.from({ length: totalSteps }).map((_, idx) => (
               <div
                 key={idx}
-                className={`flex-1 h-2 rounded-full transition-all ${
-                  idx + 1 <= currentStep ? 'bg-[#253A7B]' : 'bg-gray-200'
-                }`}
+                className={`flex-1 h-2 rounded-full transition-all ${idx + 1 <= currentStep ? 'bg-[#253A7B]' : 'bg-gray-200'
+                  }`}
               />
             ))}
           </div>
@@ -362,11 +381,10 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className={`px-6 py-3 rounded-xl transition font-medium flex items-center gap-2 ${
-              canProceed()
+            className={`px-6 py-3 rounded-xl transition font-medium flex items-center gap-2 ${canProceed()
                 ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
+              }`}
           >
             {currentStep === totalSteps ? (
               <>

@@ -20,13 +20,12 @@ import ExportReports from './ExportReports';
 import ViewAttemptModal from './ViewAttemptModal';
 import ExportModal from './ExportModal';
 
-
 interface ParticipantsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   quizData: {
     _id: string;
-    title: string;
+    quizTitle: string;   // ✅ backend field
     createdAt: string;
     duration: number;
     price: number;
@@ -39,8 +38,8 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [showViewAttemptModal, setShowViewAttemptModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
   interface AttemptAnswer { questionId: string; answer: string; isCorrect: boolean; }
-  // Broaden timeTaken to accept Participant's number|string|null form and normalize to string for ViewAttemptModal
   interface AttemptSource {
     userId?: string;
     _id?: string;
@@ -59,9 +58,10 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
     timeTaken: string;
     answers: AttemptAnswer[];
   }
+
   const [selectedAttempt, setSelectedAttempt] = useState<NormalizedAttempt | null>(null);
 
-  // Accept Participant from ParticipantsTable and normalize to attempt data shape
+  // Normalize attempt data for modal
   const handleViewAttempt = (attemptData: AttemptSource) => {
     const timeTakenRaw = attemptData.timeTaken;
     const timeTakenNumber =
@@ -102,7 +102,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h2 className="text-2xl font-bold text-gray-900">
-                    Participants — {quizData.title}
+                    Participants — {quizData.quizTitle}
                   </h2>
                   <div className="group relative">
                     <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[#253A7B] cursor-help transition" />
@@ -124,25 +124,30 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
             </div>
 
             {/* Quick Actions */}
-            <DrawerHeader quizData={quizData} onExport={handleExport} />
+            <DrawerHeader
+              quizData={{ _id: quizData._id, title: quizData.quizTitle }}
+              onExport={handleExport}
+            />
 
             {/* Tabs */}
             <div className="flex gap-1 px-6 pb-0">
               <button
                 onClick={() => setActiveTab('participants')}
-                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${activeTab === 'participants'
+                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
+                  activeTab === 'participants'
                     ? 'border-[#253A7B] text-[#253A7B]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                }`}
               >
                 Participants & Insights
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${activeTab === 'transactions'
+                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
+                  activeTab === 'transactions'
                     ? 'border-[#253A7B] text-[#253A7B]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
-                  }`}
+                }`}
               >
                 Transactions & Payments
               </button>
@@ -153,43 +158,27 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
           <div className="p-6 space-y-6">
             {activeTab === 'participants' ? (
               <>
-                {/* KPI Cards */}
                 <KPICards />
-
-                {/* Secondary Metrics */}
                 <SecondaryMetrics />
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Left Column */}
                   <div className="space-y-6">
                     <RevenueChart />
                     <AttemptsBarChart />
                   </div>
-
-                  {/* Right Column */}
                   <div className="space-y-6">
                     <PaidVsFreeDonutChart />
                     <QuestionAccuracyChart />
                   </div>
                 </div>
 
-                {/* Question Insights */}
                 <QuestionInsightsCard />
-
-                {/* Leaderboard */}
                 <LeaderboardCard />
-
-                {/* Activity Timeline */}
                 <ActivityTimeline />
-
-                {/* Export & Reports */}
                 <ExportReports onExport={handleExport} />
-
-                {/* Filters */}
                 <TableFilters />
 
-                {/* Bulk Actions */}
                 {selectedParticipants.length > 0 && (
                   <BulkActions
                     selectedCount={selectedParticipants.length}
@@ -197,7 +186,6 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                   />
                 )}
 
-                {/* Participants Table */}
                 <ParticipantsTable
                   selectedParticipants={selectedParticipants}
                   onSelectionChange={setSelectedParticipants}
@@ -227,15 +215,14 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
       )}
 
       <style jsx>{`
-  @keyframes slide-in-right {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
-  }
-  .animate-slide-in-right {
-    animation: slide-in-right 0.3s ease-out;
-  }
-`}</style>
-
+        @keyframes slide-in-right {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+          animation: slide-in-right 0.3s ease-out;
+        }
+      `}</style>
     </>
   );
 }

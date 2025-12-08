@@ -22,7 +22,7 @@ export default function ApprovalPage() {
       } catch (err) {
         console.error("Status check failed:", err);
       }
-    }, 10000); // check every 10s
+    }, 30000); // check every 30s
 
     return () => clearInterval(interval);
   }, [router]);

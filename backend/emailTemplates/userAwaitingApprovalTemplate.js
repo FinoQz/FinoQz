@@ -1,17 +1,24 @@
-module.exports = ({ fullName, email }) =>`
-  <div style="font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f9f9ff; padding: 32px; border-radius: 16px; border: 1px solid #e0e0e0; max-width: 600px; margin: auto;">
+module.exports = ({ fullName, email }) => `
+  <div style="font-family: 'Segoe UI', Roboto, sans-serif; background-color: #fff; padding: 32px; border-radius: 16px; border: 1px solid #e0e0e0; max-width: 600px; margin: auto;">
     <div style="text-align: center; margin-bottom: 24px;">
       <img src="https://cdn.jsdelivr.net/gh/FinoQz/logo/finoQz.png" width="48" height="48" alt="FinoQz Logo" />
-      <h2 style="color: #253A7B; font-size: 22px; margin-top: 12px;">Account Created Successfully</h2>
-      <p style="color: #666; font-size: 14px;">Hi ${fullName}, your ${email} account has been created and is now pending admin approval.</p>
+      <h2 style="color: #253A7B; font-size: 22px; margin-top: 12px;">Signup Successful</h2>
     </div>
 
-    <p style="font-size: 14px; color: #555; text-align: center;">
-      You will receive an email once your account is approved. Thank you for joining FinoQz!
+    <p style="font-size: 14px; color: #555;">
+      Hi ${fullName}, your account has been successfully created with the email <strong>${email}</strong>.
+    </p>
+
+    <p style="font-size: 14px; color: #555;">
+      Our team is currently reviewing your details. Once approved, you'll receive a confirmation email and be able to access your dashboard.
+    </p>
+
+    <p style="font-size: 14px; color: #555;">
+      Thank you for choosing FinoQz. We're excited to have you onboard!
     </p>
 
     <p style="text-align: center; font-size: 12px; color: #999; margin-top: 32px;">
-      Have a great day ahead ✨<br/>— Team FinoQz
+      FinoQz User Notification System
     </p>
   </div>
 `;

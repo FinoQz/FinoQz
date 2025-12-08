@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { X, Upload } from 'lucide-react';
+import Image from 'next/image';
+import axios from 'axios';
 import api from '@/lib/api';
 
 interface NewUserForm {
@@ -73,47 +75,61 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    onStatusChange?.('Adding new user...');
+  e.preventDefault();
+  setIsSubmitting(true);
+  onStatusChange?.('Adding new user...');
 
-    try {
-      const formData = new FormData();
-      formData.append('fullName', newUserForm.fullName);
-      formData.append('email', newUserForm.email);
-      formData.append('mobile', newUserForm.mobile);
-      formData.append('gender', newUserForm.gender);
-      formData.append('address', newUserForm.address);
-      formData.append('role', newUserForm.role);
-      formData.append('password', newUserForm.password);
-      if (newUserForm.profilePicture) {
-        formData.append('profilePicture', newUserForm.profilePicture);
-      }
+  try {
+    const formData = new FormData();
+    formData.append('fullName', newUserForm.fullName);
+    formData.append('email', newUserForm.email);
+    formData.append('mobile', newUserForm.mobile);
+    formData.append('gender', newUserForm.gender);
+    formData.append('address', newUserForm.address);
+    formData.append('role', newUserForm.role);
+    formData.append('password', newUserForm.password);
 
-      // API call would go here
-      // const res = await api.post('/admin/users/add', formData, {
-      //   headers: { 
-      //     Authorization: `Bearer ${token}`,
-      //     'Content-Type': 'multipart/form-data'
-      //   },
-      // });
-
-      // Simulate success
-      onStatusChange?.('User added successfully!');
-      handleReset();
-      
-      // Call success callback after 2 seconds
-      setTimeout(() => {
-        onSuccess?.();
-        onStatusChange?.('');
-      }, 2000);
-    } catch (err) {
-      console.error('Error adding user:', err);
-      onStatusChange?.('Failed to add user');
-    } finally {
-      setIsSubmitting(false);
+    if (newUserForm.profilePicture) {
+      formData.append('profilePicture', newUserForm.profilePicture);
     }
-  };
+
+    await api.post('/admin/panel/add-user', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    onStatusChange?.('User added successfully!');
+    handleReset();
+
+    setTimeout(() => {
+      onSuccess?.();
+    }, 1500);
+  } catch (err: unknown) {
+    console.error('Error adding user:', err);
+
+    let message = 'Failed to add user';
+
+    if (axios.isAxiosError(err)) {
+      const status = err.response?.status;
+
+      // ✅ Handle backend 409 Conflict (duplicate email/mobile)
+      if (status === 409) {
+        message = (err.response?.data as { message?: string } | undefined)?.message || 'Email or Mobile already registered';
+      }
+      // ✅ Handle unauthorized (JWT expired)
+      else if (status === 401) {
+        message = (err.response?.data as { message?: string } | undefined)?.message || 'Unauthorized. Please login again.';
+        // Optionally: trigger logout or refresh token flow here
+      }
+    }
+
+    onStatusChange?.(message);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 border border-gray-200 shadow-lg">
@@ -121,13 +137,15 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Profile Picture Upload */}
         <div className="flex flex-col items-center gap-4 mb-6">
-          <div className="relative">
+          <div className="relative w-24 h-24 sm:w-32 sm:h-32">
             {profilePreview ? (
-              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
-                <img
+              <>
+                <Image
                   src={profilePreview}
                   alt="Profile preview"
-                  className="w-full h-full rounded-full object-cover border-4 border-gray-200"
+                  fill
+                  sizes="(max-width: 640px) 6rem, 8rem"
+                  className="rounded-full object-cover border-4 border-gray-200"
                 />
                 <button
                   type="button"
@@ -136,7 +154,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
                 >
                   <X className="w-4 h-4" />
                 </button>
-              </div>
+              </>
             ) : (
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-4 border-gray-200">
                 <Upload className="w-8 h-8 text-gray-500" />
@@ -236,7 +254,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
             >
               <option value="user">User</option>
-             
+
             </select>
           </div>
 
@@ -259,16 +277,15 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
         </div>
 
         {/* Address - Full Width */}
-        
+
 
         {/* Submit Button */}
         <div className="flex gap-3 pt-4">
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`flex-1 sm:flex-none px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium ${
-              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`flex-1 sm:flex-none px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             {isSubmitting ? 'Adding...' : 'Add User'}
           </button>

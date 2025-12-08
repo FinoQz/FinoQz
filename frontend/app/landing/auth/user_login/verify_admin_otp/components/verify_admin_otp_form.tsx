@@ -87,16 +87,122 @@ const handleVerify = async () => {
           Verify & Login
         </button>
       </div>
-
-      <p className="text-sm text-gray-500 mt-6 text-center">
-        Don’t have an account?{' '}
-        <span
-          className="text-blue-600 font-semibold cursor-pointer"
-          onClick={() => router.push('/landing/user_signup/signup')}
-        >
-          Sign up here
-        </span>
-      </p>
     </div>
   );
 }
+// 'use client';
+
+// import { useState, useEffect } from 'react';
+// import { useRouter } from 'next/navigation';
+// import api from '@/lib/api';
+// import axios from 'axios';
+
+// export default function VerifyOtpForm() {
+//   const [otp, setOtp] = useState('');
+//   const [email, setEmail] = useState('');
+//   const router = useRouter();
+//   const [formError, setFormError] = useState('');
+//   const [loading, setLoading] = useState(false); // ✅ loading state
+
+//   useEffect(() => {
+//     const storedEmail = localStorage.getItem('adminEmail');
+//     if (!storedEmail) {
+//       router.push('/landing/signin'); // ✅ redirect to login if email missing
+//     } else {
+//       setEmail(storedEmail);
+//     }
+//   }, [router]);
+
+//   const handleVerify = async () => {
+//     if (!otp || !email) {
+//       setFormError("Missing OTP or email");
+//       return;
+//     }
+
+//     setFormError("");
+//     setLoading(true); // ✅ disable button while verifying
+//     try {
+//       await api.post('/admin/verify-otp', { email, otp });
+
+//       // ✅ rely on secure cookies, no localStorage
+//       router.push('/admin_dash');
+//     } catch (err: unknown) {
+//       let errMsg = 'OTP verification failed';
+//       if (axios.isAxiosError(err)) {
+//         const maybeMessage = err.response?.data?.message;
+//         if (typeof maybeMessage === 'string') {
+//           errMsg = maybeMessage;
+//         } else if (err.response?.status === 403) {
+//           errMsg = "Wrong OTP, kindly enter correct OTP";
+//         } else if (err.response?.status === 401) {
+//           errMsg = "OTP expired, please login again";
+//         } else if (err.response?.status === 500) {
+//           errMsg = "Server error, please try again later"; // ✅ extra error handling
+//         }
+//       }
+//       setFormError(errMsg);
+//     } finally {
+//       setLoading(false); // ✅ re-enable button
+//     }
+//   };
+
+//   const handleResend = async () => {
+//     try {
+//       await api.post('/admin/login', { identifier: email, password: '' });
+//       // ⚠️ backend ideally should allow resend by email only
+//       setFormError("New OTP sent to your email");
+//     } catch {
+//       setFormError("Failed to resend OTP");
+//     }
+//   };
+
+//   return (
+//     <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-md">
+//       <h2 className="text-xl font-semibold mb-2">Login</h2>
+//       <p className="text-sm text-gray-500 mb-4">Enter the OTP sent to your email.</p>
+
+//       <label htmlFor="otp" className="block text-sm text-gray-700 mb-1">
+//         Enter OTP
+//       </label>
+//       <input
+//         id="otp"
+//         type="text"
+//         value={otp}
+//         onChange={(e) => setOtp(e.target.value)}
+//         placeholder="123456"
+//         className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+//       />
+
+//       {formError && (
+//         <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 text-sm font-medium">
+//           {formError}
+//         </div>
+//       )}
+
+//       <div className="flex justify-between gap-4">
+//         <button
+//           onClick={() => router.back()}
+//           className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-100 transition"
+//         >
+//           Back
+//         </button>
+//         <button
+//           onClick={handleVerify}
+//           disabled={loading} // ✅ disable while loading
+//           className={`w-1/2 py-2 rounded font-semibold ${
+//             loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-900"
+//           }`}
+//         >
+//           {loading ? "Verifying..." : "Verify & Login"} {/* ✅ UX polish */}
+//         </button>
+//       </div>
+
+//       <button
+//         onClick={handleResend}
+//         className="mt-4 w-full text-sm text-blue-600 hover:underline"
+//       >
+//         Resend OTP
+//       </button>
+//     </div>
+//   );
+// }

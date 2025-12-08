@@ -1,1 +1,9 @@
-module.exports = () => Math.floor(100000 + Math.random() * 900000).toString();
+// utils/generateOTP.js
+module.exports = function generateOTP(length = 6) {
+  const digits = '0123456789';
+  let otp = '';
+  for (let i = 0; i < length; i++) {
+    otp += digits[Math.floor(Math.random() * digits.length)];
+  }
+  return otp;
+};

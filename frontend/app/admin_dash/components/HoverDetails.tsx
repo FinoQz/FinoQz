@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mail, Phone, Clock, Calendar } from 'lucide-react';
+import { Mail, Phone, Clock, Calendar, CheckCircle, XCircle, Shield } from 'lucide-react';
 
 interface HoverDetailsProps {
   user: {
@@ -10,6 +10,9 @@ interface HoverDetailsProps {
     email: string;
     mobile?: string;
     createdAt: string;
+    status?: string;
+    emailVerified?: boolean;
+    mobileVerified?: boolean;
   };
   onAction: (id: string, action: 'approve' | 'reject') => void;
 }
@@ -41,7 +44,7 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Main Card - Shows only name */}
+      {/* Main Card */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -50,11 +53,25 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
                 {user.fullName.charAt(0).toUpperCase()}
               </span>
             </div>
+
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">{user.fullName}</h3>
-              <p className="text-xs sm:text-sm text-gray-500">Pending approval</p>
+
+              {/* Status Chip */}
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 mt-1 text-xs font-medium rounded-full ${
+                  user.status === 'awaiting_admin_approval'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                <Shield className="w-3 h-3" />
+                {user.status?.replace(/_/g, ' ')}
+              </span>
             </div>
           </div>
+
+          {/* Approve / Reject Buttons */}
           <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={() => onAction(user._id, 'approve')}
@@ -72,7 +89,7 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
         </div>
       </div>
 
-      {/* Hover Details Card - Fixed Position Popup */}
+      {/* Hover Popup */}
       {isHovered && (
         <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
           <div className="pointer-events-auto bg-white border-2 border-gray-200 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md animate-in fade-in zoom-in-95 duration-200">
@@ -80,7 +97,7 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
               <div className="pb-3 border-b border-gray-200">
                 <h4 className="text-lg font-bold text-gray-900">{user.fullName}</h4>
                 <p className="text-xs text-gray-600 font-medium uppercase tracking-wide mt-1">
-                  User Details
+                  Signup Details
                 </p>
               </div>
 
@@ -92,6 +109,22 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Email Address</p>
                   <p className="text-sm text-gray-900 font-medium">{user.email}</p>
+
+                  {/* Email Verified Badge */}
+                  <span
+                    className={`inline-flex items-center gap-1 mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                      user.emailVerified
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {user.emailVerified ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : (
+                      <XCircle className="w-3 h-3" />
+                    )}
+                    {user.emailVerified ? 'Email Verified' : 'Email Not Verified'}
+                  </span>
                 </div>
               </div>
 
@@ -104,6 +137,22 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
                   <div>
                     <p className="text-xs text-gray-500 font-medium">Phone Number</p>
                     <p className="text-sm text-gray-900 font-medium">{user.mobile}</p>
+
+                    {/* Mobile Verified Badge */}
+                    <span
+                      className={`inline-flex items-center gap-1 mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                        user.mobileVerified
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {user.mobileVerified ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <XCircle className="w-3 h-3" />
+                      )}
+                      {user.mobileVerified ? 'Mobile Verified' : 'Mobile Not Verified'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -129,6 +178,7 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
                   <p className="text-sm text-gray-900 font-medium">{formatTime(user.createdAt)}</p>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

@@ -48,7 +48,7 @@ export default function CTA() {
           <Button
             size="lg"
             className="bg-[#253A7B] text-white hover:bg-[#1e2a78] transition duration-300 font-semibold"
-            onClick={() => router.push("/landing/signup")}
+            onClick={() => router.push("/user_dash")}
           >
             Start Free Today
           </Button>
