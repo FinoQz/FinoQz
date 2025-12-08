@@ -9,7 +9,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-gray-700">Dashboard</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-2">Welcome back! Here's your quiz activity overview</p>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">Welcome back! Heres your quiz activity overview</p>
       </div>
 
       {/* KPI Cards */}
