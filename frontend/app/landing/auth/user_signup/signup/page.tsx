@@ -87,7 +87,16 @@ export default function SignupPage() {
         const data = (err as { response?: { data?: { message?: string; nextStep?: string } } }).response?.data;
         msg = data?.message ?? (err as { message?: string }).message ?? msg;
 
-        // ✅ Handle resumable flow on error
+        // ✅ Special case: already registered & verified → show error + redirect to login after delay
+        if (data?.nextStep === "login") {
+          setFormError("This email is already registered and verified. Please sign in instead.");
+          setTimeout(() => {
+            router.push("/landing/auth/user_login/login");
+          }, 3000); // ⏱️ 3 second delay
+          return;
+        }
+
+        // ✅ Handle resumable flow on other errors
         if (data?.nextStep) {
           localStorage.setItem("userEmail", trimmedEmail);
           redirectByNextStep(data.nextStep, router);
@@ -100,6 +109,7 @@ export default function SignupPage() {
       setFormError(msg);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-100 to-white px-4">

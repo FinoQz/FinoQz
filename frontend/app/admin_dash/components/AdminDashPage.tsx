@@ -7,6 +7,7 @@ import QuizManagement from '../pages/QuizManagement';
 import ActivityLogsPage from '../pages/ActivityLogsPage';
 import PendingApprovalsPage from '../pages/PendingApprovalsPage';
 import LandingPageManager from './adminComponents/LandingPageManager';
+import EditLandingPage from '../landing/EditLandingPage';
 
 export default function AdminDashPage() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -24,7 +25,7 @@ export default function AdminDashPage() {
       case 'approvals':
         return <PendingApprovalsPage />;
       case 'landing':
-        return <LandingPageManager />;
+        return <EditLandingPage />;
       case 'content':
         return <PlaceholderPage title="Finance Content" />;
       case 'revenue':

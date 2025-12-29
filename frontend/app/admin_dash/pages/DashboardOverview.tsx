@@ -52,8 +52,6 @@ export default function DashboardOverview() {
   updatedAt?: string;
 }
 
-  
-
 
   const [loading, setLoading] = useState(true);
   const [growthPercent, setGrowthPercent] = useState<string>('0.0');
@@ -101,6 +99,7 @@ export default function DashboardOverview() {
           totalPaidUsers: 0,  // TODO: replace with real API when ready
           freeQuizAttempts: 0, // TODO: replace with real API when ready
         });
+
 
         setPendingUsersList(pendingRes.data);
 

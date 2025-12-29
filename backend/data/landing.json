@@ -1,0 +1,103 @@
+{
+  "hero": {
+    "heading": "Where Smart Finance Learning Becomes a Daily Habit",
+    "tagline": "Master finance through interactive quizzes, earn certificates, and grow a thriving community",
+    "buttonText": "Try Free Quiz",
+    "buttonLink": "/landing/auth/user_login/login",
+    "imageUrl": "/uploads/hero-1766660787413.svg",
+    "stats": [
+      {
+        "value": "10+",
+        "label": "Active Learner"
+      },
+      {
+        "value": "25+",
+        "label": "Expert Quizzes"
+      },
+      {
+        "value": "95%",
+        "label": "Success Rate"
+      }
+    ]
+  },
+  "categories": [
+    {
+      "id": "1766694633540",
+      "name": "Balance Sheet",
+      "bullets": [
+        "Learn from Balance",
+        "Budget Planing",
+        "Debt  Management"
+      ]
+    },
+    {
+      "id": "1766695312264",
+      "name": "P&L Staement",
+      "bullets": [
+        "Market Indices",
+        "Trading Strategies",
+        "Equity Basics"
+      ]
+    },
+    {
+      "id": "1766695338231",
+      "name": "CashFlow Statement",
+      "bullets": [
+        "Double Entry",
+        "Trial Balance",
+        "Journal Entries"
+      ]
+    },
+    {
+      "id": "1766695352702",
+      "name": "Generic Statement",
+      "bullets": [
+        "Capital Budgeting",
+        "Cost of Capital",
+        "Financial Ratios"
+      ]
+    }
+  ],
+  "reasons": [
+    {
+      "id": "why-1",
+      "title": "Interactive Quizzes",
+      "description": "Engage with carefully crafted quizzes on Balance Sheets, Cash Flow, P&L Statements, and more.",
+      "bullets": [
+        "Real-time feedback",
+        "Hint system",
+        "Review mode"
+      ]
+    },
+    {
+      "id": "why-2",
+      "title": "Earn Certificates",
+      "description": "Get certified in various finance topics and boost your career credentials.",
+      "bullets": [
+        "Professional certificates",
+        "Shareable credentials",
+        "Instant downloads"
+      ]
+    },
+    {
+      "id": "why-3",
+      "title": "Community Learning",
+      "description": "Connect with fellow learners, share insights, and grow together.",
+      "bullets": [
+        "Discussion forums",
+        "Expert insights",
+        "Peer support"
+      ]
+    },
+    {
+      "id": "why-4",
+      "title": "Track Your Performance",
+      "description": "Get detailed analytics and insights to improve your learning outcomes and stay motivated.",
+      "bullets": [
+        "Progress dashboard",
+        "Topic-wise analytics",
+        "Personalized tips"
+      ]
+    }
+  ]
+}

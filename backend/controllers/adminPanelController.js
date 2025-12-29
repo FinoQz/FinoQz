@@ -12,32 +12,41 @@ const logActivity = require('../utils/logActivity');
 const emailQueue = require('../utils/emailQueue');
 const userDeletedTemplate = require("../emailTemplates/userDeletedTemplate");
 const cloudinary = require('../utils/cloudinary');
+const redis = require('../utils/redis');
 
 
 
-// 🔁 Helper: emit updated dashboard stats
+// 🔁 Helper: emit updated dashboard stats (with Redis cache)
 async function emitDashboardStats(req) {
   const io = req.app.get("io");
   if (!io) return;
 
   try {
+    // First check cache
+    const cached = await redis.get("dashboard:stats");
+    if (cached) {
+      const stats = JSON.parse(cached);
+      io.emit("dashboard:stats", stats);
+      console.log("📡 Emitted cached dashboard:stats", stats);
+      return;
+    }
+
+    // If cache miss → query DB
     const [totalUsers, activeUsers, pendingApprovals] = await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ status: "approved" }),
       User.countDocuments({ status: "awaiting_admin_approval" }),
     ]);
 
-    io.emit("dashboard:stats", {
-      totalUsers,
-      activeUsers,
-      pendingApprovals,
-    });
+    const stats = { totalUsers, activeUsers, pendingApprovals };
 
-    console.log("📡 Emitted dashboard:stats", {
-      totalUsers,
-      activeUsers,
-      pendingApprovals,
-    });
+    // Cache for 60 seconds
+    await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
+
+    // Emit to all connected clients
+    io.emit("dashboard:stats", stats);
+
+    console.log("📡 Emitted fresh dashboard:stats", stats);
   } catch (err) {
     console.error("❌ emitDashboardStats error:", err);
   }

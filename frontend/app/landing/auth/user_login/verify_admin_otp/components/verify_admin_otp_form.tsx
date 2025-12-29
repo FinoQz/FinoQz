@@ -22,14 +22,19 @@ export default function VerifyOtpForm() {
   }, [router]);
 const handleVerify = async () => {
   if (!otp || !email) {
-    setFormError("Missing OTP or email");
+    setFormError("Missing OTP or email/username");
     return;
   }
 
   setFormError(""); // clear previous error
 
   try {
-    const res = await api.post('/admin/verify-otp', { email, otp });
+    // 👉 अगर storedEmail valid email है तो email भेजो, वरना identifier भेजो
+    const payload = email.includes("@")
+      ? { email, otp }
+      : { identifier: email, otp };
+
+    const res = await api.post('/admin/verify-otp', payload);
 
     localStorage.setItem('adminToken', res.data.token);
     router.push('/admin_dash');
@@ -48,6 +53,7 @@ const handleVerify = async () => {
     setFormError(errMsg);
   }
 };
+
 
 
   return (

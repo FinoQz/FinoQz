@@ -7,6 +7,7 @@ import MobileInput from "./components/MobileInput";
 import PasswordInput from "./components/PasswordInput";
 import ProgressBar from "./components/ProgressBar";
 import api from "@/lib/api";
+import axios from "axios";
 
 export default function AddMobilePage() {
   const [mobile, setMobile] = useState("");
@@ -14,63 +15,67 @@ export default function AddMobilePage() {
   const [formError, setFormError] = useState("");
   const router = useRouter();
 
-const handleSendOTP = async () => {
-  setFormError("");
+  const handleSendOTP = async () => {
+    setFormError("");
 
-  if (!mobile || !password) {
-    setFormError("Please enter both mobile and password.");
-    return;
-  }
-
-  try {
-    const email = localStorage.getItem("userEmail");
-
-    const res = await api.post("/user/signup/mobile-password", {
-      email,
-      mobile,
-      password,
-    });
-
-    // ✅ temporary OTP from backend (for demo/testing only)
-    const otp = res.data?.otp;
-    if (otp) {
-      localStorage.setItem("tempOtp", otp);
+    if (!mobile || !password) {
+      setFormError("Please enter both mobile and password.");
+      return;
     }
 
-    localStorage.setItem("userMobile", mobile);
-    // ❌ Don't store password in localStorage (security risk)
+    // ✅ optional frontend validation
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      setFormError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
 
-    // ✅ Use backend nextStep for resumable flow
-    const nextStep = res.data?.nextStep || "verify_mobile_otp";
-    switch (nextStep) {
-      case "verify_mobile_otp":
-        router.push("/landing/auth/user_signup/verify_mobile_otp");
-        break;
-      case "awaiting_approval":
-        router.push("/landing/auth/user_signup/approval");
-        break;
-      case "login":
-        router.push("/landing/auth/user_login/login");
-        break;
-      case "support":
-        router.push("/support");
-        break;
-      default:
-        router.push("/landing");
+    try {
+      const email = localStorage.getItem("userEmail");
+
+      const res = await api.post("/user/signup/mobile-password", {
+        email,
+        mobile,
+        password,
+      });
+
+      // ✅ temporary OTP from backend (for demo/testing only)
+      const otp = res.data?.otp;
+      if (otp) {
+        localStorage.setItem("tempOtp", otp);
+      }
+
+      localStorage.setItem("userMobile", mobile);
+      // ❌ Don't store password in localStorage (security risk)
+
+      // ✅ Use backend nextStep for resumable flow
+      const nextStep = res.data?.nextStep || "verify_mobile_otp";
+      switch (nextStep) {
+        case "verify_mobile_otp":
+          router.push("/landing/auth/user_signup/verify_mobile_otp");
+          break;
+        case "awaiting_approval":
+          router.push("/landing/auth/user_signup/approval");
+          break;
+        case "login":
+          router.push("/landing/auth/user_login/login");
+          break;
+        case "support":
+          router.push("/support");
+          break;
+        default:
+          router.push("/landing");
+      }
+    } catch (err: unknown) {
+      let message = "Failed to send OTP";
+      if (axios.isAxiosError(err)) {
+        message = err.response?.data?.message || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      // ✅ show only friendly message, no console.error spam
+      setFormError(message);
     }
-  } catch (err: unknown) {
-    console.error(err);
-    let message = "Failed to send OTP";
-    if (typeof err === "object" && err !== null && "response" in err) {
-      type ApiError = { response?: { data?: { message?: string } } };
-      const apiErr = err as ApiError;
-      message = apiErr.response?.data?.message ?? message;
-    } else if (err instanceof Error) {
-      message = err.message;
-    }
-    setFormError(message);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-100 to-white px-4">
