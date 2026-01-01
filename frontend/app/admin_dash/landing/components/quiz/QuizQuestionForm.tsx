@@ -28,7 +28,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
 
   const fetchQuestions = async () => {
     try {
-      const res = await api.get(`/admin/demo-quiz/questions?categoryId=${categoryId}`);
+      const res = await api.get(`api/admin/demo-quiz/questions?categoryId=${categoryId}`);
       setQuestions(res.data || []);
     } catch (err) {
       console.error('Failed to load questions', err);
@@ -51,7 +51,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
     };
 
     try {
-      const res = await api.post('/admin/demo-quiz/questions', payload);
+      const res = await api.post('api/admin/demo-quiz/questions', payload);
       setQuestions((prev) => [...prev, res.data]);
       setNewQuestion('');
       setNewOptions(['', '', '', '']);
@@ -64,7 +64,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
   const removeQuestion = async (_id?: string) => {
     if (!_id) return;
     try {
-      await api.delete(`/admin/demo-quiz/questions/${_id}`);
+      await api.delete(`api/admin/demo-quiz/questions/${_id}`);
       setQuestions((prev) => prev.filter((q) => q._id !== _id));
     } catch (err) {
       console.error('Failed to delete question', err);

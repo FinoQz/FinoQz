@@ -9,9 +9,10 @@ export default function EditLandingPage() {
   return (
     <div className="p-6 space-y-10 max-w-5xl mx-auto">
       <HeroEditor />
+      <DemoQuizEditor />
       <CategoryEditor />
       <WhyChooseEditor />
-      <DemoQuizEditor />
+      
     </div>
   );
 }

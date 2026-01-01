@@ -3,7 +3,10 @@ const User = require("../models/User");
 // ✅ Get current user profile
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.userId).lean();
+    const user = await User.findById(req.userId)
+      .select('-password -otp -__v') // hide sensitive fields
+      .lean();
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
     return res.json({ user });
@@ -13,23 +16,31 @@ exports.getMe = async (req, res) => {
   }
 };
 
+
 // ✅ Update profile (only fields present in User schema)
 exports.updateMe = async (req, res) => {
   try {
-    const allowed = [
+    const allowedFields = [
       "fullName",
       "mobile",
       "gender",
       "address",
-      "profilePicture" // optional, can also be updated via uploadProfileImage
+      "dateOfBirth",
+      "bio",
+      "city",
+      "country"
     ];
 
     const payload = {};
-    for (const key of allowed) {
+    for (const key of allowedFields) {
       if (req.body[key] !== undefined) payload[key] = req.body[key];
     }
 
-    const user = await User.findByIdAndUpdate(req.userId, payload, { new: true }).lean();
+    const user = await User.findByIdAndUpdate(req.userId, payload, {
+      new: true,
+      runValidators: true,
+    }).select('-password -otp -__v').lean();
+
     if (!user) return res.status(404).json({ message: "User not found" });
 
     return res.json({ message: "Profile updated", user });
@@ -42,14 +53,14 @@ exports.updateMe = async (req, res) => {
 // ✅ Upload profile image
 exports.uploadProfileImage = async (req, res) => {
   try {
-    const { url } = req.body; // assume frontend uploads to S3/Cloudinary and sends back URL
+    const { url } = req.body;
     if (!url) return res.status(400).json({ message: "Image URL required" });
 
     const user = await User.findByIdAndUpdate(
       req.userId,
       { profilePicture: url },
       { new: true }
-    ).lean();
+    ).select('profilePicture').lean();
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -59,3 +70,4 @@ exports.uploadProfileImage = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+

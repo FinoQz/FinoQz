@@ -208,7 +208,7 @@ export default function AllUsersTable() {
           return;
         }
 
-        const res = await api.get("/admin/panel/all-users", {
+        const res = await api.get("api/admin/panel/all-users", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -323,7 +323,7 @@ export default function AllUsersTable() {
     try {
       // ✅ EDIT USER
       if (activeModal.type === "edit") {
-        await api.put(`/admin/panel/user/${userId}`, editData, {
+        await api.put(`api/admin/panel/user/${userId}`, editData, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -334,7 +334,7 @@ export default function AllUsersTable() {
 
       // ✅ BLOCK USER
       if (activeModal.type === "block") {
-        await api.post(`/admin/panel/user/${userId}/block`, null, {
+        await api.post(`api/admin/panel/user/${userId}/block`, null, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -347,7 +347,7 @@ export default function AllUsersTable() {
 
       // ✅ UNBLOCK USER
       if (activeModal.type === "unblock") {
-        await api.post(`/admin/panel/user/${userId}/unblock`, null, {
+        await api.post(`api/admin/panel/user/${userId}/unblock`, null, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -360,7 +360,7 @@ export default function AllUsersTable() {
 
       // ✅ DELETE USER
       if (activeModal.type === "delete") {
-        await api.delete(`/admin/panel/user/${userId}`, {
+        await api.delete(`api/admin/panel/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

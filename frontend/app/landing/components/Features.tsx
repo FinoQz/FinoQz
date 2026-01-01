@@ -21,7 +21,7 @@ export default function AboutSection() {
 
     const fetchReasons = async () => {
       try {
-        const res = await api.get('/admin/landing');
+        const res = await api.get('api/admin/landing');
         if (!mounted) return;
         const data = res.data || {};
         const remote: Reason[] = Array.isArray(data.reasons) ? data.reasons : [];

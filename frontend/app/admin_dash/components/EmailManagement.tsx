@@ -34,7 +34,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
       try {
         if (!token) return;
 
-        const res = await api.get("/admin/panel/all-users", {
+        const res = await api.get("api/admin/panel/all-users", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -98,7 +98,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
         .map((u) => u.email);
 
       await api.post(
-        "/admin/panel/send-email",
+        "api/admin/panel/send-email",
         {
           recipients: selectedEmails,
           subject: emailSubject,

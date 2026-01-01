@@ -3,7 +3,6 @@
 import { Facebook, Twitter, Linkedin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import logoImage from "@/public/finoqz.svg"; 
 import { useRouter } from "next/navigation";
 
 export default function Footer() {
@@ -24,7 +23,7 @@ export default function Footer() {
                     <div>
                         <div className="flex items-center gap-2 mb-4">
                         <Link href="/" className="flex items-center gap-2 mb-1 hover:opacity-80 transition">
-                            <Image src={logoImage} alt="FinoQz Logo" height={40} width={40} />
+                            <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" height={40} width={40} />
                             <span className="text-xl font-semibold">FinoQz</span>
                         </Link>
                         </div>

@@ -29,7 +29,7 @@ export default function VerifyResetOtpForm() {
     setFormError("");
 
     try {
-      const res = await api.post("/user/forgot-password/verify", { email, otp });
+      const res = await api.post("api/user/forgot-password/verify", { email, otp });
 
       if (res.data.message === "OTP verified") {
         router.push("/landing/auth/user_login/forgot_password/reset_password");

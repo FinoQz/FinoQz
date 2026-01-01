@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, RotateCcw, Undo2, Save } from 'lucide-react';
+import api from '@/lib/api';
 
 interface Reason {
   id: string;
@@ -97,19 +98,13 @@ export default function WhyChooseEditor() {
     setDirty(false);
   };
 
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('payload', JSON.stringify({ reasons }));
+      const res = await api.patch('api/admin/landing', { reasons }); // ✅ no localhost
 
-      const res = await fetch('http://localhost:5000/api/admin/landing', {
-        method: 'PATCH',
-        body: formData,
-      });
-
-      const result = await res.json();
-      if (!result.ok) {
+      if (res.status < 200 || res.status >= 300) {
         alert('Failed to save reasons');
       } else {
         alert('Saved successfully!');
@@ -124,6 +119,7 @@ export default function WhyChooseEditor() {
       setLoading(false);
     }
   };
+
 
   return (
     <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-6">

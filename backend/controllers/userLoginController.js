@@ -10,7 +10,6 @@ const generateOTP = require('../utils/generateOTP');
 const signinOtpTemplate = require('../emailTemplates/signinotpTemplate');
 const getDeviceInfo = require('../utils/getDeviceInfo');
 
-
 // ✅ STEP 1 — LOGIN (Password Check + Redis OTP + Queue Email)
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -27,10 +26,8 @@ exports.login = async (req, res) => {
     if (!match)
       return res.status(401).json({ message: "Invalid email or password" });
 
-    // ✅ Generate OTP
     const otp = generateOTP();
 
-    // ✅ Store OTP in Redis (10 min TTL)
     await redis.set(
       `user:loginOtp:${email}`,
       JSON.stringify({ otp }),
@@ -38,7 +35,6 @@ exports.login = async (req, res) => {
       10 * 60
     );
 
-    // ✅ Queue email job (safe)
     try {
       await emailQueue.add("userLoginOtp", {
         to: email,
@@ -49,7 +45,6 @@ exports.login = async (req, res) => {
       console.error("❌ Queue error (login OTP):", queueErr);
     }
 
-    // ✅ Log activity
     await logActivity({
       req,
       actorType: "user",
@@ -72,9 +67,7 @@ exports.login = async (req, res) => {
   }
 };
 
-
-
-// ✅ STEP 2 — VERIFY LOGIN OTP (Redis)
+// ✅ STEP 2 — VERIFY OTP → ISSUE TOKEN + COOKIE
 exports.verifyLoginOtp = async (req, res) => {
   const { email, otp } = req.body;
 
@@ -103,21 +96,35 @@ exports.verifyLoginOtp = async (req, res) => {
       return res.status(403).json({ message: "Incorrect OTP" });
     }
 
-    // ✅ OTP verified → issue JWT
-    const token = jwt.sign(
-      { id: user._id, role: "user" },
-      process.env.JWT_SECRET,
-      { expiresIn: "30m" }
-    );
+    const crypto = require('crypto');
+    const sha256Hex = (input) =>
+      crypto.createHash('sha256').update(String(input || '')).digest('hex');
 
-    // ✅ Delete OTP from Redis
+    const ip = req.ip || req.connection?.remoteAddress || '';
+    const userAgent = req.get('user-agent') || '';
+    const fingerprint = sha256Hex(ip + '|' + userAgent);
+
+    const now = Math.floor(Date.now() / 1000);
+    const expiresInSeconds = 86400;
+
+    const payload = {
+      id: user._id,
+      role: 'user',
+      fingerprint,
+      iat: now,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: expiresInSeconds,
+    });
+
+    await redis.set(`session:${user._id}`, token, 'EX', expiresInSeconds);
+
     await redis.del(redisKey);
 
-    // ✅ Update last login timestamp
     user.lastLoginAt = new Date();
     await user.save();
 
-    // ✅ Log successful login
     await logActivity({
       req,
       actorType: "user",
@@ -129,9 +136,17 @@ exports.verifyLoginOtp = async (req, res) => {
       }
     });
 
+    // ✅ Set token in HTTP-only cookie
+    res.cookie('userToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: expiresInSeconds * 1000,
+    });
+
     return res.json({
       message: "Login successful",
-      token,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -143,5 +158,79 @@ exports.verifyLoginOtp = async (req, res) => {
   } catch (err) {
     console.error("Verify login OTP error:", err);
     return res.status(500).json({ message: "Server error during OTP verification" });
+  }
+};
+
+// ✅ STEP 3 — LOGOUT
+exports.logout = async (req, res) => {
+  try {
+    await redis.del(`session:${req.userId}`);
+
+    // ✅ Clear cookie
+    res.clearCookie('userToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
+
+    return res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error('Logout error:', err);
+    return res.status(500).json({ message: 'Server error during logout' });
+  }
+};
+
+exports.refreshToken = async (req, res) => {
+  try {
+    const oldToken = req.cookies?.userToken || req.headers['authorization']?.split(' ')[1];
+    if (!oldToken) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(oldToken, process.env.JWT_SECRET, { ignoreExpiration: true });
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    // ✅ Check Redis for session token
+    const storedToken = await redis.get(`session:${decoded.id}`);
+    if (!storedToken || storedToken !== oldToken) {
+      return res.status(403).json({ message: 'Session expired or invalid' });
+    }
+
+    // ✅ Generate new access token
+    const now = Math.floor(Date.now() / 1000);
+    const expiresInSeconds = 86400;
+
+    const newToken = jwt.sign(
+      {
+        id: decoded.id,
+        role: decoded.role || 'user',
+        fingerprint: decoded.fingerprint,
+        iat: now,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: expiresInSeconds }
+    );
+
+    // ✅ Update Redis session
+    await redis.set(`session:${decoded.id}`, newToken, 'EX', expiresInSeconds);
+
+    // ✅ Set new cookie
+    res.cookie('userToken', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: expiresInSeconds * 1000,
+    });
+
+    return res.json({ message: 'Token refreshed' });
+  } catch (err) {
+    console.error('❌ Refresh token error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

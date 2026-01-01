@@ -70,7 +70,7 @@ export default function SignupPage() {
     setFormError("");
 
     try {
-      const res = await api.post("/user/signup/initiate", {
+      const res = await api.post("api/user/signup/initiate", {
         fullName: trimmedName,
         email: trimmedEmail,
       });
@@ -116,7 +116,7 @@ export default function SignupPage() {
       {/* Header */}
       <div className="text-center mb-6 flex flex-col items-center justify-center gap-2">
         <div className="flex items-center gap-2">
-          <Image src="/finoqz.svg" alt="FinoQz Logo" width={40} height={40} />
+          <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={40} height={40} />
           <h1 className="text-2xl font-bold">FinoQz</h1>
         </div>
         <p className="text-sm text-gray-500">Welcome! Let’s get you started.</p>

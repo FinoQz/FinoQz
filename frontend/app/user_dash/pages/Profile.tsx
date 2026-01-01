@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import apiUser from '@/lib/apiUser';
 import ProfileCard from '../components/profile/ProfileCard';
 import PersonalInfoSection from '../components/profile/PersonalInfoSection';
 import AccountDetailsSection from '../components/profile/AccountDetailsSection';
@@ -10,28 +11,42 @@ import DeleteAccountModal from '../components/profile/DeleteAccountModal';
 import Toast from '../components/profile/Toast';
 
 export default function Profile() {
-  // Initial User Data
-  const initialUserData = {
-    fullName: 'Rahul Sharma',
-    email: 'rahul.sharma@example.com',
-    phone: '+91 98765 43210',
-    city: 'Mumbai',
-    country: 'India',
-    dateOfBirth: '1995-05-15',
-    gender: 'Male',
-    bio: 'Passionate learner exploring the world of finance and investment. Love taking quizzes to test my knowledge!',
-    profileImage: undefined
-  };
+  interface UserData {
+    fullName: string;
+    email: string;
+    phone: string;
+    mobile: string;
+    city?: string;
+    country?: string;
+    profileImage?: string;
+    createdAt: string;
+    lastLoginAt?: string;
+    dateOfBirth: string;
+    gender: string;
+    bio: string;
+    // Add other fields as needed
+    [key: string]: unknown;
+  }
 
-  const [userData, setUserData] = useState(initialUserData);
-
-  // Account Data (simplified)
-  const [accountData] = useState({
-    accountCreated: 'January 15, 2024',
-    lastLogin: 'November 24, 2025, 10:30 AM'
+  const [userData, setUserData] = useState<UserData | null>({
+    fullName: '',
+    email: '',
+    phone: '',
+    mobile: '',
+    city: '',
+    country: '',
+    profileImage: '',
+    createdAt: '',
+    lastLoginAt: '',
+    dateOfBirth: '',
+    gender: '',
+    bio: '',
+  });
+  const [accountData, setAccountData] = useState<{ accountCreated: string; lastLogin: string }>({
+    accountCreated: '',
+    lastLogin: ''
   });
 
-  // Preferences (future use)
   const [preferences, setPreferences] = useState({
     quizReminders: true,
     newQuizAlerts: true,
@@ -40,24 +55,64 @@ export default function Profile() {
     language: 'en'
   });
 
-  // Modal States
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Toast State
   const [toast, setToast] = useState<{
     show: boolean;
     type: 'success' | 'error' | 'warning';
     message: string;
   }>({ show: false, type: 'success', message: '' });
 
-  // Form Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Handlers
+  // ✅ Fetch user profile on mount
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const res = await apiUser.get('api/user/profile/me'); // ✅ No headers needed
+
+      if (res.status === 200 && res.data.user) {
+        const user = res.data.user;
+        setUserData((prev) => ({
+          ...prev,
+          ...user,
+          phone: user.phone ?? user.mobile ?? '',
+          dateOfBirth: user.dateOfBirth ?? '',
+          gender: user.gender ?? '',
+          bio: user.bio ?? '',
+        }));
+        setAccountData({
+          accountCreated: new Date(user.createdAt).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          }),
+          lastLogin: user.lastLoginAt
+            ? new Date(user.lastLoginAt).toLocaleString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+              })
+            : 'N/A',
+        });
+      }
+    } catch (err) {
+      console.error('❌ Failed to fetch profile:', err);
+      showToast('error', 'Failed to load profile');
+    }
+  };
+
+  fetchProfile();
+}, []);
+
+
   const handlePersonalInfoChange = (field: string, value: string) => {
-    setUserData(prev => ({ ...prev, [field]: value }));
+    setUserData((prev: UserData | null) => prev ? { ...prev, [field]: value } : prev);
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -75,18 +130,37 @@ export default function Profile() {
     setPreferences(prev => ({ ...prev, language: value }));
   };
 
-  const handleImageUpload = (file: File) => {
-    console.log('Image uploaded:', file.name);
-    showToast('success', 'Profile image updated successfully!');
+  const handleImageUpload = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Upload to Cloudinary or similar service
+      const uploadRes = await uploadToCloud(file); // You need to implement this
+      const imageUrl = uploadRes.secure_url;
+
+      const token = localStorage.getItem('userToken');
+      const res = await apiUser.post('api/user/profile/me/profile-image', { url: imageUrl }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.status === 200) {
+        setUserData((prev: UserData | null) => prev ? { ...prev, profileImage: res.data.profileImage } : prev);
+        showToast('success', 'Profile image updated successfully!');
+      }
+    } catch (err) {
+      console.error('❌ Image upload failed:', err);
+      showToast('error', 'Image upload failed');
+    }
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!userData.fullName.trim()) {
+    if (!userData?.fullName?.trim()) {
       newErrors.fullName = 'Full name is required';
     }
-    if (!userData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+    if (!userData?.mobile?.trim()) {
+      newErrors.mobile = 'Phone number is required';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -97,16 +171,30 @@ export default function Profile() {
       showToast('error', 'Please fix the errors before saving');
       return;
     }
+
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem('userToken');
+      const res = await apiUser.patch('api/user/profile/me', userData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.status === 200) {
+        setUserData(res.data.user);
+        showToast('success', 'Profile updated successfully!');
+      } else {
+        showToast('error', 'Failed to update profile');
+      }
+    } catch (err) {
+      console.error('❌ Error saving profile:', err);
+      showToast('error', 'Something went wrong');
+    } finally {
       setIsSaving(false);
-      showToast('success', 'Profile updated successfully!');
-    }, 1500);
+    }
   };
 
   const handleCancel = () => {
-    setUserData(initialUserData);
-    showToast('warning', 'Changes cancelled');
+    window.location.reload(); // reload to refetch original data
   };
 
   const handleChangePassword = (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
@@ -126,6 +214,10 @@ export default function Profile() {
   const hideToast = () => {
     setToast({ show: false, type: 'success', message: '' });
   };
+
+  if (!userData) {
+    return <div className="p-6 text-gray-600">Loading profile...</div>;
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-50">
@@ -150,17 +242,18 @@ export default function Profile() {
 
         {/* Right Side - Forms */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Personal Information */}
           <PersonalInfoSection
-            formData={userData}
+            formData={{
+              ...userData,
+              city: userData.city ?? '',
+              country: userData.country ?? ''
+            }}
             onChange={handlePersonalInfoChange}
             errors={errors}
           />
 
-          {/* Account Details */}
           <AccountDetailsSection accountData={accountData} />
 
-          {/* Action Buttons */}
           <ProfileActions
             onSave={handleSave}
             onCancel={handleCancel}
@@ -170,7 +263,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Modals */}
       <ChangePasswordModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
@@ -183,7 +275,6 @@ export default function Profile() {
         onConfirm={handleDeleteAccount}
       />
 
-      {/* Toast Notification */}
       {toast.show && (
         <Toast
           type={toast.type}
@@ -194,3 +285,33 @@ export default function Profile() {
     </div>
   );
 }
+async function uploadToCloud(file: File): Promise<{ secure_url: string }> {
+  const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`;
+  const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!UPLOAD_PRESET) {
+    throw new Error('Missing Cloudinary upload preset');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+
+  const response = await fetch(CLOUDINARY_URL, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload image');
+  }
+
+  const data = await response.json();
+  if (!data.secure_url) {
+    throw new Error('No secure_url returned from upload');
+  }
+
+  return { secure_url: data.secure_url };
+}
+
+

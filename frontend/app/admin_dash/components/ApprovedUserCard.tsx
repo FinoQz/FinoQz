@@ -18,7 +18,9 @@ export default function ApprovedUserCard({ user }: ApprovedUserCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -27,13 +29,16 @@ export default function ApprovedUserCard({ user }: ApprovedUserCardProps) {
   };
 
   const formatTime = (dateString: string) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
     });
   };
+
 
   return (
     <div

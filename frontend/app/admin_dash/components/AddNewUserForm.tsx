@@ -93,7 +93,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
       formData.append('profilePicture', newUserForm.profilePicture);
     }
 
-    await api.post('/admin/panel/add-user', formData, {
+    await api.post('api/admin/panel/add-user', formData, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',

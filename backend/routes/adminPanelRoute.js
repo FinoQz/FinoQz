@@ -18,7 +18,8 @@ const {
   createGroup,
   getGroups,
   updateGroup,
-  deleteGroup
+  deleteGroup,
+  getUserGrowthData
 } = require('../controllers/adminPanelController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
@@ -58,5 +59,7 @@ router.get('/groups', authMiddleware('admin'), requireAdmin, getGroups);
 router.put('/groups/:id', authMiddleware('admin'), requireAdmin, updateGroup);
 
 router.delete('/groups/:id', authMiddleware('admin'), requireAdmin, deleteGroup);
+
+router.get('/analytics/user-growth', getUserGrowthData);
 
 module.exports = router;

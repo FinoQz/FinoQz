@@ -39,7 +39,7 @@ export default function ResetPasswordForm() {
     setSuccessMessage("");
 
     try {
-      const res = await api.post("/user/forgot-password/reset", {
+      const res = await api.post("api/user/forgot-password/reset", {
         email,
         newPassword,
       });

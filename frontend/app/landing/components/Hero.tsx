@@ -1,12 +1,11 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import logo from '@/public/finoqz.svg';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 
 interface Stat {
   value: string;
@@ -29,17 +28,20 @@ export default function Hero() {
   useEffect(() => {
     const fetchHero = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/admin/landing', {
-          cache: 'no-store',
+        const res = await api.get('api/admin/landing', {
+          headers: {
+            'Cache-Control': 'no-store',
+          },
         });
-        const data = await res.json();
-        setHero(data?.hero || null);
+        setHero(res.data?.hero || null);
       } catch (err) {
         console.error('Failed to fetch hero data', err);
       }
     };
+
     fetchHero();
   }, []);
+
 
   const handleCTAClick = (link?: string) => {
     if (!link) return;
@@ -73,7 +75,7 @@ export default function Hero() {
           transition={{ duration: 0.8 }}
         >
           <div className="flex items-center gap-3 mb-6">
-            <Image src={logo} alt="FinoQz Logo" width={52} height={52} />
+            <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={52} height={52} unoptimized style={{ height: 'auto' }} />
             <span className="text-[2rem] md:text-[2.25rem] font-semibold text-[#253A7B] tracking-wide">
               FinoQz
             </span>
@@ -127,10 +129,11 @@ export default function Hero() {
                 width={600}
                 height={300}
                 className="object-contain w-full h-64"
+                unoptimized
               />
             ) : (
               <div className="w-full h-64 bg-gray-200 flex items-center justify-center text-gray-400 text-sm">
-                No image
+                FinoQz
               </div>
             )}
           </div>

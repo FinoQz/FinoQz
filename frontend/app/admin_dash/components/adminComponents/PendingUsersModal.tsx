@@ -20,7 +20,7 @@ export default function PendingUsersModal({ isOpen, onClose, users }: PendingUse
             setLoadingId(userId);
 
             const res = await api.post(
-                `/admin/panel/${action}/${userId}`,
+                `api/admin/panel/${action}/${userId}`,
                 null,
                 {
                     headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` }

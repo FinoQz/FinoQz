@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '../../../../../../lib/api';
+import api from '@/lib/api';
 import axios from 'axios';
 
 export default function VerifyOtpForm() {
@@ -34,7 +34,7 @@ const handleVerify = async () => {
       ? { email, otp }
       : { identifier: email, otp };
 
-    const res = await api.post('/admin/verify-otp', payload);
+    const res = await api.post('api/admin/verify-otp', payload);
 
     localStorage.setItem('adminToken', res.data.token);
     router.push('/admin_dash');
@@ -96,6 +96,7 @@ const handleVerify = async () => {
     </div>
   );
 }
+
 // 'use client';
 
 // import { useState, useEffect } from 'react';
@@ -108,12 +109,11 @@ const handleVerify = async () => {
 //   const [email, setEmail] = useState('');
 //   const router = useRouter();
 //   const [formError, setFormError] = useState('');
-//   const [loading, setLoading] = useState(false); // ✅ loading state
 
 //   useEffect(() => {
 //     const storedEmail = localStorage.getItem('adminEmail');
 //     if (!storedEmail) {
-//       router.push('/landing/signin'); // ✅ redirect to login if email missing
+//       router.push('/landing/admin_dash');
 //     } else {
 //       setEmail(storedEmail);
 //     }
@@ -121,44 +121,34 @@ const handleVerify = async () => {
 
 //   const handleVerify = async () => {
 //     if (!otp || !email) {
-//       setFormError("Missing OTP or email");
+//       setFormError("Missing OTP or email/username");
 //       return;
 //     }
 
-//     setFormError("");
-//     setLoading(true); // ✅ disable button while verifying
-//     try {
-//       await api.post('/admin/verify-otp', { email, otp });
+//     setFormError('');
 
-//       // ✅ rely on secure cookies, no localStorage
+//     try {
+//       const payload = email.includes("@")
+//         ? { email, otp }
+//         : { identifier: email, otp };
+
+//       const res = await api.post('api/admin/verify-otp', payload); // ✅ Cookie set by backend
+
+//       // ✅ No need to store token manually
 //       router.push('/admin_dash');
 //     } catch (err: unknown) {
 //       let errMsg = 'OTP verification failed';
+
 //       if (axios.isAxiosError(err)) {
 //         const maybeMessage = err.response?.data?.message;
 //         if (typeof maybeMessage === 'string') {
 //           errMsg = maybeMessage;
 //         } else if (err.response?.status === 403) {
 //           errMsg = "Wrong OTP, kindly enter correct OTP";
-//         } else if (err.response?.status === 401) {
-//           errMsg = "OTP expired, please login again";
-//         } else if (err.response?.status === 500) {
-//           errMsg = "Server error, please try again later"; // ✅ extra error handling
 //         }
 //       }
-//       setFormError(errMsg);
-//     } finally {
-//       setLoading(false); // ✅ re-enable button
-//     }
-//   };
 
-//   const handleResend = async () => {
-//     try {
-//       await api.post('/admin/login', { identifier: email, password: '' });
-//       // ⚠️ backend ideally should allow resend by email only
-//       setFormError("New OTP sent to your email");
-//     } catch {
-//       setFormError("Failed to resend OTP");
+//       setFormError(errMsg);
 //     }
 //   };
 
@@ -194,21 +184,11 @@ const handleVerify = async () => {
 //         </button>
 //         <button
 //           onClick={handleVerify}
-//           disabled={loading} // ✅ disable while loading
-//           className={`w-1/2 py-2 rounded font-semibold ${
-//             loading ? "bg-gray-400 cursor-not-allowed" : "bg-black text-white hover:bg-gray-900"
-//           }`}
+//           className="w-1/2 bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
 //         >
-//           {loading ? "Verifying..." : "Verify & Login"} {/* ✅ UX polish */}
+//           Verify & Login
 //         </button>
 //       </div>
-
-//       <button
-//         onClick={handleResend}
-//         className="mt-4 w-full text-sm text-blue-600 hover:underline"
-//       >
-//         Resend OTP
-//       </button>
 //     </div>
 //   );
 // }

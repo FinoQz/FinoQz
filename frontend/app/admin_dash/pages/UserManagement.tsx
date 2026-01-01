@@ -294,9 +294,9 @@ export default function UserManagement() {
     const fetchAllUsers = async () => {
       try {
         const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-          api.get('/admin/panel/pending-users', { headers: { Authorization: `Bearer ${token}` } }),
-          api.get('/admin/panel/approved-users', { headers: { Authorization: `Bearer ${token}` } }),
-          api.get('/admin/panel/rejected-users', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('api/admin/panel/pending-users', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('api/admin/panel/approved-users', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('api/admin/panel/rejected-users', { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         setPendingUsers(pendingRes.data || []);
@@ -326,33 +326,40 @@ export default function UserManagement() {
     setActionStatus(`Processing ${action}...`);
 
     const user = pendingUsers.find(u => u._id === userId);
-    if (!user) return;
+    if (!user) {
+      console.warn("❌ User not found in pending list for ID:", userId);
+      return;
+    }
 
     try {
-      const res = await api.post(`/user/signup/${action}/${userId}`, null, {
+      console.log("📤 Sending action:", action, "for user ID:", user._id);
+
+      const res = await api.post(`api/user/signup/${action}/${user._id}`, null, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.status === 200) {
-        setPendingUsers(prev => prev.filter(u => u._id !== userId));
-
-        const currentTime = new Date().toISOString();
+        setPendingUsers(prev => prev.filter(u => u._id !== user._id));
 
         if (action === 'approve') {
-          setApprovedUsers(prev => [...prev, { ...user, approvedAt: currentTime }]);
+          const approvedAt = res.data?.approvedAt || new Date().toISOString();
+          setApprovedUsers(prev => [...prev, { ...user, approvedAt }]);
           setActionStatus(`User approved successfully`);
         } else {
-          setRejectedUsers(prev => [...prev, { ...user, rejectedAt: currentTime }]);
+          const rejectedAt = new Date().toISOString(); // backend doesn't return rejectedAt yet
+          setRejectedUsers(prev => [...prev, { ...user, rejectedAt }]);
           setActionStatus(`User rejected successfully`);
         }
       } else {
+        console.warn(`⚠️ Unexpected response during ${action}:`, res);
         setActionStatus(`Failed to ${action} user`);
       }
     } catch (err) {
-      console.error(`Error during ${action}:`, err);
+      console.error(`❌ Error during ${action}:`, err);
       setActionStatus(`Failed to ${action} user`);
     }
   };
+
 
   const handleAddUserSuccess = () => {
     setActiveTab('all');

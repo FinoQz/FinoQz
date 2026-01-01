@@ -43,14 +43,14 @@ export default function DashboardOverview() {
     freeQuizAttempts: 0,
   });
   interface PendingUser {
-  _id: string;
-  fullName: string;
-  email: string;
-  mobile: string;
-  status: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+    _id: string;
+    fullName: string;
+    email: string;
+    mobile: string;
+    status: string;
+    createdAt?: string;
+    updatedAt?: string;
+  }
 
 
   const [loading, setLoading] = useState(true);
@@ -61,6 +61,9 @@ export default function DashboardOverview() {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const isPendingModalOpenRef = useRef(false);
+  const [userData, setUserData] = useState<number[]>([]);
+  const [days, setDays] = useState<string[]>([]);
+
 
   const token =
     typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
@@ -77,16 +80,16 @@ export default function DashboardOverview() {
     const fetchStats = async () => {
       try {
         const [allRes, activeRes, pendingRes, monthlyRes] = await Promise.all([
-          api.get('/admin/panel/all-users', {
+          api.get('api/admin/panel/all-users', {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          api.get('/admin/panel/approved-users', {
+          api.get('api/admin/panel/approved-users', {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          api.get('/admin/panel/pending-users', {
+          api.get('api/admin/panel/pending-users', {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          api.get('/admin/panel/monthly-users', {
+          api.get('api/admin/panel/monthly-users', {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -116,6 +119,18 @@ export default function DashboardOverview() {
 
     fetchStats();
   }, [token]);
+
+  useEffect(() => {
+    const fetchUserGrowth = async () => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}api/admin/panel/analytics/user-growth`);
+      const data = await res.json();
+      setUserData(data.values);
+      setDays(data.labels);
+    };
+
+    fetchUserGrowth();
+  }, []);
+
 
   // 🔌 WebSocket listener for real-time updates
   useEffect(() => {
@@ -184,7 +199,7 @@ export default function DashboardOverview() {
     setIsPendingModalOpen(true);
 
     try {
-      const res = await api.get('/admin/panel/pending-users', {
+      const res = await api.get('api/admin/panel/pending-users', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPendingUsersList(res.data);
@@ -398,159 +413,146 @@ export default function DashboardOverview() {
 
         {/* User Growth Chart */}
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">
-            User Growth
-          </h3>
-          <div className="h-64">
-            {(() => {
-              const userData = [
-                980, 1020, 1055, 1090, 1125, 1160, 1180,
-                1205, 1230, 1250, 1275, 1295, 1320, 1248,
-              ];
-              const minUsers = Math.min(...userData) - 50;
-              const maxUsers = Math.max(...userData);
-              const range = maxUsers - minUsers;
-              const days = [
-                'Jan 5', 'Jan 6', 'Jan 7', 'Jan 8', 'Jan 9', 'Jan 10',
-                'Jan 11', 'Jan 12', 'Jan 13', 'Jan 14', 'Jan 15',
-                'Jan 16', 'Jan 17', 'Jan 18',
-              ];
+          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">User Growth</h3>
+          <div className="h-64 overflow-x-auto">
+            <div style={{ minWidth: `${days.length * 60}px` }} className="h-full">
+              {userData.length > 0 && days.length > 0 ? (() => {
+                const minUsers = Math.min(...userData) - 5;
+                const maxUsers = Math.max(...userData);
+                const range = maxUsers - minUsers || 1;
 
-              return (
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 relative border-b-2 border-l-2 border-gray-300 pl-2 pb-2">
-                    <div className="absolute inset-0 flex flex-col justify-between pl-2 pb-2">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <div key={i} className="border-t border-gray-100" />
-                      ))}
-                    </div>
+                const yTicks = 5;
+                const yLabels = Array.from({ length: yTicks + 1 }, (_, i) =>
+                  Math.round(minUsers + (range * (yTicks - i)) / yTicks)
+                );
 
-                    <svg
-                      className="w-full h-full"
-                      preserveAspectRatio="none"
-                    >
-                      <defs>
-                        <linearGradient
-                          id="userGradient"
-                          x1="0%"
-                          y1="0%"
-                          x2="0%"
-                          y2="100%"
-                        >
-                          <stop
-                            offset="0%"
-                            style={{
-                              stopColor: '#4ade80',
-                              stopOpacity: 0.3,
-                            }}
-                          />
-                          <stop
-                            offset="100%"
-                            style={{
-                              stopColor: '#4ade80',
-                              stopOpacity: 0,
-                            }}
-                          />
-                        </linearGradient>
-                      </defs>
-
-                      <path
-                        d={`M 0,${
-                          200 -
-                          ((userData[0] - minUsers) / range) * 200
-                        } ${userData
-                          .map(
-                            (users, index) =>
-                              `L ${
-                                (index / (userData.length - 1)) * 100
-                              }%,${
-                                200 -
-                                ((users - minUsers) / range) * 200
-                              }`
-                          )
-                          .join(' ')} L 100%,200 L 0,200 Z`}
-                        fill="url(#userGradient)"
-                      />
-
-                      <path
-                        d={`M 0,${
-                          200 -
-                          ((userData[0] - minUsers) / range) * 200
-                        } ${userData
-                          .map(
-                            (users, index) =>
-                              `L ${
-                                (index / (userData.length - 1)) * 100
-                              }%,${
-                                200 -
-                                ((users - minUsers) / range) * 200
-                              }`
-                          )
-                          .join(' ')}`}
-                        fill="none"
-                        stroke="#22c55e"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-
-                      {userData.map((users, index) => (
-                        <g key={index}>
-                          <circle
-                            cx={`${
-                              (index / (userData.length - 1)) * 100
-                            }%`}
-                            cy={
-                              200 -
-                              ((users - minUsers) / range) * 200
-                            }
-                            r="4"
-                            fill="#22c55e"
-                            className="hover:r-6 transition-all cursor-pointer"
-                          />
-                        </g>
-                      ))}
-                    </svg>
-
-                    <div className="absolute inset-0 flex items-end justify-between pl-2 pb-2">
-                      {userData.map((users, index) => (
-                        <div
-                          key={index}
-                          className="flex-1 group relative"
-                        >
-                          <div
-                            className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10"
-                            style={{
-                              bottom: `${
-                                ((users - minUsers) / range) * 200
-                              }px`,
-                            }}
-                          >
-                            {users.toLocaleString()} users
+                return (
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 relative border-b-2 border-l-2 border-gray-300 pl-10 pb-2">
+                      {/* Y-axis labels */}
+                      <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-gray-400 py-2 pr-1">
+                        {yLabels.map((label, i) => (
+                          <div key={i} className="h-[1px] -translate-y-1/2">
+                            {label}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                        ))}
+                      </div>
 
-                  <div className="flex justify-between mt-2 pl-2">
-                    {days.map((day, index) =>
-                      index % 2 === 0 ? (
+                      {/* Grid lines */}
+                      <div className="absolute inset-0 flex flex-col justify-between pl-2 pb-2">
+                        {yLabels.map((_, i) => (
+                          <div key={i} className="border-t border-gray-100" />
+                        ))}
+                      </div>
+
+                      {/* Chart */}
+                      <svg className="w-full h-full" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="userGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: '#4ade80', stopOpacity: 0.3 }} />
+                            <stop offset="100%" style={{ stopColor: '#4ade80', stopOpacity: 0 }} />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Area fill */}
+                        <path
+                          d={`M 0,${200 - ((userData[0] - minUsers) / range) * 200
+                            } ${userData
+                              .map(
+                                (users, index) =>
+                                  `L ${(index / (userData.length - 1)) * 100}%,${200 - ((users - minUsers) / range) * 200}`
+                              )
+                              .join(' ')} L 100%,200 L 0,200 Z`}
+                          fill="url(#userGradient)"
+                        />
+
+                        {/* Line path */}
+                        <path
+                          d={`M 0,${200 - ((userData[0] - minUsers) / range) * 200
+                            } ${userData
+                              .map(
+                                (users, index) =>
+                                  `L ${(index / (userData.length - 1)) * 100}%,${200 - ((users - minUsers) / range) * 200}`
+                              )
+                              .join(' ')}`}
+                          fill="none"
+                          stroke="#22c55e"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+
+                        {/* Dots */}
+                        {userData.map((users, index) => {
+                          const cx = `${(index / (userData.length - 1)) * 100}%`;
+                          const baseY = 200 - ((users - minUsers) / range) * 200;
+                          const cy = users === 0 ? 200 : baseY + 6;
+                          const color = users === 0 ? '#22c55e' : '#ef4444';
+
+                          return (
+                            <g key={index}>
+                              <circle
+                                cx={cx}
+                                cy={cy}
+                                r="5"
+                                fill={color}
+                                className="hover:r-7 transition-all cursor-pointer"
+                              />
+                            </g>
+                          );
+                        })}
+                      </svg>
+
+                      {/* Tooltips */}
+                      <div className="absolute inset-0 flex items-end justify-between pl-2 pb-2">
+                        {userData.map((users, index) => {
+                          const bottom = users === 0
+                            ? 0
+                            : ((users - minUsers) / range) * 200 + 14;
+
+                          const label =
+                            users === 0
+                              ? 'No users'
+                              : users === 1
+                                ? '1 user'
+                                : `${users.toLocaleString()} users`;
+
+                          return (
+                            <div key={index} className="relative group" style={{ width: '60px' }}>
+                              <div
+                                className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10"
+                                style={{ bottom: `${bottom}px` }}
+                              >
+                                {label}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* X-axis labels */}
+                    <div className="flex mt-2 pl-2 gap-[2px]">
+                      {days.map((day, index) => (
                         <div
                           key={index}
-                          className="text-xs text-gray-600 flex-1 text-center"
+                          className="text-[10px] text-gray-600 text-center"
+                          style={{ width: '60px' }}
                         >
                           {day}
                         </div>
-                      ) : (
-                        <div key={index} className="flex-1" />
-                      )
-                    )}
+                      ))}
+                    </div>
                   </div>
+                );
+              })() : (
+                <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                  Loading user growth data...
                 </div>
-              );
-            })()}
+              )}
+            </div>
           </div>
         </div>
+
 
         {/* Quiz Completion Rate */}
         <QuizCompletionRate />

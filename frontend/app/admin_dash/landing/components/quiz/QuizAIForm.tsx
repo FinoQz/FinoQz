@@ -27,7 +27,7 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
     setGenerated([]);
 
     try {
-      const res = await api.post('/admin/demo-quiz/ai-generate', {
+      const res = await api.post('api/admin/demo-quiz/ai-generate', {
         categoryId,
         prompt,
         count,

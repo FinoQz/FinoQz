@@ -19,6 +19,8 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import api from '@/lib/api';
+
 
 interface Category {
     id: string;
@@ -41,11 +43,13 @@ export default function CategoryEditor() {
         })
     );
 
+    // ...
+
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/admin/landing');
-                const data = await res.json();
+                const res = await api.get('api/admin/landing'); // ✅ updated
+                const data = res.data;
                 const loaded = data?.categories || [];
                 setCategories(loaded);
                 setInitialState(loaded);
@@ -59,16 +63,8 @@ export default function CategoryEditor() {
     const saveCategories = async () => {
         setLoading(true);
         try {
-            const formData = new FormData();
-            formData.append('payload', JSON.stringify({ categories }));
-
-            const res = await fetch('http://localhost:5000/api/admin/landing', {
-                method: 'PATCH',
-                body: formData,
-            });
-
-            const result = await res.json();
-            if (!result.ok) {
+            const res = await api.patch('api/admin/landing', { categories }); // ✅ updated
+            if (res.status < 200 || res.status >= 300) {
                 alert('Failed to save categories');
             } else {
                 alert('Categories saved successfully!');
@@ -83,6 +79,7 @@ export default function CategoryEditor() {
             setLoading(false);
         }
     };
+
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -320,39 +317,39 @@ function SortableCategoryCard({
 }
 
 function BulletInput({ onAdd }: { onAdd: (text: string) => void }) {
-  const [text, setText] = useState('');
+    const [text, setText] = useState('');
 
-  const handleSubmit = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    onAdd(trimmed);
-    setText('');
-  };
+    const handleSubmit = () => {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        onAdd(trimmed);
+        setText('');
+    };
 
-  return (
-    <div className="flex gap-3">
-      <input
-        type="text"
-        placeholder="Add bullet"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault(); // ✅ Prevent form submission, not typing
-            handleSubmit();
-          }
-        }}
-        className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-[#253A7B] focus:outline-none"
-      />
-      <button
-        onClick={handleSubmit}
-        className="text-sm px-3 py-2 border rounded text-gray-700 hover:bg-gray-100"
-        title="Add bullet"
-      >
-        Add
-      </button>
-    </div>
-  );
+    return (
+        <div className="flex gap-3">
+            <input
+                type="text"
+                placeholder="Add bullet"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // ✅ Prevent form submission, not typing
+                        handleSubmit();
+                    }
+                }}
+                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-[#253A7B] focus:outline-none"
+            />
+            <button
+                onClick={handleSubmit}
+                className="text-sm px-3 py-2 border rounded text-gray-700 hover:bg-gray-100"
+                title="Add bullet"
+            >
+                Add
+            </button>
+        </div>
+    );
 }
 
 

@@ -21,7 +21,7 @@ export default function ForgotPasswordForm() {
     setSuccessMessage("");
 
     try {
-      const res = await api.post("/user/forgot-password/initiate", { email });
+      const res = await api.post("api/user/forgot-password/initiate", { email });
 
       if (res.data.message === "OTP sent") {
         localStorage.setItem("resetEmail", email);

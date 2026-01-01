@@ -40,7 +40,7 @@ export default function QuizCategories() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/admin/landing');
+        const res = await api.get('api/admin/landing');
         if (!mounted) return;
 
         const data = res.data || {};

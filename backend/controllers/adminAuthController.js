@@ -166,6 +166,52 @@ exports.verifyOtp = async (req, res) => {
 
 
 // ✅ Step 3: Refresh token → issue new access token
+// exports.refreshToken = async (req, res) => {
+//   try {
+//     const oldToken = req.cookies?.adminToken || req.headers["authorization"]?.split(" ")[1];
+//     if (!oldToken) {
+//       return res.status(401).json({ message: "No token provided" });
+//     }
+
+//     let decoded;
+//     try {
+//       decoded = jwt.verify(oldToken, process.env.JWT_SECRET, { ignoreExpiration: true });
+//     } catch (err) {
+//       return res.status(401).json({ message: "Invalid token" });
+//     }
+
+//     // ✅ Check Redis for refresh token
+//     const storedRefresh = await redis.get(`admin:refresh:${decoded.id}`);
+//     if (!storedRefresh) {
+//       return res.status(403).json({ message: "Refresh token expired or invalid" });
+//     }
+
+//     // ✅ Generate new access token
+//     const newAccessToken = jwt.sign(
+//       {
+//         id: decoded.id,
+//         role: decoded.role || "admin",
+//         fingerprint: decoded.fingerprint
+//       },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "30m" }
+//     );
+
+//     // ✅ Reset cookie
+//     res.cookie("adminToken", newAccessToken, {
+//       httpOnly: true,
+//       secure: true,
+//       sameSite: "strict",
+//       path: "/",
+//       maxAge: 30 * 60 * 1000
+//     });
+
+//     return res.json({ token: newAccessToken });
+//   } catch (err) {
+//     console.error("❌ Refresh token error:", err);
+//     return res.status(500).json({ message: "Internal server error" });
+//   }
+// };
 exports.refreshToken = async (req, res) => {
   try {
     const oldToken = req.cookies?.adminToken || req.headers["authorization"]?.split(" ")[1];
@@ -177,36 +223,45 @@ exports.refreshToken = async (req, res) => {
     try {
       decoded = jwt.verify(oldToken, process.env.JWT_SECRET, { ignoreExpiration: true });
     } catch (err) {
+      console.warn("❌ Invalid token during refresh:", err.message);
       return res.status(401).json({ message: "Invalid token" });
     }
 
     // ✅ Check Redis for refresh token
     const storedRefresh = await redis.get(`admin:refresh:${decoded.id}`);
     if (!storedRefresh) {
+      console.warn("❌ No refresh token found in Redis");
       return res.status(403).json({ message: "Refresh token expired or invalid" });
     }
 
     // ✅ Generate new access token
+    const now = Math.floor(Date.now() / 1000);
+    const expiresInSeconds = 30 * 60;
+
     const newAccessToken = jwt.sign(
       {
         id: decoded.id,
         role: decoded.role || "admin",
-        fingerprint: decoded.fingerprint
+        fingerprint: decoded.fingerprint,
+        iat: now,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "30m" }
+      { expiresIn: expiresInSeconds }
     );
+
+    // ✅ Update Redis session
+    await redis.set(`session:${decoded.id}`, newAccessToken, "EX", expiresInSeconds);
 
     // ✅ Reset cookie
     res.cookie("adminToken", newAccessToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 30 * 60 * 1000
+      maxAge: expiresInSeconds * 1000,
     });
 
-    return res.json({ token: newAccessToken });
+    return res.json({ message: "Token refreshed", token: newAccessToken });
   } catch (err) {
     console.error("❌ Refresh token error:", err);
     return res.status(500).json({ message: "Internal server error" });

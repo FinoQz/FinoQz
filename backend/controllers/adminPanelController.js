@@ -13,6 +13,7 @@ const emailQueue = require('../utils/emailQueue');
 const userDeletedTemplate = require("../emailTemplates/userDeletedTemplate");
 const cloudinary = require('../utils/cloudinary');
 const redis = require('../utils/redis');
+const mongoose = require('mongoose');
 
 
 
@@ -69,19 +70,42 @@ exports.getPendingUsers = async (req, res) => {
 };
 
 // ✅ Approve a user
+
+
 exports.approveUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
+    // ✅ Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+
+    console.log("➡️ Admin approving user:", userId);
+
     const user = await User.findById(userId);
 
-    if (!user || user.status !== 'awaiting_admin_approval') {
-      return res.status(400).json({ message: 'Invalid user or status' });
+    if (!user) {
+      console.log("❌ User not found");
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.status !== 'awaiting_admin_approval') {
+      console.log("⚠️ User not in approval queue:", user.status);
+      return res.status(400).json({ message: 'User is not awaiting approval' });
     }
 
     user.status = 'approved';
     user.approvedBy = req.adminId;
-    await user.save();
+    user.approvedAt = new Date();
+
+    const savedUser = await user.save();
+
+    console.log("✅ User approved:", {
+      id: savedUser._id.toString(),
+      approvedAt: savedUser.approvedAt,
+      approvedBy: savedUser.approvedBy?.toString(),
+    });
 
     // ✅ Log activity
     await logActivity({
@@ -89,7 +113,7 @@ exports.approveUser = async (req, res) => {
       actorType: "admin",
       actorId: req.adminId,
       action: "approve_user",
-      meta: { userId }
+      meta: { userId: savedUser._id }
     });
 
     // ✅ Emit real-time dashboard stats
@@ -97,21 +121,34 @@ exports.approveUser = async (req, res) => {
 
     // ✅ Queue approval email (non-blocking)
     sendEmail(
-      user.email,
+      savedUser.email,
       'FinoQz Account Approved',
       approvalSuccessTemplate({
-        fullName: user.fullName,
-        email: user.email,
+        fullName: savedUser.fullName,
+        email: savedUser.email,
         password: 'Your chosen password'
       })
-    ).catch(err => console.error('Approval email failed:', err));
+    ).catch(err => console.error('📨 Approval email failed:', err));
 
-    res.json({ message: 'User approved' });
+    // ✅ Respond with full user info (optional)
+    res.json({
+      message: 'User approved successfully',
+      user: {
+        _id: savedUser._id,
+        fullName: savedUser.fullName,
+        email: savedUser.email,
+        approvedAt: savedUser.approvedAt,
+        approvedBy: savedUser.approvedBy,
+        status: savedUser.status,
+      }
+    });
+
   } catch (err) {
-    console.error('Error approving user:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error approving user:', err);
+    res.status(500).json({ message: 'Server error during approval' });
   }
 };
+
 
 
 // ✅ Reject a user
@@ -182,7 +219,8 @@ exports.getAllUsers = async (req, res) => {
 exports.getApprovedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'approved' })
-      .select('_id fullName email mobile createdAt approvedBy');
+      .select('_id fullName email mobile createdAt approvedBy approvedAt') // ✅ added approvedAt
+      .sort({ approvedAt: -1 }); // ✅ optional: latest approved first
 
     res.json(users);
   } catch (err) {
@@ -190,6 +228,7 @@ exports.getApprovedUsers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.getRejectedUsers = async (req, res) => {
   try {
@@ -574,3 +613,57 @@ exports.getMonthlyUsers = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+exports.getUserGrowthData = async (req, res) => {
+  try {
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth(), 1); // 1st of current month
+    const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // last day of current month
+
+    const pipeline = [
+      {
+        $match: {
+          createdAt: {
+            $gte: startDate,
+            $lte: endDate
+          }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
+    ];
+
+    const results = await User.aggregate(pipeline);
+
+    // Fill missing days with 0
+    const labels = [];
+    const values = [];
+
+    const totalDays = endDate.getDate();
+    for (let i = 1; i <= totalDays; i++) {
+      const date = new Date(today.getFullYear(), today.getMonth(), i);
+      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const isoDate = date.toISOString().split('T')[0];
+      const match = results.find(r => r._id === isoDate);
+
+      labels.push(label);
+      values.push(match ? match.count : 0);
+    }
+
+    return res.json({ labels, values });
+
+  } catch (err) {
+    console.error("❌ Error fetching user growth data:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+

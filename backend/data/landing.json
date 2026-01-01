@@ -3,8 +3,8 @@
     "heading": "Where Smart Finance Learning Becomes a Daily Habit",
     "tagline": "Master finance through interactive quizzes, earn certificates, and grow a thriving community",
     "buttonText": "Try Free Quiz",
-    "buttonLink": "/landing/auth/user_login/login",
-    "imageUrl": "/uploads/hero-1766660787413.svg",
+    "buttonLink": "#try-quiz",
+    "imageUrl": "https://res.cloudinary.com/dwbbsvsrq/image/upload/finoqz/hero/2ac3a8059da6171daf16361bffb94cb718de7381",
     "stats": [
       {
         "value": "10+",

@@ -29,7 +29,7 @@ export default function VerifySigninOtpForm() {
     setFormError("");
 
     try {
-      const res = await api.post('/user/login/verify', { email, otp }); // 👈 signin verify endpoint
+      const res = await api.post('api/user/login/verify', { email, otp }); // 👈 signin verify endpoint
 
       // ✅ Save JWT token
       localStorage.setItem('userToken', res.data.token);
