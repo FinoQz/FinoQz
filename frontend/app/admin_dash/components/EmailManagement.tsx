@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Mail, Send, X, CheckSquare, Square, Search } from "lucide-react";
-import api from "@/lib/api";
+import apiAdmin from "@/lib/apiAdmin"; // ✅ cookie-based axios instance
 
 interface User {
   _id: string;
@@ -25,19 +25,13 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
   const [isSending, setIsSending] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
-
-  // ✅ Fetch users from backend
+  // ✅ Fetch users from backend using cookies
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        if (!token) return;
-
-        const res = await api.get("api/admin/panel/all-users", {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await apiAdmin.get("api/admin/panel/all-users", {
+          withCredentials: true, // ✅ ensure cookies are sent
         });
-
         setAllUsers(res.data || []);
       } catch (err) {
         console.error("Failed to fetch users:", err);
@@ -47,16 +41,14 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
     };
 
     fetchUsers();
-  }, [token]);
+  }, []);
 
-  // ✅ Filter users
   const filteredUsers = allUsers.filter(
     (user) =>
       user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // ✅ Select All
   const handleSelectAll = () => {
     if (selectedUsers.length === filteredUsers.length) {
       setSelectedUsers([]);
@@ -65,7 +57,6 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
     }
   };
 
-  // ✅ Select Single User
   const handleSelectUser = (userId: string) => {
     if (selectedUsers.includes(userId)) {
       setSelectedUsers(selectedUsers.filter((id) => id !== userId));
@@ -74,7 +65,6 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
     }
   };
 
-  // ✅ Send Email
   const handleSendEmail = async () => {
     if (selectedUsers.length === 0) {
       onStatusChange?.("Please select at least one user");
@@ -97,7 +87,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
         .filter((u) => selectedUsers.includes(u._id))
         .map((u) => u.email);
 
-      await api.post(
+      await apiAdmin.post(
         "api/admin/panel/send-email",
         {
           recipients: selectedEmails,
@@ -105,7 +95,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
           body: emailBody,
         },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true, // ✅ cookie-based auth
         }
       );
 
@@ -124,7 +114,6 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
       setIsSending(false);
     }
   };
-
   return (
     <div className="space-y-6">
       {/* Header */}

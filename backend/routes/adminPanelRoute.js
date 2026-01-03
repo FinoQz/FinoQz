@@ -19,7 +19,8 @@ const {
   getGroups,
   updateGroup,
   deleteGroup,
-  getUserGrowthData
+  getUserGrowthData,
+  getLiveUsers
 } = require('../controllers/adminPanelController');
 
 const authMiddleware = require('../middlewares/authMiddleware');
@@ -48,7 +49,8 @@ router.delete('/user/:userId', authMiddleware('admin'), requireAdmin, deleteUser
 
 router.post("/add-user", authMiddleware("admin"), requireAdmin, upload.single("profilePicture"), addNewUser);
 
-router.post("/send-email", verifyToken, requireAdmin, sendBulkEmail);
+router.post("/send-email", authMiddleware("admin"), requireAdmin, sendBulkEmail);
+
 
 router.get('/monthly-users', authMiddleware('admin'), requireAdmin, getMonthlyUsers);
 
@@ -60,6 +62,8 @@ router.put('/groups/:id', authMiddleware('admin'), requireAdmin, updateGroup);
 
 router.delete('/groups/:id', authMiddleware('admin'), requireAdmin, deleteGroup);
 
-router.get('/analytics/user-growth', getUserGrowthData);
+router.get('/analytics/user-growth', authMiddleware('admin'), requireAdmin, getUserGrowthData);
+
+router.get('/analytics/live-users', authMiddleware('admin'), requireAdmin, getLiveUsers);
 
 module.exports = router;

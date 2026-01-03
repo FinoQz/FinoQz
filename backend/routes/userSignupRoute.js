@@ -43,7 +43,7 @@ router.get('/status', getSignupStatus);
 /* ---------------------------------------------------------
    ✅ STEP 4: ADMIN ACTIONS (Protected)
 --------------------------------------------------------- */
-router.post('/approve/:userId', authMiddleware(), requireAdmin, approveUser);
-router.post('/reject/:userId', authMiddleware(), requireAdmin, rejectUser);
+// router.post('/approve/:userId', authMiddleware(), requireAdmin, approveUser);
+// router.post('/reject/:userId', authMiddleware(), requireAdmin, rejectUser);
 
 module.exports = router;

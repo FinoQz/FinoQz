@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const adminSchema = new mongoose.Schema({
-  // Identity
+  // 🧑 Identity
   name: {
     type: String,
     required: true,
@@ -24,13 +24,13 @@ const adminSchema = new mongoose.Schema({
     minlength: 4,
   },
 
-  // Auth
+  // 🔐 Auth
   password: {
     type: String,
-    required: true, // hashed password
+    required: true, // will be hashed
   },
 
-  // Role & audit
+  // 🛡️ Role & Status
   role: {
     type: String,
     enum: ['superadmin', 'admin', 'moderator'],
@@ -41,10 +41,15 @@ const adminSchema = new mongoose.Schema({
     enum: ['active', 'suspended'],
     default: 'active',
   },
-  lastLoginAt: Date,
-}, { timestamps: true }); // ✅ adds createdAt + updatedAt automatically
 
-// ✅ Password hashing middleware
+  // 📅 Activity
+  lastLoginAt: Date,
+}, {
+  timestamps: true, // adds createdAt + updatedAt
+  versionKey: false, // removes __v
+});
+
+// 🔐 Hash password before saving
 adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
@@ -52,12 +57,13 @@ adminSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 
-// ✅ Instance method for password comparison
+// 🔍 Compare password method
 adminSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!candidatePassword || !this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

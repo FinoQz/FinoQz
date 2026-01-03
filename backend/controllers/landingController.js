@@ -48,12 +48,12 @@ async function saveLanding(req, res) {
     // Ensure hero object exists
     payload.hero = payload.hero || {};
 
-    // Handle image upload
-    if (req.file) {
-      const filename = await saveUploadedFile(req.file, { prefix: 'hero-' });
-      const publicUrl = `/uploads/${filename}`;
-      payload.hero.imageUrl = publicUrl;
-    }
+    // // Handle image upload
+    // if (req.file) {
+    //   const filename = await saveUploadedFile(req.file, { prefix: 'hero-' });
+    //   const publicUrl = `/uploads/${filename}`;
+    //   payload.hero.imageUrl = publicUrl;
+    // }
 
     // Validate hero.stats
     if (Array.isArray(payload.hero.stats)) {

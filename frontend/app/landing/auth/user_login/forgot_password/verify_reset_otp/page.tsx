@@ -17,7 +17,7 @@ export default function VerifyResetOtpPage() {
       <VerifyResetOtpForm />
 
       <p className="text-sm text-gray-500 mt-4 text-center">
-        <a href="/landing/auth/user_login/signin" className="text-gray-500 hover:text-indigo-600 text-sm">
+        <a href="/landing/auth/user_login/login" className="text-gray-500 hover:text-indigo-600 text-sm">
           ← Back to Signin
         </a>
       </p>

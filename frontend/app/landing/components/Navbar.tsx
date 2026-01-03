@@ -16,8 +16,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo + Brand */}
         <Link href="/" className="flex items-center gap-3">
-          <Image
-            src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={40} height={40} unoptimized style={{ height: 'auto' }}/>
+          <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={40} height={40} unoptimized priority style={{ height: 'auto' }} />
           <div>
             <span className="text-[1.25rem] font-semibold text-black tracking-wide">FinoQz</span>
             <p className="text-xs text-gray-600">Smart finance learning</p>

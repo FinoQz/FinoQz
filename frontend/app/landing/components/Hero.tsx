@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface Stat {
   value: string;
@@ -28,7 +28,7 @@ export default function Hero() {
   useEffect(() => {
     const fetchHero = async () => {
       try {
-        const res = await api.get('api/admin/landing', {
+        const res = await apiAdmin.get('api/admin/landing', {
           headers: {
             'Cache-Control': 'no-store',
           },
@@ -75,7 +75,7 @@ export default function Hero() {
           transition={{ duration: 0.8 }}
         >
           <div className="flex items-center gap-3 mb-6">
-            <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={52} height={52} unoptimized style={{ height: 'auto' }} />
+            <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={52} height={52} unoptimized priority style={{ height: 'auto' }} />
             <span className="text-[2rem] md:text-[2.25rem] font-semibold text-[#253A7B] tracking-wide">
               FinoQz
             </span>

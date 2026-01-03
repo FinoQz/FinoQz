@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import apiUser from "@/lib/apiUser";
 import axios from "axios";
 
 export default function ForgotPasswordForm() {
@@ -21,10 +21,12 @@ export default function ForgotPasswordForm() {
     setSuccessMessage("");
 
     try {
-      const res = await api.post("api/user/forgot-password/initiate", { email });
+      const res = await apiUser.post("api/user/forgot-password/initiate", { email });
 
       if (res.data.message === "OTP sent") {
-        localStorage.setItem("resetEmail", email);
+        // ✅ Set cookie instead of localStorage
+        document.cookie = `resetEmail=${encodeURIComponent(email)}; path=/; max-age=600`;
+
         setSuccessMessage("OTP has been sent to your email");
         router.push("/landing/auth/user_login/forgot_password/verify_reset_otp");
       } else {

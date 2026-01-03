@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Check, BookOpen, Award, Users, BarChart3 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 type Reason = {
   id: string;
@@ -21,7 +21,7 @@ export default function AboutSection() {
 
     const fetchReasons = async () => {
       try {
-        const res = await api.get('api/admin/landing');
+        const res = await apiAdmin.get('api/admin/landing');
         if (!mounted) return;
         const data = res.data || {};
         const remote: Reason[] = Array.isArray(data.reasons) ? data.reasons : [];

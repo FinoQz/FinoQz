@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 type RemoteCategory = {
   id?: string;
@@ -40,7 +40,7 @@ export default function QuizCategories() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const res = await api.get('api/admin/landing');
+        const res = await apiAdmin.get('api/admin/landing');
         if (!mounted) return;
 
         const data = res.data || {};

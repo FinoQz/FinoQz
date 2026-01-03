@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 type Question = {
   _id?: string;
@@ -32,7 +32,7 @@ export default function TryQuiz() {
   const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    api.get('api/admin/demo-quiz/public/categories')
+    apiAdmin.get('api/admin/demo-quiz/public/categories')
       .then(res => {
         setCategories(res.data || []);
         setSelectedCategoryId(res.data?.[0]?._id || '');
@@ -50,7 +50,7 @@ export default function TryQuiz() {
     setShowResults(false);
     setShowLoginPrompt(false);
 
-    api.get(`api/admin/demo-quiz/public/quiz?categoryId=${selectedCategoryId}`)
+    apiAdmin.get(`api/admin/demo-quiz/public/quiz?categoryId=${selectedCategoryId}`)
       .then(res => setQuestions(res.data?.questions || []))
       .catch(err => console.error('Failed to load quiz', err));
   }, [selectedCategoryId]);

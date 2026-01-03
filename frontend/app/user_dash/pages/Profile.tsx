@@ -131,28 +131,24 @@ useEffect(() => {
   };
 
   const handleImageUpload = async (file: File) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+  try {
+    const uploadRes = await uploadToCloud(file);
+    const imageUrl = uploadRes.secure_url;
 
-      // Upload to Cloudinary or similar service
-      const uploadRes = await uploadToCloud(file); // You need to implement this
-      const imageUrl = uploadRes.secure_url;
+    const res = await apiUser.post('api/user/profile/me/profile-image', { url: imageUrl });
 
-      const token = localStorage.getItem('userToken');
-      const res = await apiUser.post('api/user/profile/me/profile-image', { url: imageUrl }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.status === 200) {
-        setUserData((prev: UserData | null) => prev ? { ...prev, profileImage: res.data.profileImage } : prev);
-        showToast('success', 'Profile image updated successfully!');
-      }
-    } catch (err) {
-      console.error('❌ Image upload failed:', err);
-      showToast('error', 'Image upload failed');
+    if (res.status === 200) {
+      setUserData((prev: UserData | null) =>
+        prev ? { ...prev, profileImage: res.data.profileImage } : prev
+      );
+      showToast('success', 'Profile image updated successfully!');
     }
-  };
+  } catch (err) {
+    console.error('❌ Image upload failed:', err);
+    showToast('error', 'Image upload failed');
+  }
+};
+
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -167,31 +163,29 @@ useEffect(() => {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) {
-      showToast('error', 'Please fix the errors before saving');
-      return;
-    }
+  if (!validateForm()) {
+    showToast('error', 'Please fix the errors before saving');
+    return;
+  }
 
-    setIsSaving(true);
-    try {
-      const token = localStorage.getItem('userToken');
-      const res = await apiUser.patch('api/user/profile/me', userData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  setIsSaving(true);
+  try {
+    const res = await apiUser.patch('api/user/profile/me', userData);
 
-      if (res.status === 200) {
-        setUserData(res.data.user);
-        showToast('success', 'Profile updated successfully!');
-      } else {
-        showToast('error', 'Failed to update profile');
-      }
-    } catch (err) {
-      console.error('❌ Error saving profile:', err);
-      showToast('error', 'Something went wrong');
-    } finally {
-      setIsSaving(false);
+    if (res.status === 200) {
+      setUserData(res.data.user);
+      showToast('success', 'Profile updated successfully!');
+    } else {
+      showToast('error', 'Failed to update profile');
     }
-  };
+  } catch (err) {
+    console.error('❌ Error saving profile:', err);
+    showToast('error', 'Something went wrong');
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 
   const handleCancel = () => {
     window.location.reload(); // reload to refetch original data

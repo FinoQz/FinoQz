@@ -237,7 +237,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 import HoverDetails from '../components/HoverDetails';
 import ApprovedUserCard from '../components/ApprovedUserCard';
 import RejectedUserCard from '../components/RejectedUserCard';
@@ -248,7 +248,6 @@ import EmailManagement from '../components/EmailManagement';
 import GroupManagement from '../components/GroupManagement';
 import { UserPlus, Mail, Users } from 'lucide-react';
 import { useSearchParams } from "next/navigation";
-
 
 interface User {
   _id: string;
@@ -277,27 +276,25 @@ export default function UserManagement() {
   const defaultTab = (searchParams.get("tab") as TabType) || "all";
 
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
-
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [rejectedUsers, setRejectedUsers] = useState<RejectedUser[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [actionStatus, setActionStatus] = useState('');
 
-
-  const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
-
-
   // ✅ Fetch all users from backend
   useEffect(() => {
+    const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
     const fetchAllUsers = async () => {
       try {
-        const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-          api.get('api/admin/panel/pending-users', { headers: { Authorization: `Bearer ${token}` } }),
-          api.get('api/admin/panel/approved-users', { headers: { Authorization: `Bearer ${token}` } }),
-          api.get('api/admin/panel/rejected-users', { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
+        const pendingRes = await apiAdmin.get('api/admin/panel/pending-users');
+        await delay(300);
+
+        const approvedRes = await apiAdmin.get('api/admin/panel/approved-users');
+        await delay(300);
+
+        const rejectedRes = await apiAdmin.get('api/admin/panel/rejected-users');
 
         setPendingUsers(pendingRes.data || []);
         setApprovedUsers(approvedRes.data || []);
@@ -309,17 +306,13 @@ export default function UserManagement() {
       }
     };
 
-    if (!token) return;
-
     fetchAllUsers(); // ✅ initial load
 
     const interval = setInterval(() => {
-      fetchAllUsers(); // ✅ auto refresh every 10 seconds
-    }, 10000);
-
+      fetchAllUsers(); // auto refresh every 200 seconds
+    }, 200000);
     return () => clearInterval(interval); // ✅ cleanup
-  }, [token]);
-
+  },[]);
 
   // ✅ Approve / Reject user
   const handleAction = async (userId: string, action: UserAction): Promise<void> => {
@@ -334,19 +327,17 @@ export default function UserManagement() {
     try {
       console.log("📤 Sending action:", action, "for user ID:", user._id);
 
-      const res = await api.post(`api/user/signup/${action}/${user._id}`, null, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiAdmin.post(`api/admin/panel/${action}/${user._id}`);
 
       if (res.status === 200) {
         setPendingUsers(prev => prev.filter(u => u._id !== user._id));
 
         if (action === 'approve') {
-          const approvedAt = res.data?.approvedAt || new Date().toISOString();
+          const approvedAt = res.data?.user?.approvedAt || new Date().toISOString();
           setApprovedUsers(prev => [...prev, { ...user, approvedAt }]);
           setActionStatus(`User approved successfully`);
         } else {
-          const rejectedAt = new Date().toISOString(); // backend doesn't return rejectedAt yet
+          const rejectedAt = res.data?.user?.rejectedAt || new Date().toISOString();
           setRejectedUsers(prev => [...prev, { ...user, rejectedAt }]);
           setActionStatus(`User rejected successfully`);
         }
@@ -359,7 +350,6 @@ export default function UserManagement() {
       setActionStatus(`Failed to ${action} user`);
     }
   };
-
 
   const handleAddUserSuccess = () => {
     setActiveTab('all');

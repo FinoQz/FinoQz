@@ -2,28 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { exportToExcel, exportToJSON, exportToPDF } from "@/utils/exportUtils";
-import api from "@/lib/api";
-import {
-  Search,
-  Filter,
-  Download,
-  Eye,
-  Edit,
-  Trash2,
-  Ban,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import apiAdmin from "@/lib/apiAdmin";
+import { Search, Filter, Download, Eye, Edit, Trash2, Ban, CheckCircle, XCircle } from "lucide-react";
 
-interface AllUser {
-  _id: string;
-  fullName: string;
-  email: string;
-  mobile?: string;
-  status: "Active" | "Inactive" | "Blocked"; // ✅ include Blocked in type
-  registrationDate: string;
-  lastLogin: string;
-}
+interface AllUser { _id: string; fullName: string; email: string; mobile?: string; status: "Active" | "Inactive" | "Blocked"; registrationDate: string; lastLogin: string; }
 
 type ModalType = "view" | "edit" | "block" | "unblock" | "delete" | null;
 
@@ -195,23 +177,11 @@ export default function AllUsersTable() {
     email: "",
     mobile: "",
   });
-
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
-
-  // ✅ Fetch all users from backend
+  // ✅ Fetch all users from backend using cookie
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        const res = await api.get("api/admin/panel/all-users", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        const res = await apiAdmin.get("api/admin/panel/all-users");
         setUsers(res.data || []);
       } catch (err) {
         console.error("Failed to fetch users:", err);
@@ -221,7 +191,7 @@ export default function AllUsersTable() {
     };
 
     fetchUsers();
-  }, [token]);
+  }, []); // ✅ Run only once on mount
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -316,17 +286,14 @@ export default function AllUsersTable() {
   };
 
   const handleConfirm = async () => {
-    if (!activeModal.user || !token) return;
+    if (!activeModal.user) return;
 
     const userId = activeModal.user._id;
 
     try {
       // ✅ EDIT USER
       if (activeModal.type === "edit") {
-        await api.put(`api/admin/panel/user/${userId}`, editData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        await apiAdmin.put(`api/admin/panel/user/${userId}`, editData);
         setUsers((prev) =>
           prev.map((u) => (u._id === userId ? { ...u, ...editData } : u))
         );
@@ -334,10 +301,7 @@ export default function AllUsersTable() {
 
       // ✅ BLOCK USER
       if (activeModal.type === "block") {
-        await api.post(`api/admin/panel/user/${userId}/block`, null, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        await apiAdmin.post(`api/admin/panel/user/${userId}/block`);
         setUsers((prev) =>
           prev.map((u) =>
             u._id === userId ? { ...u, status: "Blocked" } : u
@@ -347,10 +311,7 @@ export default function AllUsersTable() {
 
       // ✅ UNBLOCK USER
       if (activeModal.type === "unblock") {
-        await api.post(`api/admin/panel/user/${userId}/unblock`, null, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        await apiAdmin.post(`api/admin/panel/user/${userId}/unblock`);
         setUsers((prev) =>
           prev.map((u) =>
             u._id === userId ? { ...u, status: "Active" } : u
@@ -360,19 +321,17 @@ export default function AllUsersTable() {
 
       // ✅ DELETE USER
       if (activeModal.type === "delete") {
-        await api.delete(`api/admin/panel/user/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        await apiAdmin.delete(`api/admin/panel/user/${userId}`);
         setUsers((prev) => prev.filter((u) => u._id !== userId));
       }
 
       setActiveModal({ type: null, user: null });
     } catch (err) {
-      console.error(err);
+      console.error("❌ Action failed:", err);
       alert("Action failed");
     }
   };
+
 
   // ✅ Helper to get badge classes based on status
   const getStatusClasses = (status: AllUser["status"]) => {

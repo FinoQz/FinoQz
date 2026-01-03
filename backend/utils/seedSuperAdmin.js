@@ -1,54 +1,53 @@
 const Admin = require('../models/Admin');
-const bcrypt = require('bcrypt');
+const logger = require('./logger');
 
-module.exports = async () => {
-  const exists = await Admin.findOne({ email: 'info.finoqz@gmail.com' });
-  if (exists) return;
+async function seedSuperAdmin() {
+  try {
+    const {
+      SUPERADMIN_EMAIL: email,
+      SUPERADMIN_PASS: plainPassword,
+      SUPERADMIN_USERNAME: username = 'ADMIN-FQ-001',
+      SUPERADMIN_NAME: name = 'System Superadmin',
+    } = process.env;
 
-  const hashed = await bcrypt.hash('Finoqz@12345', 12);
-  await Admin.create({
-    name: 'Siddhart Singh',
-    email: 'info.finoqz@gmail.com',
-    username: 'ADMIN-FQ-001',
-    password: hashed,
-  });
+    // 🔐 Validate required ENV variables
+    if (!email || !plainPassword) {
+      logger.error('❌ SUPERADMIN_EMAIL or SUPERADMIN_PASS not set in .env');
+      return;
+    }
 
-  console.log('Superadmin seeded');
-};
+    // 🔍 Check if superadmin already exists
+    const exists = await Admin.findOne({ email });
+    if (exists) {
+      logger.info('ℹ️ Superadmin already exists', {
+        email: exists.email,
+        username: exists.username,
+      });
+      return;
+    }
 
-// const Admin = require('../models/Admin');
-// const bcrypt = require('bcrypt');
-// const logger = require('./logger'); // ✅ structured logger
+    // 🧾 Create new superadmin with plain password (will be hashed by pre('save'))
+    const newAdmin = await Admin.create({
+      name,
+      email,
+      username,
+      password: plainPassword,
+      role: 'admin',
+      status: 'active',
+      createdBy: 'system',
+    });
 
-// module.exports = async () => {
-//   try {
-//     const email = process.env.SUPERADMIN_EMAIL;
-//     const password = process.env.SUPERADMIN_PASS;
+    logger.info('✅ Superadmin seeded successfully', {
+      id: newAdmin._id.toString(),
+      email: newAdmin.email,
+      username: newAdmin.username,
+    });
+  } catch (err) {
+    logger.error('❌ Failed to seed superadmin', {
+      error: err.message,
+      stack: err.stack,
+    });
+  }
+}
 
-//     if (!email || !password) {
-//       logger.error('❌ Superadmin credentials not set in ENV');
-//       return;
-//     }
-
-//     const exists = await Admin.findOne({ email });
-//     if (exists) {
-//       logger.info('ℹ️ Superadmin already exists');
-//       return;
-//     }
-
-//     const hashed = await bcrypt.hash(password, 12);
-//     await Admin.create({
-//       name: process.env.SUPERADMIN_NAME || 'System Superadmin',
-//       email,
-//       username: process.env.SUPERADMIN_USERNAME || 'ADMIN-FQ-001',
-//       password: hashed,
-//       role: 'superadmin',
-//       createdBy: 'system',
-//       createdAt: new Date()
-//     });
-
-//     logger.info('✅ Superadmin seeded successfully', { email });
-//   } catch (err) {
-//     logger.error('❌ Failed to seed superadmin', { error: err.message });
-//   }
-// };
+module.exports = seedSuperAdmin;

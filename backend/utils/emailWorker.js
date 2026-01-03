@@ -200,6 +200,43 @@ const emailWorker = new Worker(
       return;
     }
 
+    // ✅ Forgot Password OTP Email
+    if (job.name === "userForgotPasswordOtp") {
+      const { to, subject, html } = job.data;
+
+      console.log("✅ Worker received FORGOT PASSWORD OTP job for:", to);
+
+      if (!to) return console.log("❌ No 'to' field in userForgotPasswordOtp job");
+
+      try {
+        await sendEmail({ to, subject, html });
+        console.log(`✅ Forgot Password OTP sent to ${to}`);
+      } catch (err) {
+        console.error(`❌ Forgot Password OTP failed to ${to}`, err);
+        throw err;
+      }
+      return;
+    }
+
+    // ✅ New User Welcome Email
+    if (job.name === "newUserWelcome") {
+      const { to, subject, html } = job.data;
+
+      console.log("✅ Worker received NEW USER WELCOME job for:", to);
+
+      if (!to) return console.log("❌ newUserWelcome job missing 'to' field");
+      if (!subject || !html) return console.log("❌ newUserWelcome job missing subject or HTML");
+
+      try {
+        await sendEmail({ to, subject, html });
+        console.log(`✅ New User Welcome email sent to ${to}`);
+      } catch (err) {
+        console.error(`❌ New User Welcome email failed to ${to}`, err);
+        throw err;
+      }
+      return;
+    }
+
 
   },
   {

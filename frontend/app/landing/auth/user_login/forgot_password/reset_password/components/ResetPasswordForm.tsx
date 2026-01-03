@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/lib/api";
+import apiUser from "@/lib/apiUser";
 import axios from "axios";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
@@ -17,7 +17,12 @@ export default function ResetPasswordForm() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem("resetEmail");
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+      return match ? decodeURIComponent(match[2]) : null;
+    };
+
+    const storedEmail = getCookie("resetEmail");
     if (!storedEmail) {
       router.push("/landing/auth/user_login/forgot_password");
     } else {
@@ -39,14 +44,14 @@ export default function ResetPasswordForm() {
     setSuccessMessage("");
 
     try {
-      const res = await api.post("api/user/forgot-password/reset", {
+      const res = await apiUser.post("api/user/forgot-password/reset", {
         email,
         newPassword,
       });
 
       if (res.data.message === "Password reset successful") {
         setSuccessMessage("Password has been reset successfully!");
-        localStorage.removeItem("resetEmail");
+        document.cookie = "resetEmail=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         router.push("/landing/auth/user_login/login");
       } else {
         setFormError("Unexpected response from server");

@@ -54,7 +54,6 @@ async function emitDashboardStats(req) {
 }
 
 
-
 // ✅ Get all users awaiting admin approval
 exports.getPendingUsers = async (req, res) => {
   try {
@@ -69,14 +68,13 @@ exports.getPendingUsers = async (req, res) => {
   }
 };
 
-// ✅ Approve a user
 
+// ✅ Approve a user
 
 exports.approveUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // ✅ Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user ID format' });
     }
@@ -107,19 +105,16 @@ exports.approveUser = async (req, res) => {
       approvedBy: savedUser.approvedBy?.toString(),
     });
 
-    // ✅ Log activity
     await logActivity({
       req,
       actorType: "admin",
       actorId: req.adminId,
       action: "approve_user",
-      meta: { userId: savedUser._id }
+      meta: { userId: savedUser._id.toString() }
     });
 
-    // ✅ Emit real-time dashboard stats
     await emitDashboardStats(req);
 
-    // ✅ Queue approval email (non-blocking)
     sendEmail(
       savedUser.email,
       'FinoQz Account Approved',
@@ -130,7 +125,6 @@ exports.approveUser = async (req, res) => {
       })
     ).catch(err => console.error('📨 Approval email failed:', err));
 
-    // ✅ Respond with full user info (optional)
     res.json({
       message: 'User approved successfully',
       user: {
@@ -149,13 +143,16 @@ exports.approveUser = async (req, res) => {
   }
 };
 
-
-
 // ✅ Reject a user
+
 exports.rejectUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+
     const user = await User.findById(userId);
 
     if (!user || user.status !== 'awaiting_admin_approval') {
@@ -163,34 +160,44 @@ exports.rejectUser = async (req, res) => {
     }
 
     user.status = 'rejected';
-    await user.save();
+    user.rejectedAt = new Date();
 
-    // ✅ Log activity
+    const savedUser = await user.save();
+
     await logActivity({
       req,
       actorType: "admin",
       actorId: req.adminId,
       action: "reject_user",
-      meta: { userId }
+      meta: { userId: savedUser._id.toString() }
     });
 
-    // ✅ Emit real-time dashboard stats
     await emitDashboardStats(req);
 
-    // ✅ Queue rejection email (non-blocking)
     sendEmail(
-      user.email,
+      savedUser.email,
       'FinoQz Signup Update',
-      rejectionTemplate(user.fullName)
-    ).catch(err => console.error('Rejection email failed:', err));
+      rejectionTemplate(savedUser.fullName)
+    ).catch(err => console.error('📨 Rejection email failed:', err));
 
-    res.json({ message: 'User rejected' });
+    res.json({
+      message: 'User rejected successfully',
+      user: {
+        _id: savedUser._id,
+        fullName: savedUser.fullName,
+        email: savedUser.email,
+        rejectedAt: savedUser.rejectedAt,
+        status: savedUser.status,
+      }
+    });
+
   } catch (err) {
-    console.error('Error rejecting user:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error rejecting user:', err);
+    res.status(500).json({ message: 'Server error during rejection' });
   }
 };
 
+// ✅ Get all users
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -216,6 +223,8 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+//  ✅ Get approved users
+
 exports.getApprovedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'approved' })
@@ -229,7 +238,7 @@ exports.getApprovedUsers = async (req, res) => {
   }
 };
 
-
+//  ✅ Get rejected users
 exports.getRejectedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'rejected' })
@@ -241,6 +250,8 @@ exports.getRejectedUsers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ GET USER BY ID
 
 exports.getUserById = async (req, res) => {
   try {
@@ -295,8 +306,6 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-
-
 // ✅ DELETE USER
 exports.deleteUser = async (req, res) => {
   try {
@@ -340,8 +349,6 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 // ✅ ADD NEW USER (Admin-created)
 exports.addNewUser = async (req, res) => {
@@ -420,8 +427,6 @@ exports.addNewUser = async (req, res) => {
     return res.status(500).json({ message: "Server error adding user" });
   }
 };
-
-
 
 
 // ✅ BLOCK USER
@@ -552,7 +557,7 @@ exports.deleteGroup = async (req, res) => {
   }
 };
 
-
+// ✅ Send bulk email to users
 exports.sendBulkEmail = async (req, res) => {
   try {
     const { recipients, subject, body } = req.body;
@@ -582,6 +587,7 @@ exports.sendBulkEmail = async (req, res) => {
   }
 };
 
+// ✅ Get monthly user registrations (current & last month)
 exports.getMonthlyUsers = async (req, res) => {
   try {
     const now = new Date();
@@ -614,6 +620,7 @@ exports.getMonthlyUsers = async (req, res) => {
   }
 };
 
+// ✅ Get user growth data for current month (daily)
 exports.getUserGrowthData = async (req, res) => {
   try {
     const today = new Date();
@@ -667,3 +674,21 @@ exports.getUserGrowthData = async (req, res) => {
   }
 };
 
+// ✅ Get live users count from Redis sessions
+exports.getLiveUsers = async (req, res) => {
+  try {
+    const keys = await redis.keys('session:*');
+    const liveUserCount = keys.length;
+
+    // Optional: Sparkline dummy data (replace with real if available)
+    const sparkline = [12, 15, 14, 18, 20, 19, 22, liveUserCount];
+
+    return res.json({
+      liveUsers: liveUserCount,
+      sparkline,
+    });
+  } catch (err) {
+    console.error('Live user fetch error:', err);
+    return res.status(500).json({ message: 'Failed to fetch live users' });
+  }
+};

@@ -2,17 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '../../../../../../lib/api';
+import apiUser from '@/lib/apiUser';
 import axios from 'axios';
 
 export default function VerifySigninOtpForm() {
   const [otp, setOtp] = useState('');
   const [email, setEmail] = useState('');
-  const router = useRouter();
   const [formError, setFormError] = useState('');
+  const router = useRouter();
+
+  // 🔍 Helper to read cookie value
+  const getCookie = (name: string) => {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  };
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem('userEmail'); // 👈 signin email key
+    const storedEmail = getCookie('userEmail');
     if (!storedEmail) {
       router.push('/landing/auth/user_login/login');
     } else {
@@ -21,20 +27,27 @@ export default function VerifySigninOtpForm() {
   }, [router]);
 
   const handleVerify = async () => {
-    if (!otp || !email) {
-      setFormError("Missing OTP or email");
+    if (!otp.trim() || !email.trim()) {
+      setFormError('Missing OTP or email');
       return;
     }
 
-    setFormError("");
+    setFormError('');
 
     try {
-      const res = await api.post('api/user/login/verify', { email, otp }); // 👈 signin verify endpoint
+      const res = await apiUser.post(
+        'api/user/login/verify',
+        { email, otp },
+        { withCredentials: true }
+      );
 
-      // ✅ Save JWT token
+      // ✅ Save JWT token (optional, if needed client-side)
       localStorage.setItem('userToken', res.data.token);
 
-      // ✅ Redirect to dashboard
+      // 🧹 Clear the cookie after use
+      document.cookie = 'userEmail=; path=/; max-age=0';
+
+      // ✅ Redirect to user dashboard
       router.push('/user_dash');
     } catch (err) {
       let errMsg = 'OTP verification failed';
@@ -44,7 +57,7 @@ export default function VerifySigninOtpForm() {
         if (typeof maybeMessage === 'string') {
           errMsg = maybeMessage;
         } else if (err.response?.status === 403) {
-          errMsg = "Wrong OTP, kindly enter correct OTP";
+          errMsg = 'Wrong OTP, kindly enter correct OTP';
         }
       }
 
@@ -55,7 +68,9 @@ export default function VerifySigninOtpForm() {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-md">
       <h2 className="text-xl font-semibold mb-2">Signin</h2>
-      <p className="text-sm text-gray-500 mb-4">Enter the OTP sent to your email to complete login.</p>
+      <p className="text-sm text-gray-500 mb-4">
+        Enter the OTP sent to your email to complete login.
+      </p>
 
       <label htmlFor="otp" className="block text-sm text-gray-700 mb-1">
         Enter OTP
@@ -68,6 +83,7 @@ export default function VerifySigninOtpForm() {
         placeholder="123456"
         className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
       />
+
       {formError && (
         <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 text-sm font-medium">
           {formError}

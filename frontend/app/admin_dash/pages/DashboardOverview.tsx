@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 import { io } from 'socket.io-client';
 import {
   TrendingUp,
@@ -23,7 +23,6 @@ import TodayRevenueWidget from '../components/adminComponents/TodayRevenueWidget
 import PendingUsersModal from '../components/adminComponents/PendingUsersModal';
 import LandingPageManager from '../components/adminComponents/LandingPageManager';
 
-
 interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
@@ -31,6 +30,16 @@ interface DashboardStats {
   totalRevenue: number;
   totalPaidUsers: number;
   freeQuizAttempts: number;
+}
+
+interface PendingUser {
+  _id: string;
+  fullName: string;
+  email: string;
+  mobile: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function DashboardOverview() {
@@ -42,69 +51,58 @@ export default function DashboardOverview() {
     totalPaidUsers: 0,
     freeQuizAttempts: 0,
   });
-  interface PendingUser {
-    _id: string;
-    fullName: string;
-    email: string;
-    mobile: string;
-    status: string;
-    createdAt?: string;
-    updatedAt?: string;
-  }
-
 
   const [loading, setLoading] = useState(true);
   const [growthPercent, setGrowthPercent] = useState<string>('0.0');
   const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
   const [pendingUsersList, setPendingUsersList] = useState<PendingUser[]>([]);
-
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
-
   const isPendingModalOpenRef = useRef(false);
+  const isFetchingPending = useRef(false);
   const [userData, setUserData] = useState<number[]>([]);
   const [days, setDays] = useState<string[]>([]);
 
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+  const fetchPendingUsers = async () => {
+    if (isFetchingPending.current) return;
+    isFetchingPending.current = true;
+    try {
+      const res = await apiAdmin.get('/api/admin/panel/pending-users');
+      setPendingUsersList(res.data);
+    } catch (err) {
+      console.error('Error fetching pending users:', err);
+    } finally {
+      isFetchingPending.current = false;
+    }
+  };
 
-  // 🔁 Keep ref in sync with state (for WebSocket callback)
   useEffect(() => {
     isPendingModalOpenRef.current = isPendingModalOpen;
   }, [isPendingModalOpen]);
 
-  // 🔹 Initial dashboard data fetch (runs once per mount when token available)
   useEffect(() => {
-    if (!token) return;
-
     const fetchStats = async () => {
       try {
-        const [allRes, activeRes, pendingRes, monthlyRes] = await Promise.all([
-          api.get('api/admin/panel/all-users', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          api.get('api/admin/panel/approved-users', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          api.get('api/admin/panel/pending-users', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          api.get('api/admin/panel/monthly-users', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        const allRes = await apiAdmin.get('/api/admin/panel/all-users');
+        await delay(200);
+
+        const activeRes = await apiAdmin.get('/api/admin/panel/approved-users');
+        await delay(200);
+
+        await fetchPendingUsers();
+        await delay(200);
+
+        const monthlyRes = await apiAdmin.get('/api/admin/panel/monthly-users');
 
         setStats({
           totalUsers: allRes.data.length,
           activeUsers: activeRes.data.length,
-          pendingApprovals: pendingRes.data.length,
-          totalRevenue: 0, // TODO: replace with real API when ready
-          totalPaidUsers: 0,  // TODO: replace with real API when ready
-          freeQuizAttempts: 0, // TODO: replace with real API when ready
+          pendingApprovals: pendingUsersList.length,
+          totalRevenue: 0,
+          totalPaidUsers: 0,
+          freeQuizAttempts: 0,
         });
-
-
-        setPendingUsersList(pendingRes.data);
 
         const current = monthlyRes.data.currentMonth;
         const last = monthlyRes.data.lastMonth;
@@ -118,24 +116,24 @@ export default function DashboardOverview() {
     };
 
     fetchStats();
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     const fetchUserGrowth = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}api/admin/panel/analytics/user-growth`);
-      const data = await res.json();
-      setUserData(data.values);
-      setDays(data.labels);
+      try {
+        await delay(300);
+        const res = await apiAdmin.get('/api/admin/panel/analytics/user-growth');
+        setUserData(res.data.values);
+        setDays(res.data.labels);
+      } catch (err) {
+        console.error('Error fetching user growth:', err);
+      }
     };
 
     fetchUserGrowth();
   }, []);
 
-
-  // 🔌 WebSocket listener for real-time updates
   useEffect(() => {
-    if (!token) return;
-
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     if (!backendUrl) {
       console.error('NEXT_PUBLIC_BACKEND_URL is not defined');
@@ -146,6 +144,8 @@ export default function DashboardOverview() {
       withCredentials: true,
     });
 
+    let debounceTimer: NodeJS.Timeout | null = null;
+
     socket.on('connect', () => {
       console.log('✅ Connected to WebSocket:', socket.id);
     });
@@ -153,28 +153,20 @@ export default function DashboardOverview() {
     socket.on('dashboard:stats', (data: Partial<DashboardStats>) => {
       console.log('📡 Real-time stats received:', data);
 
-      // Merge partial data into existing stats
       setStats((prev) => ({
         ...prev,
         ...data,
       }));
 
       if (typeof data.pendingApprovals === 'number') {
-        setAlertMessage(
-          `You have ${data.pendingApprovals} pending user approvals`
-        );
+        setAlertMessage(`You have ${data.pendingApprovals} pending user approvals`);
       }
 
-      // If modal is open, refresh pending user list
       if (isPendingModalOpenRef.current) {
-        api
-          .get('/admin/panel/pending-users', {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((res) => setPendingUsersList(res.data))
-          .catch((err) =>
-            console.error('Pending list refresh error:', err)
-          );
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          fetchPendingUsers();
+        }, 2000);
       }
     });
 
@@ -184,28 +176,19 @@ export default function DashboardOverview() {
 
     return () => {
       socket.disconnect();
+      if (debounceTimer) clearTimeout(debounceTimer);
     };
-  }, [token]);
+  }, []);
 
-  // ⏱️ Auto-hide alert after 3 seconds
   useEffect(() => {
     if (!alertMessage) return;
     const timer = setTimeout(() => setAlertMessage(null), 3000);
     return () => clearTimeout(timer);
   }, [alertMessage]);
 
-  // 📥 Open pending modal + fetch latest pending users
   const handleOpenPendingModal = async () => {
     setIsPendingModalOpen(true);
-
-    try {
-      const res = await api.get('api/admin/panel/pending-users', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPendingUsersList(res.data);
-    } catch (err) {
-      console.error('Error fetching pending users:', err);
-    }
+    await fetchPendingUsers();
   };
 
   if (loading) {
@@ -446,33 +429,42 @@ export default function DashboardOverview() {
                       </div>
 
                       {/* Chart */}
-                      <svg className="w-full h-full" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="userGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style={{ stopColor: '#4ade80', stopOpacity: 0.3 }} />
-                            <stop offset="100%" style={{ stopColor: '#4ade80', stopOpacity: 0 }} />
-                          </linearGradient>
-                        </defs>
+                      {/*
+                        Define width and height for the SVG chart
+                      */}
+                      {(() => {
+                        const width = days.length * 60;
+                        const height = 200;
+                        return (
+                          <svg className="w-full h-full" width={width} height={height} preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="userGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style={{ stopColor: '#4ade80', stopOpacity: 0.3 }} />
+                                <stop offset="100%" style={{ stopColor: '#4ade80', stopOpacity: 0 }} />
+                              </linearGradient>
+                            </defs>
+
+                        
 
                         {/* Area fill */}
                         <path
-                          d={`M 0,${200 - ((userData[0] - minUsers) / range) * 200
+                          d={`M 0,${height - ((userData[0] - minUsers) / range) * height
                             } ${userData
                               .map(
                                 (users, index) =>
-                                  `L ${(index / (userData.length - 1)) * 100}%,${200 - ((users - minUsers) / range) * 200}`
+                                  `L ${(index / (userData.length - 1)) * width},${height - ((users - minUsers) / range) * height}`
                               )
-                              .join(' ')} L 100%,200 L 0,200 Z`}
+                              .join(' ')} L ${width},${height} L 0,${height} Z`}
                           fill="url(#userGradient)"
                         />
 
                         {/* Line path */}
                         <path
-                          d={`M 0,${200 - ((userData[0] - minUsers) / range) * 200
+                          d={`M 0,${height - ((userData[0] - minUsers) / range) * height
                             } ${userData
                               .map(
                                 (users, index) =>
-                                  `L ${(index / (userData.length - 1)) * 100}%,${200 - ((users - minUsers) / range) * 200}`
+                                  `L ${(index / (userData.length - 1)) * width},${height - ((users - minUsers) / range) * height}`
                               )
                               .join(' ')}`}
                           fill="none"
@@ -480,6 +472,7 @@ export default function DashboardOverview() {
                           strokeWidth="3"
                           strokeLinecap="round"
                         />
+
 
                         {/* Dots */}
                         {userData.map((users, index) => {
@@ -500,7 +493,9 @@ export default function DashboardOverview() {
                             </g>
                           );
                         })}
-                      </svg>
+                          </svg>
+                        );
+                      })()}
 
                       {/* Tooltips */}
                       <div className="absolute inset-0 flex items-end justify-between pl-2 pb-2">

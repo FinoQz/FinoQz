@@ -562,7 +562,7 @@
 'use client';
 
 import React, { JSX, useEffect, useMemo, useRef, useState } from 'react';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 import { Search, PlusCircle, Trash2, Users, X } from 'lucide-react';
 import StatusMessage from '../components/StatusMessage';
 
@@ -577,7 +577,7 @@ interface User {
 interface Group {
   _id: string;
   name: string;
-  members: (string | User)[]; // backend may return populated users or ids
+  members: (string | User)[];
   createdAt?: string;
   createdBy?: string;
 }
@@ -588,7 +588,6 @@ export default function GroupManagement(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [groupsLoading, setGroupsLoading] = useState<boolean>(false);
 
-  // Create panel state
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const searchTimer = useRef<number | null>(null);
@@ -598,9 +597,6 @@ export default function GroupManagement(): JSX.Element {
   const [creating, setCreating] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>('');
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
-
-  // Modal state for preview/edit
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [modalGroup, setModalGroup] = useState<Group | null>(null);
   const [modalSelectedUserIds, setModalSelectedUserIds] = useState<Set<string>>(new Set());
@@ -609,22 +605,17 @@ export default function GroupManagement(): JSX.Element {
   const modalSearchTimer = useRef<number | null>(null);
   const [modalSaving, setModalSaving] = useState<boolean>(false);
 
-  // Fetch all users and groups
   useEffect(() => {
-    if (!token) return;
-
     const fetchData = async (): Promise<void> => {
       setLoading(true);
       try {
         const [usersRes, groupsRes] = await Promise.all([
-          api.get('/admin/panel/all-users', { headers: { Authorization: `Bearer ${token}` } }),
-          api.get('/admin/panel/groups', { headers: { Authorization: `Bearer ${token}` } }),
+          apiAdmin.get('api/admin/panel/all-users'),
+          apiAdmin.get('api/admin/panel/groups'),
         ]);
         setAllUsers(usersRes?.data ?? []);
         setGroups(groupsRes?.data ?? []);
       } catch (err) {
-        // Keep lightweight logging
-        // eslint-disable-next-line no-console
         console.error('Error fetching users/groups:', err);
         setStatusMessage('Failed to load users or groups');
       } finally {
@@ -633,59 +624,48 @@ export default function GroupManagement(): JSX.Element {
     };
 
     fetchData();
-  }, [token]);
+  }, []);
 
-  // Debounce create-panel search
   useEffect(() => {
-    if (searchTimer.current) {
-      window.clearTimeout(searchTimer.current);
-    }
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = window.setTimeout(() => {
       setDebouncedSearch(searchTerm.trim().toLowerCase());
     }, 250);
     return () => {
-      if (searchTimer.current) window.clearTimeout(searchTimer.current);
+      if (searchTimer.current) clearTimeout(searchTimer.current);
     };
   }, [searchTerm]);
 
-  // Debounce modal search
   useEffect(() => {
-    if (modalSearchTimer.current) {
-      window.clearTimeout(modalSearchTimer.current);
-    }
+    if (modalSearchTimer.current) clearTimeout(modalSearchTimer.current);
     modalSearchTimer.current = window.setTimeout(() => {
       setModalDebouncedSearch(modalSearch.trim().toLowerCase());
     }, 250);
     return () => {
-      if (modalSearchTimer.current) window.clearTimeout(modalSearchTimer.current);
+      if (modalSearchTimer.current) clearTimeout(modalSearchTimer.current);
     };
   }, [modalSearch]);
 
   const filteredUsers = useMemo<User[]>(() => {
     if (!debouncedSearch) return allUsers;
-    const q = debouncedSearch;
     return allUsers.filter((u) =>
-      `${u.fullName} ${u.email} ${u.mobile ?? ''}`.toLowerCase().includes(q)
+      `${u.fullName} ${u.email} ${u.mobile ?? ''}`.toLowerCase().includes(debouncedSearch)
     );
   }, [allUsers, debouncedSearch]);
 
   const filteredModalUserSuggestions = useMemo<User[]>(() => {
-    const q = modalDebouncedSearch;
-    const pool = q
+    const pool = modalDebouncedSearch
       ? allUsers.filter((u) =>
-          `${u.fullName} ${u.email} ${u.mobile ?? ''}`.toLowerCase().includes(q)
-        )
+        `${u.fullName} ${u.email} ${u.mobile ?? ''}`.toLowerCase().includes(modalDebouncedSearch)
+      )
       : allUsers;
-    // filter out users already selected in modal (modalSelectedUserIds contains ids)
     return pool.filter((u) => !modalSelectedUserIds.has(u._id));
   }, [allUsers, modalDebouncedSearch, modalSelectedUserIds]);
 
-  // Create-panel helpers
   const toggleUser = (id: string) => {
     setSelectedUserIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
@@ -701,30 +681,16 @@ export default function GroupManagement(): JSX.Element {
   const clearSelection = () => setSelectedUserIds(new Set());
 
   const handleCreateGroup = async (): Promise<void> => {
-    if (!groupName.trim()) {
-      setStatusMessage('Group name is required');
-      return;
-    }
-    if (selectedUserIds.size === 0) {
-      setStatusMessage('Select at least one member for the group');
-      return;
-    }
-    if (!token) {
-      setStatusMessage('Not authorized');
-      return;
-    }
+    if (!groupName.trim()) return setStatusMessage('Group name is required');
+    if (selectedUserIds.size === 0) return setStatusMessage('Select at least one member');
 
     setCreating(true);
     setStatusMessage('Creating group...');
     try {
       const body = { name: groupName.trim(), members: Array.from(selectedUserIds) };
-      const res = await api.post('/admin/panel/groups', body, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await apiAdmin.post('api/admin/panel/groups', body);
       if (res.status === 201 || res.status === 200) {
-        // re-fetch groups to keep members consistently populated
-        const groupsRes = await api.get('/admin/panel/groups', { headers: { Authorization: `Bearer ${token}` } });
+        const groupsRes = await apiAdmin.get('api/admin/panel/groups');
         setGroups(groupsRes?.data ?? []);
         setGroupName('');
         clearSelection();
@@ -733,7 +699,6 @@ export default function GroupManagement(): JSX.Element {
         setStatusMessage('Failed to create group');
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error('Error creating group:', err);
       setStatusMessage('Failed to create group');
     } finally {
@@ -743,17 +708,11 @@ export default function GroupManagement(): JSX.Element {
 
   const handleDeleteGroup = async (groupId: string): Promise<void> => {
     if (!confirm('Are you sure you want to delete this group?')) return;
-    if (!token) {
-      setStatusMessage('Not authorized');
-      return;
-    }
 
     setGroupsLoading(true);
     setStatusMessage('Deleting group...');
     try {
-      const res = await api.delete(`/admin/panel/groups/${groupId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiAdmin.delete(`api/admin/panel/groups/${groupId}`);
       if (res.status === 200) {
         setGroups((prev) => prev.filter((g) => g._id !== groupId));
         if (modalGroup?._id === groupId) closeModal();
@@ -762,7 +721,6 @@ export default function GroupManagement(): JSX.Element {
         setStatusMessage('Failed to delete group');
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error('Error deleting group:', err);
       setStatusMessage('Failed to delete group');
     } finally {
@@ -770,26 +728,20 @@ export default function GroupManagement(): JSX.Element {
     }
   };
 
-  // Modal handlers
   const openModalForGroup = (groupId: string) => {
     const g = groups.find((x) => x._id === groupId) ?? null;
-    if (!g) {
-      setStatusMessage('Group not found locally');
-      return;
-    }
-    setModalGroup({ ...g });
+    if (!g) return setStatusMessage('Group not found locally');
 
-    // Normalize members to IDs (backend may return populated user objects)
+    setModalGroup({ ...g });
     const memberIds = g.members.map((m) => (typeof m === 'string' ? m : (m as User)._id));
     setModalSelectedUserIds(new Set(memberIds));
-
     setModalSearch('');
     setModalDebouncedSearch('');
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
-    if (modalSaving) return; // prevent closing while saving
+    if (modalSaving) return;
     setIsModalOpen(false);
     setModalGroup(null);
     setModalSelectedUserIds(new Set());
@@ -799,8 +751,7 @@ export default function GroupManagement(): JSX.Element {
   const toggleModalMember = (id: string) => {
     setModalSelectedUserIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
@@ -815,21 +766,13 @@ export default function GroupManagement(): JSX.Element {
 
   const handleSaveModalChanges = async (): Promise<void> => {
     if (!modalGroup) return;
-    if (!token) {
-      setStatusMessage('Not authorized');
-      return;
-    }
 
     setModalSaving(true);
     setStatusMessage('Saving group changes...');
     try {
       const payload = { name: modalGroup.name.trim(), members: Array.from(modalSelectedUserIds) };
-      const res = await api.put(`/admin/panel/groups/${modalGroup._id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await apiAdmin.put(`api/admin/panel/groups/${modalGroup._id}`, payload);
       if (res.status === 200) {
-        // Use returned group (populated) to keep state consistent
         const updatedGroup = res.data;
         setGroups((prev) => prev.map((g) => (g._id === modalGroup._id ? updatedGroup : g)));
         setStatusMessage('Group updated');
@@ -838,7 +781,6 @@ export default function GroupManagement(): JSX.Element {
         setStatusMessage('Failed to save group');
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error('Error saving group:', err);
       setStatusMessage('Failed to save group');
     } finally {
@@ -847,7 +789,6 @@ export default function GroupManagement(): JSX.Element {
   };
 
   const selectedCount = selectedUserIds.size;
-
   const getUserById = (id: string): User | undefined => allUsers.find((u) => u._id === id);
 
   return (

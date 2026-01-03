@@ -1,8 +1,11 @@
 module.exports = function requireAdmin(req, res, next) {
-  if (!req.user || req.user.role.toLowerCase() !== "admin") {
-    return res.status(403).json({ message: "Forbidden: admin only" });
+  const user = req.user;
+
+  if (!user || typeof user.role !== 'string' || user.role.toLowerCase() !== 'admin') {
+    console.warn('🚫 Access denied: Admin only');
+    return res.status(403).json({ message: 'Forbidden: Admin access required' });
   }
 
-  req.adminId = req.user.id;
+  req.adminId = user.id || user._id;
   next();
 };

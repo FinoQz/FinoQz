@@ -133,6 +133,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import apiAdmin from '@/lib/apiAdmin';
 import { 
   LayoutDashboard, 
   Users, 
@@ -174,10 +175,17 @@ const menuItems = [
 ];
 
 export default function DashboardSidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
+const handleLogout = async () => {
+  try {
+    await apiAdmin.post('/api/admin/logout', {}, { withCredentials: true });
+  } catch (err) {
+    console.warn('Logout failed:', err);
+  } finally {
     window.location.href = '/landing';
-  };
+  }
+};
+
+
 
   return (
     <>
