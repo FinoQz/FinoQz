@@ -181,6 +181,7 @@ exports.logout = async (req, res) => {
   }
 };
 
+// ✅ STEP 4 — REFRESH TOKEN
 exports.refreshToken = async (req, res) => {
   try {
     const oldToken = req.cookies?.userToken || req.headers['authorization']?.split(' ')[1];
@@ -232,5 +233,61 @@ exports.refreshToken = async (req, res) => {
   } catch (err) {
     console.error('❌ Refresh token error:', err);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// ✅ STEP 5 — RESEND OTP
+exports.resendOtp = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required to resend OTP" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    if (user.status !== "approved")
+      return res.status(403).json({ message: "Account not approved yet" });
+
+    const otp = generateOTP();
+
+    await redis.set(
+      `user:loginOtp:${email}`,
+      JSON.stringify({ otp }),
+      "EX",
+      10 * 60
+    );
+
+    try {
+      await emailQueue.add("userLoginOtp", {
+        to: email,
+        subject: "FinoQz Login OTP",
+        html: signinOtpTemplate({ otp }),
+      });
+    } catch (queueErr) {
+      console.error("❌ Queue error (resend OTP):", queueErr);
+    }
+
+    await logActivity({
+      req,
+      actorType: "user",
+      actorId: user._id,
+      action: "login_otp_resent",
+      meta: {
+        email,
+        device: getDeviceInfo(req)
+      }
+    });
+
+    return res.json({
+      message: "OTP resent to email",
+    });
+
+  } catch (err) {
+    console.error("Resend OTP error:", err);
+    return res.status(500).json({ message: "Server error during OTP resend" });
   }
 };

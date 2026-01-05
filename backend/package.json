@@ -38,6 +38,7 @@
     "nodemailer": "^7.0.10",
     "openai": "^6.15.0",
     "pdf-parse": "^2.4.5",
+    "resend": "^6.6.0",
     "socket.io": "^4.8.1",
     "ua-parser-js": "^2.0.6",
     "winston": "^3.18.3"

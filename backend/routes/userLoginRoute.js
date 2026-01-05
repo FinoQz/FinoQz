@@ -4,6 +4,7 @@ const {
   verifyLoginOtp,
   logout,
   refreshToken,
+  resendOtp
 } = require('../controllers/userLoginController');
 const { getUserPanel } = require('../controllers/userPanelController');
 const validateLogin = require('../middlewares/validateLogin');
@@ -25,6 +26,9 @@ router.post('/logout', authMiddleware(), logout);
 
 // Step 5: Refresh Token
 router.post('/refresh-token', refreshToken);
+
+// Step 6: Resend OTP
+router.post('/resend-otp', resendOtp);
 
 
 module.exports = router;

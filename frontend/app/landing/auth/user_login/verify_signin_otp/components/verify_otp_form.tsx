@@ -9,6 +9,8 @@ export default function VerifySigninOtpForm() {
   const [otp, setOtp] = useState('');
   const [email, setEmail] = useState('');
   const [formError, setFormError] = useState('');
+  const [resendMessage, setResendMessage] = useState('');
+  const [resending, setResending] = useState(false);
   const router = useRouter();
 
   // 🔍 Helper to read cookie value
@@ -33,25 +35,22 @@ export default function VerifySigninOtpForm() {
     }
 
     setFormError('');
+    setResendMessage('');
 
     try {
-      const res = await apiUser.post(
+      await apiUser.post(
         'api/user/login/verify',
         { email, otp },
         { withCredentials: true }
       );
 
-      // ✅ Save JWT token (optional, if needed client-side)
-      localStorage.setItem('userToken', res.data.token);
-
-      // 🧹 Clear the cookie after use
+      // ✅ Clear the cookie after successful login
       document.cookie = 'userEmail=; path=/; max-age=0';
 
       // ✅ Redirect to user dashboard
       router.push('/user_dash');
     } catch (err) {
       let errMsg = 'OTP verification failed';
-
       if (axios.isAxiosError(err)) {
         const maybeMessage = err.response?.data?.message;
         if (typeof maybeMessage === 'string') {
@@ -60,8 +59,26 @@ export default function VerifySigninOtpForm() {
           errMsg = 'Wrong OTP, kindly enter correct OTP';
         }
       }
-
       setFormError(errMsg);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!email) return;
+
+    setResending(true);
+    setResendMessage('');
+    try {
+      await apiUser.post(
+        'api/user/login/resend-otp',
+        { email },
+        { withCredentials: true }
+      );
+      setResendMessage('✅ OTP resent to your email');
+    } catch (err) {
+      setResendMessage('❌ Failed to resend OTP');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -90,7 +107,11 @@ export default function VerifySigninOtpForm() {
         </div>
       )}
 
-      <div className="flex justify-between gap-4">
+      {resendMessage && (
+        <div className="text-sm mb-3 font-medium text-gray-600">{resendMessage}</div>
+      )}
+
+      <div className="flex justify-between gap-4 mb-3">
         <button
           onClick={() => router.back()}
           className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-100 transition"
@@ -104,6 +125,29 @@ export default function VerifySigninOtpForm() {
           Verify & Login
         </button>
       </div>
+      <p className="text-xs text-gray-500 text-center mt-2">
+        Didn’t get the OTP?{' '}
+        <button
+          onClick={handleResendOtp}
+          disabled={resending}
+          className="text-indigo-600 font-medium hover:underline disabled:opacity-50"
+        >
+          {resending ? 'Resending...' : 'Resend'}
+        </button>
+      </p>
+
+      {resendMessage && (
+        <div
+          className={`mt-3 text-sm px-4 py-2 rounded font-medium text-center ${resendMessage.startsWith('✅')
+              ? 'bg-green-50 border border-green-300 text-green-700'
+              : 'bg-red-50 border border-red-300 text-red-700'
+            }`}
+        >
+          {resendMessage}
+        </div>
+      )}
+
+
     </div>
   );
 }
