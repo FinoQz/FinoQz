@@ -84,7 +84,7 @@ module.exports = async ({ to, subject, html }) => {
 
   try {
     await resend.emails.send({
-      from: 'FinoQz <finoqz@finoqz.resend.dev>',
+      from: 'FinoQz <onboarding@finoqz.resend.dev>',
       to,
       subject,
       html,
