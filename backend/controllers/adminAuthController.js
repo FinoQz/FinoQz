@@ -564,13 +564,16 @@ exports.login = async (req, res) => {
       html: otpTemplate(otp),
     });
 
+    const isProd = process.env.NODE_ENV === 'production';
+
     res.cookie('pendingAdminEmail', identifier, {
       httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
+      secure: isProd, // ✅ true in production
+      sameSite: isProd ? 'None' : 'Lax', // ✅ allow cross-origin cookies
       path: '/',
       maxAge: 5 * 60 * 1000,
     });
+
 
     res.json({ message: 'OTP sent to email' });
   } catch (err) {
@@ -716,12 +719,14 @@ exports.verifyOtp = async (req, res) => {
 
     await redis.set(`session:${admin._id}`, accessToken, 'EX', 30 * 60);
     await redis.set(`admin:refresh:${admin._id}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
-    
+
+
+    const isProd = process.env.NODE_ENV === 'production';
 
     res.cookie('adminToken', accessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
       maxAge: 30 * 60 * 1000,
     });
@@ -729,7 +734,7 @@ exports.verifyOtp = async (req, res) => {
     res.cookie('adminRefresh', refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -737,9 +742,10 @@ exports.verifyOtp = async (req, res) => {
     res.clearCookie('pendingAdminEmail', {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
     });
+
 
     await logActivity({
       req,
@@ -847,13 +853,16 @@ exports.refreshToken = async (req, res) => {
 
     await redis.set(`session:${decoded._id}`, newAccessToken, 'EX', 30 * 60);
 
+    const isProd = process.env.NODE_ENV === 'production';
+
     res.cookie('adminToken', newAccessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
       maxAge: 30 * 60 * 1000,
     });
+
 
     res.json({ message: 'Token refreshed', token: newAccessToken });
   } catch (err) {
@@ -969,26 +978,29 @@ exports.logout = async (req, res) => {
       }
     }
 
+    const isProd = process.env.NODE_ENV === 'production';
+
     res.clearCookie('adminToken', {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
     });
 
     res.clearCookie('adminRefresh', {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
     });
 
     res.clearCookie('pendingAdminEmail', {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'strict',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
     });
+
 
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (err) {
