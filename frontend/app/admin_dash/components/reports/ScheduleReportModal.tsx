@@ -79,7 +79,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
               {['daily', 'weekly', 'monthly'].map((freq) => (
                 <button
                   key={freq}
-                  onClick={() => setSchedule({ ...schedule, frequency: freq as any })}
+                  onClick={() => setSchedule({ ...schedule, frequency: freq as ScheduleConfig["frequency"] })}
                   className={`px-4 py-2 rounded-lg border-2 font-medium text-sm capitalize transition ${
                     schedule.frequency === freq
                       ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]'

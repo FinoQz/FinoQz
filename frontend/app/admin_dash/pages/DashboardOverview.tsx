@@ -21,7 +21,6 @@ import LiveUsersWidget from '../components/adminComponents/LiveUsersWidget';
 import ActiveQuizzesWidget from '../components/adminComponents/ActiveQuizzesWidget';
 import TodayRevenueWidget from '../components/adminComponents/TodayRevenueWidget';
 import PendingUsersModal from '../components/adminComponents/PendingUsersModal';
-import LandingPageManager from '../components/adminComponents/LandingPageManager';
 
 interface DashboardStats {
   totalUsers: number;

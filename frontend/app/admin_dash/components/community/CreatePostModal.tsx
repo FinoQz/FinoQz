@@ -220,7 +220,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                     name="visibility"
                     value="public"
                     checked={visibility === 'public'}
-                    onChange={(e) => setVisibility(e.target.value as any)}
+                    onChange={(e) => setVisibility(e.target.value as "public" | "members" | "admin")}
                     className="w-4 h-4 text-[#253A7B]"
                   />
                   <Globe className="w-4 h-4 text-gray-600" />
@@ -232,7 +232,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                     name="visibility"
                     value="members"
                     checked={visibility === 'members'}
-                    onChange={(e) => setVisibility(e.target.value as any)}
+                    onChange={(e) => setVisibility(e.target.value as "public" | "members" | "admin")}
                     className="w-4 h-4 text-[#253A7B]"
                   />
                   <Users className="w-4 h-4 text-gray-600" />
@@ -244,7 +244,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                     name="visibility"
                     value="admin"
                     checked={visibility === 'admin'}
-                    onChange={(e) => setVisibility(e.target.value as any)}
+                    onChange={(e) => setVisibility(e.target.value as "public" | "members" | "admin")}
                     className="w-4 h-4 text-[#253A7B]"
                   />
                   <Lock className="w-4 h-4 text-gray-600" />

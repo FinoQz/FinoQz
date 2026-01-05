@@ -10,7 +10,8 @@ export default function FinanceContent() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingContent, setEditingContent] = useState<any>(null);
+  type ContentType = typeof contents[0] | null;
+  const [editingContent, setEditingContent] = useState<ContentType>(null);
 
   // Dummy data
   const [contents, setContents] = useState([
@@ -102,10 +103,9 @@ export default function FinanceContent() {
       .sort((a, b) => b.views - a.views)
       .slice(0, 3)
       .map(item => ({
-        id: item.id,
         title: item.title,
         views: item.views,
-        thumbnail: item.thumbnail,
+        category: item.category,
       })),
   };
 
@@ -136,7 +136,7 @@ export default function FinanceContent() {
     ));
   };
 
-  const handleSaveContent = (data: any) => {
+  const handleSaveContent = (data: ContentFormData) => {
     if (editingContent) {
       // Update existing content
       setContents(contents.map(item =>

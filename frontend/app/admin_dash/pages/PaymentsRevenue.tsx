@@ -23,8 +23,29 @@ import GenerateReportModal, { ReportConfig } from '../components/payments/Genera
 import RequestPayoutModal from '../components/payments/RequestPayoutModal';
 import Toast from '../components/Toast';
 
+type Transaction = {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string;
+  amount: number;
+  status: 'success' | 'pending' | 'failed' | 'refunded';
+  method: string;
+  date: string;
+  quizId: string;
+  quizTitle: string;
+  gatewayTxnId: string;
+  gatewayResponse: string;
+  refundHistory?: {
+    date: string;
+    amount: number;
+    reason: string;
+    adminUser: string;
+  }[];
+};
+
 export default function PaymentsRevenue() {
-  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -131,7 +152,7 @@ export default function PaymentsRevenue() {
     { method: 'PhonePe', percentage: 5, amount: 142383 },
   ];
 
-  const handleViewDetails = (txn: any) => {
+  const handleViewDetails = (txn: Transaction) => {
     setSelectedTransaction(txn);
     setShowDetailModal(true);
   };

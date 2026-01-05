@@ -191,7 +191,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
             <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-blue-800">
               <p className="font-medium">Processing Time</p>
-              <p className="mt-1">Payouts are typically processed within 2-3 business days. You'll receive a confirmation email once the transfer is initiated.</p>
+              <p className="mt-1">Payouts are typically processed within 2-3 business days. Youll receive a confirmation email once the transfer is initiated.</p>
             </div>
           </div>
         </div>
