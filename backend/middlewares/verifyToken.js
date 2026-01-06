@@ -45,7 +45,6 @@ function sha256Hex(input) {
 module.exports = (requiredRole = null) => {
   return (req, res, next) => {
     try {
-      // ✅ Extract token from cookies (preferred) or Authorization header (fallback)
       const token =
         req.cookies?.adminToken ||
         req.cookies?.userToken ||
@@ -65,23 +64,22 @@ module.exports = (requiredRole = null) => {
 
       const decoded = jwt.verify(token, secret);
 
-      // ✅ Attach user info
       req.user = decoded;
       req.userId = decoded.id || decoded.userId || null;
       req.adminId = decoded.id;
 
-      // ✅ Role check
       if (requiredRole && decoded.role?.toLowerCase() !== requiredRole.toLowerCase()) {
         return res.status(403).json({ message: "Forbidden: Admin access only" });
       }
 
-      // ✅ Fingerprint check
+      // ✅ Fingerprint check (relaxed)
       const userAgent = req.get("user-agent") || "";
-      const ip = req.ip || req.connection?.remoteAddress || "";
+      const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '';
       const currentFingerprint = sha256Hex(`${ip}|${userAgent}`);
 
       if (decoded.fingerprint && decoded.fingerprint !== currentFingerprint) {
-        return res.status(401).json({ message: "Session invalid. Please login again." });
+        console.warn("⚠️ Fingerprint mismatch (not blocking)");
+        // return res.status(401).json({ message: "Session invalid. Please login again." });
       }
 
       return next();
