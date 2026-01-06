@@ -270,9 +270,9 @@ module.exports = function (requiredRole = null) {
         return res.status(401).json({ message: 'Session expired or invalid' });
       }
 
-      // ✅ Fingerprint check
+      // ✅ Fingerprint check (relaxed)
       const userAgent = req.get('user-agent') || '';
-      const ip = req.ip || req.connection?.remoteAddress || '';
+      const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '';
       const currentFingerprint = sha256Hex(`${ip}|${userAgent}`);
 
       if (decoded.fingerprint) {
@@ -285,12 +285,12 @@ module.exports = function (requiredRole = null) {
             : decoded.fingerprint === currentFingerprint;
 
         if (!match) {
-          console.warn('❌ Fingerprint mismatch');
-          return res.status(401).json({ message: 'Session fingerprint mismatch' });
+          console.warn('⚠️ Fingerprint mismatch (not blocking)');
+          // return res.status(401).json({ message: 'Session fingerprint mismatch' });
         }
       } else {
-        console.warn('⚠️ Token missing fingerprint');
-        return res.status(401).json({ message: 'Session fingerprint missing' });
+        console.warn('⚠️ Token missing fingerprint (not blocking)');
+        // return res.status(401).json({ message: 'Session fingerprint missing' });
       }
 
       // ✅ Attach user info
@@ -315,3 +315,4 @@ module.exports = function (requiredRole = null) {
     }
   };
 };
+
