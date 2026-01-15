@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Users, Activity } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
 export default function LiveUsersWidget() {
   const [liveUsers, setLiveUsers] = useState<number>(0);
   const [sparklineData, setSparklineData] = useState<number[]>([]);
   const [socketReceived, setSocketReceived] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -17,9 +18,11 @@ export default function LiveUsersWidget() {
       return;
     }
 
-    const socket = io(backendUrl, {
-      withCredentials: true,
-    });
+    // ✅ Single socket instance
+    if (!socketRef.current) {
+      socketRef.current = io(backendUrl, { withCredentials: true });
+    }
+    const socket = socketRef.current;
 
     const fallbackTimer: NodeJS.Timeout = setTimeout(() => {
       if (!socketReceived) {
@@ -29,7 +32,7 @@ export default function LiveUsersWidget() {
     }, 4000);
 
     socket.on('connect', () => {
-      console.log('✅ Connected to WebSocket');
+      console.log('✅ Connected to WebSocket:', socket.id);
     });
 
     socket.on('analytics:update', (data) => {
@@ -41,13 +44,12 @@ export default function LiveUsersWidget() {
       }
     });
 
-    // fallbackTimer is now declared and assigned above as a const
-
     return () => {
-      socket.disconnect();
+      // ✅ सिर्फ listeners हटाओ, disconnect मत करो
+      socket.off('analytics:update');
       clearTimeout(fallbackTimer);
     };
-  }, []);
+  }, [socketReceived]);
 
   const fetchLiveDataFallback = async () => {
     try {

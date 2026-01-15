@@ -1,22 +1,252 @@
+// 'use client';
+
+// import React, { useEffect, useState, useRef } from 'react';
+// import apiAdmin from '@/lib/apiAdmin';
+// import { io, Socket } from 'socket.io-client';
+// import {
+//   TrendingUp,
+//   Users,
+//   Clock,
+//   AlertTriangle,
+// } from 'lucide-react';
+// // import QuizCompletionRate from '../components/adminComponents/QuizCompletionRate';
+// // import CategoryParticipation from '../components/adminComponents/CategoryParticipation';
+// // import TopUsers from '../components/adminComponents/TopUsers';
+// // import UpcomingQuizzes from '../components/adminComponents/UpcomingQuizzes';
+// // import RecentAdminActions from '../components/adminComponents/RecentAdminActions';
+// import LiveUsersWidget from '../components/dashboard/LiveUsersWidget';
+// // import ActiveQuizzesWidget from '../components/adminComponents/ActiveQuizzesWidget';
+// // import TodayRevenueWidget from '../components/adminComponents/TodayRevenueWidget';
+// import PendingUsersModal from '../components/dashboard/PendingUsersModal';
+
+// interface DashboardStats {
+//   totalUsers: number;
+//   activeUsers: number;
+//   pendingApprovals: number;
+//   totalRevenue: number;
+//   totalPaidUsers: number;
+//   freeQuizAttempts: number;
+// }
+
+// interface PendingUser {
+//   _id: string;
+//   fullName: string;
+//   email: string;
+//   mobile: string;
+//   status: string;
+//   createdAt?: string;
+//   updatedAt?: string;
+// }
+
+// export default function DashboardOverview() {
+//   const [stats, setStats] = useState<DashboardStats>({
+//     totalUsers: 0,
+//     activeUsers: 0,
+//     pendingApprovals: 0,
+//     totalRevenue: 0,
+//     totalPaidUsers: 0,
+//     freeQuizAttempts: 0,
+//   });
+
+//   const [loading, setLoading] = useState(true);
+//   const [growthPercent, setGrowthPercent] = useState<string>('0.0');
+//   const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+//   const [pendingUsersList, setPendingUsersList] = useState<PendingUser[]>([]);
+//   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+//   const isPendingModalOpenRef = useRef(false);
+//   const isFetchingPending = useRef(false);
+//   const [userData, setUserData] = useState<number[]>([]);
+//   const [days, setDays] = useState<string[]>([]);
+//   const socketRef = useRef<Socket | null>(null);
+
+//   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+//   const fetchPendingUsers = async () => {
+//     if (isFetchingPending.current) return;
+//     isFetchingPending.current = true;
+//     try {
+//       const res = await apiAdmin.get('api/admin/panel/pending-users');
+//       setPendingUsersList(res.data);
+//     } catch (err) {
+//       console.error('Error fetching pending users:', err);
+//     } finally {
+//       isFetchingPending.current = false;
+//     }
+//   };
+
+//   useEffect(() => {
+//     isPendingModalOpenRef.current = isPendingModalOpen;
+//   }, [isPendingModalOpen]);
+
+//   useEffect(() => {
+//     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+//     if (!backendUrl) {
+//       console.error('NEXT_PUBLIC_BACKEND_URL is not defined');
+//       return;
+//     }
+
+//     const socket = io(backendUrl, {
+//       withCredentials: true,
+//     });
+
+//     let debounceTimer: NodeJS.Timeout | null = null;
+//     let fallbackTimer: NodeJS.Timeout | null = null;
+//     let statsReceived = false;
+
+//     const fetchInitialStats = async () => {
+//       try {
+//         const [allRes, activeRes, monthlyRes] = await Promise.all([
+//           apiAdmin.get('/api/admin/panel/all-users'),
+//           apiAdmin.get('/api/admin/panel/approved-users'),
+//           apiAdmin.get('/api/admin/panel/monthly-users'),
+//         ]);
+
+//         await fetchPendingUsers();
+
+//         const totalUsers = allRes.data.length;
+//         const activeUsers = activeRes.data.length;
+//         const pendingApprovals = pendingUsersList.length;
+
+//         const current = monthlyRes.data.currentMonth;
+//         const last = monthlyRes.data.lastMonth;
+//         const growth = last > 0 ? ((current - last) / last) * 100 : 100;
+
+//         setStats((prev) => ({
+//           ...prev,
+//           totalUsers,
+//           activeUsers,
+//           pendingApprovals,
+//         }));
+
+//         setGrowthPercent(growth.toFixed(1));
+//         setLoading(false);
+//       } catch (err) {
+//         console.error('❌ Error fetching initial dashboard stats:', err);
+//         setLoading(false);
+//       }
+//     };
+
+//     // Fetch immediately for fast UI
+//     fetchInitialStats();
+
+//     // Setup WebSocket
+//     socket.on('connect', () => {
+//       console.log('✅ Connected to WebSocket:', socket.id);
+//     });
+
+//     socket.on('dashboard:stats', (data: Partial<DashboardStats>) => {
+//       console.log('📡 Real-time stats received:', data);
+//       statsReceived = true;
+
+//       setStats((prev) => ({
+//         ...prev,
+//         ...data,
+//       }));
+
+//       if (typeof data.pendingApprovals === 'number') {
+//         setAlertMessage(`You have ${data.pendingApprovals} pending user approvals`);
+//       }
+
+//       if (isPendingModalOpenRef.current) {
+//         if (debounceTimer) clearTimeout(debounceTimer);
+//         debounceTimer = setTimeout(() => {
+//           fetchPendingUsers();
+//         }, 2000);
+//       }
+//     });
+
+//     socket.on('disconnect', () => {
+//       console.log('❌ WebSocket disconnected');
+//     });
+
+//     // Fallback if socket doesn't emit in 4s
+//     fallbackTimer = setTimeout(() => {
+//       if (!statsReceived) {
+//         console.warn('⚠️ No WebSocket stats received — using fallback only');
+//         // Already fetched above, so no need to re-fetch
+//         setLoading(false);
+//       }
+//     }, 4000);
+
+//     return () => {
+//       socket.disconnect();
+//       if (debounceTimer) clearTimeout(debounceTimer);
+//       if (fallbackTimer) clearTimeout(fallbackTimer);
+//     };
+//   }, []);
+
+
+
+
+//   useEffect(() => {
+//     const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL!, {
+//       withCredentials: true,
+//     });
+
+//     let socketReceived = false;
+
+//     socket.on('connect', () => {
+//       console.log('✅ Connected to WebSocket');
+//     });
+
+//     socket.on('analytics:update', (data) => {
+//       if (data.type === 'userGrowth') {
+//         console.log('📈 WebSocket userGrowth:', data);
+//         setUserData(data.values || []);
+//         setDays(data.labels || []);
+//         setLoading(false);
+//         socketReceived = true;
+//       }
+//     });
+
+//     const fallbackTimer = setTimeout(async () => {
+//       if (!socketReceived) {
+//         console.warn('⚠️ No WebSocket userGrowth — using fallback API');
+//         try {
+//           const res = await apiAdmin.get('/api/admin/panel/analytics/user-growth');
+//           setUserData(res.data.values || []);
+//           setDays(res.data.labels || []);
+//         } catch (err) {
+//           console.error('❌ Fallback API failed:', err);
+//         } finally {
+//           setLoading(false);
+//         }
+//       }
+//     }, 4000);
+
+//     return () => {
+//       socket.disconnect();
+//       clearTimeout(fallbackTimer);
+//     };
+//   }, []);
+
+
+
+//   useEffect(() => {
+//     if (!alertMessage) return;
+//     const timer = setTimeout(() => setAlertMessage(null), 3000);
+//     return () => clearTimeout(timer);
+//   }, [alertMessage]);
+
+//   const handleOpenPendingModal = async () => {
+//     setIsPendingModalOpen(true);
+//     await fetchPendingUsers();
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="flex items-center justify-center h-full">
+//         <div className="text-gray-500">Loading dashboard...</div>
+//       </div>
+//     );
+//   }
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
 import apiAdmin from '@/lib/apiAdmin';
 import { io, Socket } from 'socket.io-client';
-import {
-  TrendingUp,
-  Users,
-  Clock,
-  AlertTriangle,
-} from 'lucide-react';
-// import QuizCompletionRate from '../components/adminComponents/QuizCompletionRate';
-// import CategoryParticipation from '../components/adminComponents/CategoryParticipation';
-// import TopUsers from '../components/adminComponents/TopUsers';
-// import UpcomingQuizzes from '../components/adminComponents/UpcomingQuizzes';
-// import RecentAdminActions from '../components/adminComponents/RecentAdminActions';
+import { TrendingUp, Users, Clock, AlertTriangle } from 'lucide-react';
 import LiveUsersWidget from '../components/dashboard/LiveUsersWidget';
-// import ActiveQuizzesWidget from '../components/adminComponents/ActiveQuizzesWidget';
-// import TodayRevenueWidget from '../components/adminComponents/TodayRevenueWidget';
 import PendingUsersModal from '../components/dashboard/PendingUsersModal';
 
 interface DashboardStats {
@@ -59,8 +289,6 @@ export default function DashboardOverview() {
   const [days, setDays] = useState<string[]>([]);
   const socketRef = useRef<Socket | null>(null);
 
-  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
   const fetchPendingUsers = async () => {
     if (isFetchingPending.current) return;
     isFetchingPending.current = true;
@@ -85,13 +313,11 @@ export default function DashboardOverview() {
       return;
     }
 
-    const socket = io(backendUrl, {
-      withCredentials: true,
-    });
-
-    let debounceTimer: NodeJS.Timeout | null = null;
-    let fallbackTimer: NodeJS.Timeout | null = null;
-    let statsReceived = false;
+    // ✅ Single socket instance
+    if (!socketRef.current) {
+      socketRef.current = io(backendUrl, { withCredentials: true });
+    }
+    const socket = socketRef.current;
 
     const fetchInitialStats = async () => {
       try {
@@ -126,17 +352,14 @@ export default function DashboardOverview() {
       }
     };
 
-    // Fetch immediately for fast UI
     fetchInitialStats();
 
-    // Setup WebSocket
     socket.on('connect', () => {
       console.log('✅ Connected to WebSocket:', socket.id);
     });
 
     socket.on('dashboard:stats', (data: Partial<DashboardStats>) => {
       console.log('📡 Real-time stats received:', data);
-      statsReceived = true;
 
       setStats((prev) => ({
         ...prev,
@@ -148,45 +371,8 @@ export default function DashboardOverview() {
       }
 
       if (isPendingModalOpenRef.current) {
-        if (debounceTimer) clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          fetchPendingUsers();
-        }, 2000);
+        fetchPendingUsers();
       }
-    });
-
-    socket.on('disconnect', () => {
-      console.log('❌ WebSocket disconnected');
-    });
-
-    // Fallback if socket doesn't emit in 4s
-    fallbackTimer = setTimeout(() => {
-      if (!statsReceived) {
-        console.warn('⚠️ No WebSocket stats received — using fallback only');
-        // Already fetched above, so no need to re-fetch
-        setLoading(false);
-      }
-    }, 4000);
-
-    return () => {
-      socket.disconnect();
-      if (debounceTimer) clearTimeout(debounceTimer);
-      if (fallbackTimer) clearTimeout(fallbackTimer);
-    };
-  }, []);
-
-
-
-
-  useEffect(() => {
-    const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL!, {
-      withCredentials: true,
-    });
-
-    let socketReceived = false;
-
-    socket.on('connect', () => {
-      console.log('✅ Connected to WebSocket');
     });
 
     socket.on('analytics:update', (data) => {
@@ -195,32 +381,15 @@ export default function DashboardOverview() {
         setUserData(data.values || []);
         setDays(data.labels || []);
         setLoading(false);
-        socketReceived = true;
       }
     });
 
-    const fallbackTimer = setTimeout(async () => {
-      if (!socketReceived) {
-        console.warn('⚠️ No WebSocket userGrowth — using fallback API');
-        try {
-          const res = await apiAdmin.get('/api/admin/panel/analytics/user-growth');
-          setUserData(res.data.values || []);
-          setDays(res.data.labels || []);
-        } catch (err) {
-          console.error('❌ Fallback API failed:', err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    }, 4000);
-
     return () => {
-      socket.disconnect();
-      clearTimeout(fallbackTimer);
+      // ✅ सिर्फ listeners हटाओ
+      socket.off('dashboard:stats');
+      socket.off('analytics:update');
     };
   }, []);
-
-
 
   useEffect(() => {
     if (!alertMessage) return;

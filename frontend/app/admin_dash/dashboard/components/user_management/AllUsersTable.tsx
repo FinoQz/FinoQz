@@ -168,52 +168,73 @@ export default function AllUsersTable() {
   const socketRef = useRef<Socket | null>(null);
 
   // ✅ WebSocket-based real-time user sync
+    // ✅ WebSocket-based real-time user sync
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-    if (!backendUrl) return;
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (!backendUrl) return;
 
-    if (socketRef.current) return;
+  if (!socketRef.current) {
+    socketRef.current = io(backendUrl, { withCredentials: true });
+  }
+  const socket = socketRef.current;
 
-    const socket = io(backendUrl, { withCredentials: true });
-    socketRef.current = socket;
+  socket.on("connect", () => {
+    console.log("✅ Connected to WebSocket:", socket.id);
+  });
 
-    socket.on("connect", () => {
-      console.log("✅ Connected to WebSocket:", socket.id);
-    });
+  socket.on("users:update", (data) => {
+    console.log("📡 Received users:update:", data);
+    if (Array.isArray(data?.approved)) {
+      type BackendUser = {
+        _id: string;
+        fullName: string;
+        email: string;
+        mobile?: string;
+        createdAt: string;
+        lastLoginAt?: string;
+      };
+      const formatted = data.approved.map((u: BackendUser) => ({
+        _id: u._id,
+        fullName: u.fullName,
+        email: u.email,
+        mobile: u.mobile || "N/A",
+        status: "Active",
+        registrationDate: u.createdAt,
+        lastLogin: u.lastLoginAt || u.createdAt,
+      }));
+      setUsers(formatted);
+    }
+    setLoading(false);
+  });
 
-    socket.on("users:update", (data) => {
-      console.log("📡 Received users:update:", data);
-      if (Array.isArray(data?.approved)) {
-        type BackendUser = {
-          _id: string;
-          fullName: string;
-          email: string;
-          mobile?: string;
-          createdAt: string;
-          lastLoginAt?: string;
-        };
-        const formatted = data.approved.map((u: BackendUser) => ({
-          _id: u._id,
-          fullName: u.fullName,
-          email: u.email,
-          mobile: u.mobile || "N/A",
-          status: "Active",
-          registrationDate: u.createdAt,
-          lastLogin: u.lastLoginAt || u.createdAt,
-        }));
-        setUsers(formatted);
+  socket.on("disconnect", (reason) => {
+    console.warn("❌ WebSocket disconnected:", reason);
+  });
+
+  // ✅ Fallback: if no socket data in 4s, fetch via API
+  const fallbackTimer = setTimeout(async () => {
+    if (loading) {
+      console.warn("⚠️ No WebSocket data — using fallback API");
+      try {
+        const res = await apiAdmin.get("/api/admin/panel/all-users", {
+          headers: { "Cache-Control": "no-store" },
+        });
+        setUsers(res.data || []);
+      } catch (err) {
+        console.error("❌ Fallback API failed:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    }
+  }, 4000);
 
-    socket.on("disconnect", (reason) => {
-      console.warn("❌ WebSocket disconnected:", reason);
-    });
+  return () => {
+    socket.off("users:update");
+    clearTimeout(fallbackTimer);
+  };
+}, []);
 
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+
 
   // ...rest of your table rendering logic (search, filter, actions, modals, etc.)
   const formatDate = (dateString: string) => {

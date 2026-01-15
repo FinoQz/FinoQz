@@ -1,3 +1,148 @@
+// 'use client';
+
+// import React, { useEffect, useState, useRef } from 'react';
+// import apiAdmin from '@/lib/apiAdmin';
+// import HoverDetails from '../components/user_management/HoverDetails';
+// import ApprovedUserCard from '../components/user_management/ApprovedUserCard';
+// import RejectedUserCard from '../components/user_management/RejectedUserCard';
+// import AllUsersTable from '../components/user_management/AllUsersTable';
+// import StatusMessage from '../components/user_management/StatusMessage';
+// import AddNewUserForm from '../components/user_management/AddNewUserForm';
+// import EmailManagement from '../components/user_management/EmailManagement';
+// import GroupManagement from '../components/user_management/GroupManagement';
+// import { UserPlus, Mail, Users } from 'lucide-react';
+// import { useSearchParams } from "next/navigation";
+// import { io, Socket } from 'socket.io-client';
+
+// interface User {
+//   _id: string;
+//   fullName: string;
+//   email: string;
+//   mobile?: string;
+//   createdAt: string;
+//   status?: string;
+//   emailVerified?: boolean;
+//   mobileVerified?: boolean;
+// }
+
+// interface ApprovedUser extends User {
+//   approvedAt: string;
+// }
+
+// interface RejectedUser extends User {
+//   rejectedAt: string;
+// }
+
+// type UserAction = 'approve' | 'reject';
+// type TabType = 'pending' | 'approved' | 'rejected' | 'all' | 'add-new' | 'email-users' | 'groups';
+
+// export default function UserManagement() {
+//   const searchParams = useSearchParams();
+//   const defaultTab = (searchParams.get("tab") as TabType) || "all";
+
+//   const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
+//   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
+//   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
+//   const [rejectedUsers, setRejectedUsers] = useState<RejectedUser[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [actionStatus, setActionStatus] = useState('');
+//   const socketRef = useRef<Socket | null>(null);
+
+//   // ✅ Initial fetch
+//   useEffect(() => {
+//     const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+//     const fetchAllUsers = async () => {
+//       try {
+//         const pendingRes = await apiAdmin.get('api/admin/panel/pending-users');
+//         await delay(300);
+//         const approvedRes = await apiAdmin.get('api/admin/panel/approved-users');
+//         await delay(300);
+//         const rejectedRes = await apiAdmin.get('api/admin/panel/rejected-users');
+
+//         setPendingUsers(pendingRes.data || []);
+//         setApprovedUsers(approvedRes.data || []);
+//         setRejectedUsers(rejectedRes.data || []);
+//       } catch (err) {
+//         console.error("Error fetching users:", err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     fetchAllUsers(); // ✅ only once on mount
+//   }, []);
+
+//   // ✅ WebSocket listener for real-time updates
+//   useEffect(() => {
+//     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+//     if (!backendUrl) return;
+
+//     if (socketRef.current) return;
+
+//     const socket = io(backendUrl, { withCredentials: true });
+//     socketRef.current = socket;
+
+//     socket.on('connect', () => {
+//       console.log('✅ Connected to WebSocket:', socket.id);
+//     });
+
+//     socket.on('users:update', (data) => {
+//       console.log('📡 Real-time user update:', data);
+//       if (data.pending) setPendingUsers(data.pending);
+//       if (data.approved) setApprovedUsers(data.approved);
+//       if (data.rejected) setRejectedUsers(data.rejected);
+//     });
+
+//     socket.on('disconnect', () => {
+//       console.log('❌ WebSocket disconnected');
+//     });
+
+//     return () => {
+//       socket.disconnect();
+//     };
+//   }, []);
+
+//   // ✅ Approve / Reject user
+//   const handleAction = async (userId: string, action: UserAction): Promise<void> => {
+//     setActionStatus(`Processing ${action}...`);
+
+//     const user = pendingUsers.find(u => u._id === userId);
+//     if (!user) {
+//       console.warn("❌ User not found in pending list for ID:", userId);
+//       return;
+//     }
+
+//     try {
+//       console.log("📤 Sending action:", action, "for user ID:", user._id);
+
+//       const res = await apiAdmin.post(`api/admin/panel/${action}/${user._id}`);
+
+//       if (res.status === 200) {
+//         setPendingUsers(prev => prev.filter(u => u._id !== user._id));
+
+//         if (action === 'approve') {
+//           const approvedAt = res.data?.user?.approvedAt || new Date().toISOString();
+//           setApprovedUsers(prev => [...prev, { ...user, approvedAt }]);
+//           setActionStatus(`User approved successfully`);
+//         } else {
+//           const rejectedAt = res.data?.user?.rejectedAt || new Date().toISOString();
+//           setRejectedUsers(prev => [...prev, { ...user, rejectedAt }]);
+//           setActionStatus(`User rejected successfully`);
+//         }
+//       } else {
+//         console.warn(`⚠️ Unexpected response during ${action}:`, res);
+//         setActionStatus(`Failed to ${action} user`);
+//       }
+//     } catch (err) {
+//       console.error(`❌ Error during ${action}:`, err);
+//       setActionStatus(`Failed to ${action} user`);
+//     }
+//   };
+
+//   const handleAddUserSuccess = () => {
+//     setActiveTab('all');
+//   };
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -78,10 +223,11 @@ export default function UserManagement() {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     if (!backendUrl) return;
 
-    if (socketRef.current) return;
-
-    const socket = io(backendUrl, { withCredentials: true });
-    socketRef.current = socket;
+    // ✅ Single socket instance
+    if (!socketRef.current) {
+      socketRef.current = io(backendUrl, { withCredentials: true });
+    }
+    const socket = socketRef.current;
 
     socket.on('connect', () => {
       console.log('✅ Connected to WebSocket:', socket.id);
@@ -99,7 +245,8 @@ export default function UserManagement() {
     });
 
     return () => {
-      socket.disconnect();
+      // ✅ सिर्फ listeners हटाओ, disconnect मत करो
+      socket.off('users:update');
     };
   }, []);
 

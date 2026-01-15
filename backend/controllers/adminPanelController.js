@@ -74,28 +74,28 @@ async function emitDashboardStats(req) {
 
 
 // 🔁 Emit real-time user list to all admins
-async function emitUsersUpdate(req) {
-  const io = req.app.get("io");
-  if (!io) return;
+// async function emitUsersUpdate(req) {
+//   const io = req.app.get("io");
+//   if (!io) return;
 
-  try {
-    const [pending, approved, rejected] = await Promise.all([
-      User.find({ status: 'awaiting_admin_approval' }),
-      User.find({ status: 'approved' }),
-      User.find({ status: 'rejected' }),
-    ]);
+//   try {
+//     const [pending, approved, rejected] = await Promise.all([
+//       User.find({ status: 'awaiting_admin_approval' }),
+//       User.find({ status: 'approved' }),
+//       User.find({ status: 'rejected' }),
+//     ]);
 
-    io.to('admin-room').emit('users:update', {
-      pending,
-      approved,
-      rejected,
-    });
+//     io.to('admin-room').emit('users:update', {
+//       pending,
+//       approved,
+//       rejected,
+//     });
 
-    console.log('📡 Emitted users:update');
-  } catch (err) {
-    console.error('❌ emitUsersUpdate error:', err);
-  }
-}
+//     console.log('📡 Emitted users:update');
+//   } catch (err) {
+//     console.error('❌ emitUsersUpdate error:', err);
+//   }
+// }
 
 exports.emitDashboardStats = emitDashboardStats;
 

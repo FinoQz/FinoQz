@@ -242,6 +242,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const logger = require('./logger');
+const redis = require('./redis'); 
 const { emitLiveUserStats } = require('./emmiters');
 
 
@@ -251,62 +252,43 @@ const allowedOrigins = [
   'https://www.finoqz.com',
 ];
 
-const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH === 'false';
-
-let io = null;
+const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH !== 'false';
 
 function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS in Socket.io'));
-        }
-      },
+      origin: allowedOrigins,
       credentials: true,
     },
     pingTimeout: 30000,
   });
 
-  // ✅ Middleware: extract JWT from cookie
   io.use((socket, next) => {
+    const cookies = socket.handshake.headers.cookie;
+    const parsedCookies = cookie.parse(cookies || '');
+    const token = parsedCookies.adminToken;
+
+    if (!token) {
+      socket.isAuthenticated = false;
+      socket.user = null;
+      if (STRICT_AUTH) return next(new Error('No token provided'));
+      return next();
+    }
+
     try {
-      const cookies = socket.handshake.headers.cookie;
-      const parsedCookies = cookie.parse(cookies || '');
-      const token = parsedCookies.adminToken;
-
-      if (!token) {
-        socket.isAuthenticated = false;
-        socket.user = null;
-        if (STRICT_AUTH) return next(new Error('No token provided'));
-        return next();
-      }
-
-      try {
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
-        socket.isAuthenticated = true;
-        socket.user = payload;
-        return next();
-      } catch (err) {
-        logger.warn('Socket auth failed', {
-          reason: err.message,
-          socketId: socket.id,
-        });
-        socket.isAuthenticated = false;
-        socket.user = null;
-        socket.authError = err.name === 'TokenExpiredError' ? 'jwt expired' : 'invalid token';
-        if (STRICT_AUTH) return next(new Error(socket.authError));
-        return next();
-      }
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      socket.isAuthenticated = true;
+      socket.user = payload;
+      next();
     } catch (err) {
-      console.error('Socket auth middleware error:', err);
-      return next(new Error('Socket auth error'));
+      socket.isAuthenticated = false;
+      socket.user = null;
+      socket.authError = err.name === 'TokenExpiredError' ? 'jwt expired' : 'invalid token';
+      if (STRICT_AUTH) return next(new Error(socket.authError));
+      next();
     }
   });
 
-  // ✅ Connection handler
   io.on('connection', async (socket) => {
     const user = socket.user;
     const isAdmin = user?.role === 'admin';
@@ -319,69 +301,23 @@ function initSocket(server) {
       ip: socket.handshake.address,
     });
 
-    if (!socket.isAuthenticated) {
-      socket.emit('unauthenticated', {
-        message: socket.authError || 'no token',
-      });
-    }
-
-    // ✅ Join admin room if admin
     if (isAdmin) {
       socket.join('admin-room');
       logger.info('🪑 Joined admin-room', { socketId: socket.id });
     }
 
-    // ✅ Track live user if NOT admin
-    if (socket.isAuthenticated && !isAdmin && user?._id) {
-      await redis.sadd('liveUsers', user._id.toString());
-      await emitLiveUserStats();
-
-      socket.on('disconnect', async (reason) => {
+    socket.on('disconnect', async (reason) => {
+      if (socket.isAuthenticated && !isAdmin && user?._id) {
         await redis.srem('liveUsers', user._id.toString());
         await emitLiveUserStats();
-
-        logger.warn('❌ Socket disconnected', {
-          socketId: socket.id,
-          reason,
-        });
-      });
-    } else {
-      // Still log disconnect for admin or unauthenticated
-      socket.on('disconnect', (reason) => {
-        logger.warn('❌ Socket disconnected', {
-          socketId: socket.id,
-          reason,
-        });
-      });
-    }
-
-    // Example protected event
-    socket.on('protected:event', (payload) => {
-      if (!socket.isAuthenticated) {
-        socket.emit('error', {
-          message: 'authentication required for protected:event',
-        });
-        return;
       }
-      // handle protected logic here
-    });
-
-    socket.on('hello', (payload) => {
-      socket.emit('hello:ack', { ok: true, you: payload });
-    });
-  });
-
-
-  // ✅ Graceful shutdown
-  process.on('SIGINT', () => {
-    io.close(() => {
-      logger.info('🔌 Socket.io server closed');
-      process.exit(0);
+      logger.warn('❌ Socket disconnected', { socketId: socket.id, reason });
     });
   });
 
   return io;
 }
+
 
 
 
