@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { FileText, CheckCircle, File } from 'lucide-react';
-import CreateQuizButton from '../components/CreateQuizButton';
-import QuizFilters from '../components/QuizFilters';
-import QuizCard from '../components/QuizCard';
-import StatusMessage from '../components/StatusMessage';
-import CreateQuizForm from '../components/CreateQuizForm';
-import ParticipantsDrawer from '../components/ParticipantsDrawer';
+import CreateQuizButton from '../components/quiz_management/CreateQuizButton';
+import QuizFilters from '../components/quiz_management/QuizFilters';
+import QuizCard from '../components/quiz_management/QuizCard';
+import StatusMessage from '../components/quiz_management/StatusMessage';
+import CreateQuizForm from '../components/quiz_management/CreateQuizForm';
+import ParticipantsDrawer from '../components/quiz_management/ParticipantsDrawer';
 
 interface Quiz {
   _id: string;

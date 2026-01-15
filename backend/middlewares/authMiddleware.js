@@ -209,11 +209,120 @@
 //     }
 //   };
 // };
+// 'use strict';
+
+// const jwt = require('jsonwebtoken');
+// const crypto = require('crypto');
+// const redis = require('../utils/redis');
+
+// function sha256Hex(input) {
+//   return crypto.createHash('sha256').update(String(input || '')).digest('hex');
+// }
+
+// module.exports = function (requiredRole = null) {
+//   return async (req, res, next) => {
+//     try {
+//       // 🔐 Extract token from header or cookies
+//       const authHeader = req.headers.authorization || req.headers.Authorization;
+//       let token =
+//         (authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1]) ||
+//         req.cookies?.adminToken ||
+//         req.cookies?.userToken;
+
+//       if (!token) {
+//         console.warn('🔒 No token found in headers or cookies');
+//         return res.status(401).json({ message: 'No token provided' });
+//       }
+
+//       const secret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET;
+//       if (!secret) {
+//         console.error('❌ JWT secret not configured');
+//         return res.status(500).json({ message: 'Server misconfiguration' });
+//       }
+
+//       // 🧪 Decode (non-verified) for debug
+//       const decodedRaw = jwt.decode(token);
+//       if (decodedRaw) {
+//         console.log('🧪 Token iat:', new Date(decodedRaw.iat * 1000).toLocaleString());
+//         console.log('🧪 Token exp:', new Date(decodedRaw.exp * 1000).toLocaleString());
+//       }
+
+//       // ✅ Verify token
+//       let decoded;
+//       try {
+//         decoded = jwt.verify(token, secret, { clockTolerance: 60 });
+//         console.log('✅ JWT verified:', decoded);
+//       } catch (err) {
+//         console.error('❌ JWT verification failed:', err.message);
+//         return res.status(401).json({ message: err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token' });
+//       }
+
+//       // ✅ Redis session check
+//       const userId = decoded._id || decoded.id;
+//       const redisKey = `session:${userId}`;
+//       const storedToken = await redis.get(redisKey);
+
+//       console.log('🔍 Redis key:', redisKey);
+//       console.log('🔍 Stored token exists:', !!storedToken);
+
+//       if (!storedToken || storedToken !== token) {
+//         console.warn('❌ Token mismatch or missing in Redis');
+//         return res.status(401).json({ message: 'Session expired or invalid' });
+//       }
+
+//       // ✅ Fingerprint check (relaxed)
+//       const userAgent = req.get('user-agent') || '';
+//       const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '';
+//       const currentFingerprint = sha256Hex(`${ip}|${userAgent}`);
+
+//       if (decoded.fingerprint) {
+//         const a = Buffer.from(decoded.fingerprint, 'utf8');
+//         const b = Buffer.from(currentFingerprint, 'utf8');
+
+//         const match =
+//           a.length === b.length
+//             ? crypto.timingSafeEqual(a, b)
+//             : decoded.fingerprint === currentFingerprint;
+
+//         if (!match) {
+//           console.warn('⚠️ Fingerprint mismatch (not blocking)');
+//           // return res.status(401).json({ message: 'Session fingerprint mismatch' });
+//         }
+//       } else {
+//         console.warn('⚠️ Token missing fingerprint (not blocking)');
+//         // return res.status(401).json({ message: 'Session fingerprint missing' });
+//       }
+
+//       // ✅ Attach user info
+//       req.user = decoded;
+//       req.userId = userId;
+//       req.role = decoded.role || null;
+//       req.adminId = userId;
+
+//       // ✅ Role check
+//       if (requiredRole) {
+//         const tokenRole = (decoded.role || '').toLowerCase();
+//         if (tokenRole !== requiredRole.toLowerCase()) {
+//           console.warn(`🚫 Role mismatch: required=${requiredRole}, token=${tokenRole}`);
+//           return res.status(403).json({ message: 'Insufficient permissions' });
+//         }
+//       }
+
+//       return next();
+//     } catch (err) {
+//       console.error('❌ Auth middleware error:', err.message);
+//       return res.status(500).json({ message: 'Server error during authentication' });
+//     }
+//   };
+// };
+
 'use strict';
 
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const redis = require('../utils/redis');
+
+const sessionCache = new Map(); // 🔁 In-memory fallback (per process)
 
 function sha256Hex(input) {
   return crypto.createHash('sha256').update(String(input || '')).digest('hex');
@@ -222,55 +331,40 @@ function sha256Hex(input) {
 module.exports = function (requiredRole = null) {
   return async (req, res, next) => {
     try {
-      // 🔐 Extract token from header or cookies
       const authHeader = req.headers.authorization || req.headers.Authorization;
       let token =
         (authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1]) ||
         req.cookies?.adminToken ||
         req.cookies?.userToken;
 
-      if (!token) {
-        console.warn('🔒 No token found in headers or cookies');
-        return res.status(401).json({ message: 'No token provided' });
-      }
+      if (!token) return res.status(401).json({ message: 'No token provided' });
 
       const secret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET;
-      if (!secret) {
-        console.error('❌ JWT secret not configured');
-        return res.status(500).json({ message: 'Server misconfiguration' });
-      }
+      if (!secret) return res.status(500).json({ message: 'Server misconfiguration' });
 
-      // 🧪 Decode (non-verified) for debug
-      const decodedRaw = jwt.decode(token);
-      if (decodedRaw) {
-        console.log('🧪 Token iat:', new Date(decodedRaw.iat * 1000).toLocaleString());
-        console.log('🧪 Token exp:', new Date(decodedRaw.exp * 1000).toLocaleString());
-      }
-
-      // ✅ Verify token
       let decoded;
       try {
         decoded = jwt.verify(token, secret, { clockTolerance: 60 });
-        console.log('✅ JWT verified:', decoded);
       } catch (err) {
-        console.error('❌ JWT verification failed:', err.message);
         return res.status(401).json({ message: err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token' });
       }
 
-      // ✅ Redis session check
       const userId = decoded._id || decoded.id;
       const redisKey = `session:${userId}`;
-      const storedToken = await redis.get(redisKey);
 
-      console.log('🔍 Redis key:', redisKey);
-      console.log('🔍 Stored token exists:', !!storedToken);
-
-      if (!storedToken || storedToken !== token) {
-        console.warn('❌ Token mismatch or missing in Redis');
-        return res.status(401).json({ message: 'Session expired or invalid' });
+      // ✅ Check in-memory cache first
+      const cachedToken = sessionCache.get(redisKey);
+      if (cachedToken === token) {
+        // console.log('✅ Token matched from in-memory cache');
+      } else {
+        const storedToken = await redis.get(redisKey);
+        if (!storedToken || storedToken !== token) {
+          return res.status(401).json({ message: 'Session expired or invalid' });
+        }
+        sessionCache.set(redisKey, storedToken); // 🔁 Cache it for next time
       }
 
-      // ✅ Fingerprint check (relaxed)
+      // Optional: Fingerprint check (relaxed)
       const userAgent = req.get('user-agent') || '';
       const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.connection?.remoteAddress || '';
       const currentFingerprint = sha256Hex(`${ip}|${userAgent}`);
@@ -278,32 +372,20 @@ module.exports = function (requiredRole = null) {
       if (decoded.fingerprint) {
         const a = Buffer.from(decoded.fingerprint, 'utf8');
         const b = Buffer.from(currentFingerprint, 'utf8');
-
-        const match =
-          a.length === b.length
-            ? crypto.timingSafeEqual(a, b)
-            : decoded.fingerprint === currentFingerprint;
-
+        const match = a.length === b.length ? crypto.timingSafeEqual(a, b) : decoded.fingerprint === currentFingerprint;
         if (!match) {
           console.warn('⚠️ Fingerprint mismatch (not blocking)');
-          // return res.status(401).json({ message: 'Session fingerprint mismatch' });
         }
-      } else {
-        console.warn('⚠️ Token missing fingerprint (not blocking)');
-        // return res.status(401).json({ message: 'Session fingerprint missing' });
       }
 
-      // ✅ Attach user info
       req.user = decoded;
       req.userId = userId;
       req.role = decoded.role || null;
       req.adminId = userId;
 
-      // ✅ Role check
       if (requiredRole) {
         const tokenRole = (decoded.role || '').toLowerCase();
         if (tokenRole !== requiredRole.toLowerCase()) {
-          console.warn(`🚫 Role mismatch: required=${requiredRole}, token=${tokenRole}`);
           return res.status(403).json({ message: 'Insufficient permissions' });
         }
       }
@@ -315,4 +397,3 @@ module.exports = function (requiredRole = null) {
     }
   };
 };
-

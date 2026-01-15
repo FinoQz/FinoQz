@@ -17,41 +17,125 @@ const mongoose = require('mongoose');
 
 
 
-// 🔁 Helper: emit updated dashboard stats (with Redis cache)
+
+
 async function emitDashboardStats(req) {
-  const io = req.app.get("io");
-  if (!io) return;
+  console.log("📊 emitDashboardStats triggered");
 
   try {
-    // First check cache
     const cached = await redis.get("dashboard:stats");
+    const io = req.app.get("io");
+
     if (cached) {
       const stats = JSON.parse(cached);
-      io.emit("dashboard:stats", stats);
-      console.log("📡 Emitted cached dashboard:stats", stats);
+      if (io) {
+        io.to('admin-room').emit('dashboard:stats', stats);
+        console.log("📡 Emitted cached dashboard:stats", stats);
+      }
       return;
     }
 
-    // If cache miss → query DB
-    const [totalUsers, activeUsers, pendingApprovals] = await Promise.all([
+    const [
+      totalUsers,
+      activeUsers,
+      pendingApprovals,
+      totalRevenueAgg,
+      totalPaidUsers,
+      freeQuizAttemptsAgg,
+    ] = await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ status: "approved" }),
       User.countDocuments({ status: "awaiting_admin_approval" }),
+      User.aggregate([{ $group: { _id: null, total: { $sum: "$totalSpent" } } }]),
+      User.countDocuments({ isPaidUser: true }),
+      User.aggregate([{ $group: { _id: null, total: { $sum: "$freeQuizAttempts" } } }]),
     ]);
 
-    const stats = { totalUsers, activeUsers, pendingApprovals };
+    const stats = {
+      totalUsers,
+      activeUsers,
+      pendingApprovals,
+      totalRevenue: Array.isArray(totalRevenueAgg) && totalRevenueAgg[0]?.total || 0,
+      totalPaidUsers,
+      freeQuizAttempts: Array.isArray(freeQuizAttemptsAgg) && freeQuizAttemptsAgg[0]?.total || 0,
+    };
 
-    // Cache for 60 seconds
     await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
 
-    // Emit to all connected clients
-    io.emit("dashboard:stats", stats);
-
-    console.log("📡 Emitted fresh dashboard:stats", stats);
+    if (io) {
+      io.to('admin-room').emit('dashboard:stats', stats);
+      console.log("📡 Emitted fresh dashboard:stats", stats);
+    }
   } catch (err) {
     console.error("❌ emitDashboardStats error:", err);
   }
 }
+
+
+
+// 🔁 Emit real-time user list to all admins
+async function emitUsersUpdate(req) {
+  const io = req.app.get("io");
+  if (!io) return;
+
+  try {
+    const [pending, approved, rejected] = await Promise.all([
+      User.find({ status: 'awaiting_admin_approval' }),
+      User.find({ status: 'approved' }),
+      User.find({ status: 'rejected' }),
+    ]);
+
+    io.to('admin-room').emit('users:update', {
+      pending,
+      approved,
+      rejected,
+    });
+
+    console.log('📡 Emitted users:update');
+  } catch (err) {
+    console.error('❌ emitUsersUpdate error:', err);
+  }
+}
+
+exports.emitDashboardStats = emitDashboardStats;
+
+
+// 🔁 Emit real-time user list to all admins
+async function emitUsersUpdate(req) {
+  const io = req.app.get("io");
+  if (!io) {
+    console.warn("⚠️ Socket.io instance not found in app");
+    return;
+  }
+
+  try {
+    console.log("🔄 Fetching users for users:update emit...");
+
+    const [pending, approved, rejected] = await Promise.all([
+      User.find({ status: 'awaiting_admin_approval' }),
+      User.find({ status: 'approved' }),
+      User.find({ status: 'rejected' }),
+    ]);
+
+    io.to('admin-room').emit('users:update', {
+      pending,
+      approved,
+      rejected,
+    });
+
+    console.log(`📡 Emitted users:update → pending: ${pending.length}, approved: ${approved.length}, rejected: ${rejected.length}`);
+  } catch (err) {
+    console.error('❌ emitUsersUpdate error:', err);
+  }
+}
+
+
+const { emitLiveUserStats, emitAnalyticsUpdate} = require('../utils/emmiters');
+
+
+
+
+
 
 
 // ✅ Get all users awaiting admin approval
@@ -82,7 +166,6 @@ exports.approveUser = async (req, res) => {
     console.log("➡️ Admin approving user:", userId);
 
     const user = await User.findById(userId);
-
     if (!user) {
       console.log("❌ User not found");
       return res.status(404).json({ message: 'User not found' });
@@ -114,6 +197,7 @@ exports.approveUser = async (req, res) => {
     });
 
     await emitDashboardStats(req);
+    await emitUsersUpdate(req); // ✅ Added here
 
     sendEmail(
       savedUser.email,
@@ -143,6 +227,7 @@ exports.approveUser = async (req, res) => {
   }
 };
 
+
 // ✅ Reject a user
 
 exports.rejectUser = async (req, res) => {
@@ -154,7 +239,6 @@ exports.rejectUser = async (req, res) => {
     }
 
     const user = await User.findById(userId);
-
     if (!user || user.status !== 'awaiting_admin_approval') {
       return res.status(400).json({ message: 'Invalid user or status' });
     }
@@ -173,6 +257,7 @@ exports.rejectUser = async (req, res) => {
     });
 
     await emitDashboardStats(req);
+    await emitUsersUpdate(req); // ✅ Added here
 
     sendEmail(
       savedUser.email,
@@ -196,6 +281,7 @@ exports.rejectUser = async (req, res) => {
     res.status(500).json({ message: 'Server error during rejection' });
   }
 };
+
 
 // ✅ Get all users
 
@@ -298,6 +384,8 @@ exports.updateUser = async (req, res) => {
 
     // ✅ Emit updated stats
     await emitDashboardStats(req);
+    await emitUsersUpdate(req); // ✅ Add this line
+
 
     res.json({ message: "User updated", user });
   } catch (err) {
@@ -342,6 +430,7 @@ exports.deleteUser = async (req, res) => {
 
     // ✅ Emit updated stats
     await emitDashboardStats(req);
+    await emitUsersUpdate(req);
 
     res.json({ message: "User deleted" });
   } catch (err) {
@@ -409,6 +498,7 @@ exports.addNewUser = async (req, res) => {
 
     // ✅ Emit real-time dashboard stats
     await emitDashboardStats(req);
+    await emitUsersUpdate(req);   
 
     // ✅ Queue welcome email
     try {
@@ -427,7 +517,6 @@ exports.addNewUser = async (req, res) => {
     return res.status(500).json({ message: "Server error adding user" });
   }
 };
-
 
 // ✅ BLOCK USER
 exports.blockUser = async (req, res) => {
@@ -450,8 +539,8 @@ exports.blockUser = async (req, res) => {
       html: blockUserTemplate(user.fullName),
     });
 
-    // ✅ Emit updated stats
     await emitDashboardStats(req);
+    await emitUsersUpdate(req); // ✅ Real-time update
 
     return res.json({ message: "User blocked & email sent", user });
   } catch (err) {
@@ -459,7 +548,6 @@ exports.blockUser = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 // ✅ UNBLOCK USER
 exports.unblockUser = async (req, res) => {
@@ -484,6 +572,7 @@ exports.unblockUser = async (req, res) => {
 
     // ✅ Emit updated stats
     await emitDashboardStats(req);
+    await emitUsersUpdate(req);
 
     return res.json({ message: "User unblocked & email sent", user });
   } catch (err) {
@@ -590,105 +679,178 @@ exports.sendBulkEmail = async (req, res) => {
 // ✅ Get monthly user registrations (current & last month)
 exports.getMonthlyUsers = async (req, res) => {
   try {
+    const io = req.app.get('io');
     const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed
 
-    // ✅ Current month start
-    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfCurrentMonth = new Date(year, month, 1);
+    const startOfLastMonth = new Date(year, month - 1, 1);
+    const endOfLastMonth = new Date(year, month, 0);
 
-    // ✅ Last month start & end
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const cacheKey = `dashboard:monthlyUsers:${year}-${month + 1}`;
 
-    // ✅ Count users created this month
-    const currentMonthCount = await User.countDocuments({
-      createdAt: { $gte: startOfCurrentMonth }
-    });
+    // ✅ Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (io) {
+        await emitAnalyticsUpdate(io, {
+          type: 'monthlyUsers',
+          ...parsed,
+        });
+      }
+      return res.json({ type: 'monthlyUsers', ...parsed });
+    }
 
-    // ✅ Count users created last month
-    const lastMonthCount = await User.countDocuments({
-      createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
-    });
+    // 🔍 Fresh counts
+    const [currentMonthCount, lastMonthCount] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: startOfCurrentMonth } }),
+      User.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+    ]);
 
-    return res.json({
+    const payload = {
       currentMonth: currentMonthCount,
-      lastMonth: lastMonthCount
-    });
+      lastMonth: lastMonthCount,
+    };
 
+    // 💾 Cache for 1 hour
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
+
+    // 📡 Emit via WebSocket
+    if (io) {
+      await emitAnalyticsUpdate(io, {
+        type: 'monthlyUsers',
+        ...payload,
+      });
+    }
+
+    return res.json({ type: 'monthlyUsers', ...payload });
   } catch (err) {
-    console.error("❌ Error fetching monthly users:", err);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('❌ Error fetching monthly users:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-// ✅ Get user growth data for current month (daily)
+
 exports.getUserGrowthData = async (req, res) => {
   try {
+    const io = req.app.get('io');
     const today = new Date();
-    const startDate = new Date(today.getFullYear(), today.getMonth(), 1); // 1st of current month
-    const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); // last day of current month
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-indexed
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
+    const cacheKey = `dashboard:userGrowth:${year}-${month + 1}`; // e.g., dashboard:userGrowth:2026-01
 
+    // ✅ Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (io) {
+        await emitAnalyticsUpdate(io, {
+          type: 'userGrowth',
+          labels: parsed.labels,
+          values: parsed.values,
+        });
+      }
+      return res.json({ type: 'userGrowth', ...parsed });
+    }
+
+    // 🔍 MongoDB aggregation
     const pipeline = [
       {
         $match: {
           createdAt: {
             $gte: startDate,
-            $lte: endDate
-          }
-        }
+            $lte: endDate,
+          },
+        },
       },
       {
         $group: {
           _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
           },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
-      {
-        $sort: { _id: 1 }
-      }
+      { $sort: { _id: 1 } },
     ];
 
     const results = await User.aggregate(pipeline);
+    const resultMap = Object.fromEntries(results.map(r => [r._id, r.count]));
 
-    // Fill missing days with 0
     const labels = [];
     const values = [];
-
     const totalDays = endDate.getDate();
+
     for (let i = 1; i <= totalDays; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth(), i);
-      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const date = new Date(year, month, i);
       const isoDate = date.toISOString().split('T')[0];
-      const match = results.find(r => r._id === isoDate);
+      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
       labels.push(label);
-      values.push(match ? match.count : 0);
+      values.push(resultMap[isoDate] || 0);
     }
 
-    return res.json({ labels, values });
+    const payload = { labels, values };
 
+    // 💾 Cache for 1 hour
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
+
+    // 📡 Emit via WebSocket
+    if (io) {
+      await emitAnalyticsUpdate(io, {
+        type: 'userGrowth',
+        labels,
+        values,
+      });
+    }
+
+    return res.json({ type: 'userGrowth', ...payload });
   } catch (err) {
-    console.error("❌ Error fetching user growth data:", err);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('❌ Error fetching user growth data:', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-// ✅ Get live users count from Redis sessions
+
+
 exports.getLiveUsers = async (req, res) => {
   try {
-    const keys = await redis.keys('session:*');
-    const liveUserCount = keys.length;
+    // ✅ Get count from Redis Set
+    const liveUserCount = await redis.scard('liveUsers');
 
-    // Optional: Sparkline dummy data (replace with real if available)
-    const sparkline = [12, 15, 14, 18, 20, 19, 22, liveUserCount];
+    // ✅ Push to sparkline list
+    await redis.lpush('liveUserSparkline', liveUserCount);
+    await redis.ltrim('liveUserSparkline', 0, 19); // Keep last 20 entries
 
-    return res.json({
+    // ✅ Fetch sparkline
+    const sparklineRaw = await redis.lrange('liveUserSparkline', 0, -1);
+    const sparkline = sparklineRaw.map(Number).reverse();
+
+    const data = {
+      type: 'liveUsers',
       liveUsers: liveUserCount,
       sparkline,
-    });
+    };
+
+    // ✅ Emit to admin-room
+    const io = req.app.get('io');
+    if (io) {
+      await emitLiveUserStats(io);
+    }
+
+    return res.json(data);
   } catch (err) {
-    console.error('Live user fetch error:', err);
+    console.error('❌ Live user fetch error:', err);
     return res.status(500).json({ message: 'Failed to fetch live users' });
   }
 };
+
+
+
+
+
+

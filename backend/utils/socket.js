@@ -117,9 +117,133 @@
 // }
 
 // module.exports = initSocket;
+// const { Server } = require('socket.io');
+// const jwt = require('jsonwebtoken');
+// const logger = require('./logger'); // your structured logger
+
+// const allowedOrigins = [
+//   'http://localhost:3000',
+//   'https://finoqz.com',
+//   'https://www.finoqz.com',
+// ];
+
+// // Set to "true" if you want to reject sockets without a valid token (will return handshake error)
+// const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH === 'true';
+
+// function initSocket(server) {
+//   const io = new Server(server, {
+//     cors: {
+//       origin: (origin, callback) => {
+//         if (!origin || allowedOrigins.includes(origin)) {
+//           callback(null, true);
+//         } else {
+//           callback(new Error('Not allowed by CORS in Socket.io'));
+//         }
+//       },
+//       credentials: true,
+//     },
+//     pingTimeout: 30000,
+//   });
+
+//   // Auth middleware: verify token if provided; don't fail handshake for missing/invalid token
+//   io.use((socket, next) => {
+//     try {
+//       const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+
+//       if (!token) {
+//         // No token provided
+//         socket.isAuthenticated = false;
+//         socket.user = null;
+
+//         if (STRICT_AUTH) {
+//           // Reject connection with a friendly error (client will receive connection error)
+//           return next(new Error('No token provided'));
+//         }
+
+//         // Allow connection but mark unauthenticated
+//         return next();
+//       }
+
+//       // Verify token
+//       try {
+//         const payload = jwt.verify(token, process.env.JWT_SECRET);
+//         socket.isAuthenticated = true;
+//         socket.user = payload;
+//         return next();
+//       } catch (err) {
+//         // Token invalid or expired
+//         logger.warn('Socket auth failed', { reason: err.message, socketId: socket.id });
+
+//         socket.isAuthenticated = false;
+//         socket.user = null;
+//         // Attach authError so connection handler can react
+//         socket.authError = err.name === 'TokenExpiredError' ? 'jwt expired' : 'invalid token';
+
+//         if (STRICT_AUTH) {
+//           return next(new Error(socket.authError));
+//         }
+
+//         // Allow connection but mark unauthenticated
+//         return next();
+//       }
+//     } catch (err) {
+//       console.error('Socket auth middleware error', err);
+//       return next(new Error('Socket auth error'));
+//     }
+//   });
+
+//   io.on('connection', (socket) => {
+//     logger.info('🔌 Socket connected', {
+//       socketId: socket.id,
+//       user: socket.user?.email || null,
+//       isAuthenticated: !!socket.isAuthenticated,
+//       authError: socket.authError || null,
+//       ip: socket.handshake.address,
+//     });
+
+//     // If not authenticated, notify client (so frontend can handle session / redirect)
+//     if (!socket.isAuthenticated) {
+//       socket.emit('unauthenticated', { message: socket.authError || 'no token' });
+//     }
+
+//     // Example protected event handling
+//     socket.on('protected:event', (payload) => {
+//       if (!socket.isAuthenticated) {
+//         // reject or ignore the event if not authenticated
+//         socket.emit('error', { message: 'authentication required for protected:event' });
+//         return;
+//       }
+//       // handle the event for authenticated users...
+//     });
+
+//     // Example open event
+//     socket.on('hello', (payload) => {
+//       socket.emit('hello:ack', { ok: true, you: payload });
+//     });
+
+//     socket.on('disconnect', (reason) => {
+//       logger.warn('❌ Socket disconnected', { socketId: socket.id, reason });
+//     });
+//   });
+
+//   // Graceful shutdown
+//   process.on('SIGINT', () => {
+//     io.close(() => {
+//       logger.info('🔌 Socket.io server closed');
+//       process.exit(0);
+//     });
+//   });
+
+//   return io;
+// }
+
+// module.exports = initSocket;
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
-const logger = require('./logger'); // your structured logger
+const cookie = require('cookie');
+const logger = require('./logger');
+const { emitLiveUserStats } = require('./emmiters');
+
 
 const allowedOrigins = [
   'http://localhost:3000',
@@ -127,11 +251,12 @@ const allowedOrigins = [
   'https://www.finoqz.com',
 ];
 
-// Set to "true" if you want to reject sockets without a valid token (will return handshake error)
-const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH === 'true';
+const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH === 'false';
+
+let io = null;
 
 function initSocket(server) {
-  const io = new Server(server, {
+  io = new Server(server, {
     cors: {
       origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -145,88 +270,109 @@ function initSocket(server) {
     pingTimeout: 30000,
   });
 
-  // Auth middleware: verify token if provided; don't fail handshake for missing/invalid token
+  // ✅ Middleware: extract JWT from cookie
   io.use((socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      const cookies = socket.handshake.headers.cookie;
+      const parsedCookies = cookie.parse(cookies || '');
+      const token = parsedCookies.adminToken;
 
       if (!token) {
-        // No token provided
         socket.isAuthenticated = false;
         socket.user = null;
-
-        if (STRICT_AUTH) {
-          // Reject connection with a friendly error (client will receive connection error)
-          return next(new Error('No token provided'));
-        }
-
-        // Allow connection but mark unauthenticated
+        if (STRICT_AUTH) return next(new Error('No token provided'));
         return next();
       }
 
-      // Verify token
       try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
         socket.isAuthenticated = true;
         socket.user = payload;
         return next();
       } catch (err) {
-        // Token invalid or expired
-        logger.warn('Socket auth failed', { reason: err.message, socketId: socket.id });
-
+        logger.warn('Socket auth failed', {
+          reason: err.message,
+          socketId: socket.id,
+        });
         socket.isAuthenticated = false;
         socket.user = null;
-        // Attach authError so connection handler can react
         socket.authError = err.name === 'TokenExpiredError' ? 'jwt expired' : 'invalid token';
-
-        if (STRICT_AUTH) {
-          return next(new Error(socket.authError));
-        }
-
-        // Allow connection but mark unauthenticated
+        if (STRICT_AUTH) return next(new Error(socket.authError));
         return next();
       }
     } catch (err) {
-      console.error('Socket auth middleware error', err);
+      console.error('Socket auth middleware error:', err);
       return next(new Error('Socket auth error'));
     }
   });
 
-  io.on('connection', (socket) => {
+  // ✅ Connection handler
+  io.on('connection', async (socket) => {
+    const user = socket.user;
+    const isAdmin = user?.role === 'admin';
+
     logger.info('🔌 Socket connected', {
       socketId: socket.id,
-      user: socket.user?.email || null,
+      user: user?.email || null,
       isAuthenticated: !!socket.isAuthenticated,
       authError: socket.authError || null,
       ip: socket.handshake.address,
     });
 
-    // If not authenticated, notify client (so frontend can handle session / redirect)
     if (!socket.isAuthenticated) {
-      socket.emit('unauthenticated', { message: socket.authError || 'no token' });
+      socket.emit('unauthenticated', {
+        message: socket.authError || 'no token',
+      });
     }
 
-    // Example protected event handling
+    // ✅ Join admin room if admin
+    if (isAdmin) {
+      socket.join('admin-room');
+      logger.info('🪑 Joined admin-room', { socketId: socket.id });
+    }
+
+    // ✅ Track live user if NOT admin
+    if (socket.isAuthenticated && !isAdmin && user?._id) {
+      await redis.sadd('liveUsers', user._id.toString());
+      await emitLiveUserStats();
+
+      socket.on('disconnect', async (reason) => {
+        await redis.srem('liveUsers', user._id.toString());
+        await emitLiveUserStats();
+
+        logger.warn('❌ Socket disconnected', {
+          socketId: socket.id,
+          reason,
+        });
+      });
+    } else {
+      // Still log disconnect for admin or unauthenticated
+      socket.on('disconnect', (reason) => {
+        logger.warn('❌ Socket disconnected', {
+          socketId: socket.id,
+          reason,
+        });
+      });
+    }
+
+    // Example protected event
     socket.on('protected:event', (payload) => {
       if (!socket.isAuthenticated) {
-        // reject or ignore the event if not authenticated
-        socket.emit('error', { message: 'authentication required for protected:event' });
+        socket.emit('error', {
+          message: 'authentication required for protected:event',
+        });
         return;
       }
-      // handle the event for authenticated users...
+      // handle protected logic here
     });
 
-    // Example open event
     socket.on('hello', (payload) => {
       socket.emit('hello:ack', { ok: true, you: payload });
     });
-
-    socket.on('disconnect', (reason) => {
-      logger.warn('❌ Socket disconnected', { socketId: socket.id, reason });
-    });
   });
 
-  // Graceful shutdown
+
+  // ✅ Graceful shutdown
   process.on('SIGINT', () => {
     io.close(() => {
       logger.info('🔌 Socket.io server closed');
@@ -236,5 +382,9 @@ function initSocket(server) {
 
   return io;
 }
- 
-module.exports = initSocket;
+
+
+
+module.exports = {
+  initSocket,
+};

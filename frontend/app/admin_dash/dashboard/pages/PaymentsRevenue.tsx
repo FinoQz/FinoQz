@@ -15,13 +15,12 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  MoreVertical
 } from 'lucide-react';
 import TransactionDetailModal from '../components/payments/TransactionDetailModal';
 import ManualRefundModal from '../components/payments/ManualRefundModal';
 import GenerateReportModal, { ReportConfig } from '../components/payments/GenerateReportModal';
 import RequestPayoutModal from '../components/payments/RequestPayoutModal';
-import Toast from '../components/Toast';
+import Toast from '../components/payments/Toast';
 
 type Transaction = {
   id: string;

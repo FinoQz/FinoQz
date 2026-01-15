@@ -2,25 +2,22 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import apiAdmin from '@/lib/apiAdmin';
-import { io } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import {
   TrendingUp,
   Users,
   Clock,
-  DollarSign,
-  CreditCard,
-  PlayCircle,
   AlertTriangle,
 } from 'lucide-react';
-import QuizCompletionRate from '../components/adminComponents/QuizCompletionRate';
-import CategoryParticipation from '../components/adminComponents/CategoryParticipation';
-import TopUsers from '../components/adminComponents/TopUsers';
-import UpcomingQuizzes from '../components/adminComponents/UpcomingQuizzes';
-import RecentAdminActions from '../components/adminComponents/RecentAdminActions';
-import LiveUsersWidget from '../components/adminComponents/LiveUsersWidget';
-import ActiveQuizzesWidget from '../components/adminComponents/ActiveQuizzesWidget';
-import TodayRevenueWidget from '../components/adminComponents/TodayRevenueWidget';
-import PendingUsersModal from '../components/adminComponents/PendingUsersModal';
+// import QuizCompletionRate from '../components/adminComponents/QuizCompletionRate';
+// import CategoryParticipation from '../components/adminComponents/CategoryParticipation';
+// import TopUsers from '../components/adminComponents/TopUsers';
+// import UpcomingQuizzes from '../components/adminComponents/UpcomingQuizzes';
+// import RecentAdminActions from '../components/adminComponents/RecentAdminActions';
+import LiveUsersWidget from '../components/dashboard/LiveUsersWidget';
+// import ActiveQuizzesWidget from '../components/adminComponents/ActiveQuizzesWidget';
+// import TodayRevenueWidget from '../components/adminComponents/TodayRevenueWidget';
+import PendingUsersModal from '../components/dashboard/PendingUsersModal';
 
 interface DashboardStats {
   totalUsers: number;
@@ -60,6 +57,7 @@ export default function DashboardOverview() {
   const isFetchingPending = useRef(false);
   const [userData, setUserData] = useState<number[]>([]);
   const [days, setDays] = useState<string[]>([]);
+  const socketRef = useRef<Socket | null>(null);
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -67,7 +65,7 @@ export default function DashboardOverview() {
     if (isFetchingPending.current) return;
     isFetchingPending.current = true;
     try {
-      const res = await apiAdmin.get('/api/admin/panel/pending-users');
+      const res = await apiAdmin.get('api/admin/panel/pending-users');
       setPendingUsersList(res.data);
     } catch (err) {
       console.error('Error fetching pending users:', err);
@@ -81,58 +79,6 @@ export default function DashboardOverview() {
   }, [isPendingModalOpen]);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const allRes = await apiAdmin.get('/api/admin/panel/all-users');
-        await delay(200);
-
-        const activeRes = await apiAdmin.get('/api/admin/panel/approved-users');
-        await delay(200);
-
-        await fetchPendingUsers();
-        await delay(200);
-
-        const monthlyRes = await apiAdmin.get('/api/admin/panel/monthly-users');
-
-        setStats({
-          totalUsers: allRes.data.length,
-          activeUsers: activeRes.data.length,
-          pendingApprovals: pendingUsersList.length,
-          totalRevenue: 0,
-          totalPaidUsers: 0,
-          freeQuizAttempts: 0,
-        });
-
-        const current = monthlyRes.data.currentMonth;
-        const last = monthlyRes.data.lastMonth;
-        const growth = last > 0 ? ((current - last) / last) * 100 : 100;
-        setGrowthPercent(growth.toFixed(1));
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserGrowth = async () => {
-      try {
-        await delay(300);
-        const res = await apiAdmin.get('/api/admin/panel/analytics/user-growth');
-        setUserData(res.data.values);
-        setDays(res.data.labels);
-      } catch (err) {
-        console.error('Error fetching user growth:', err);
-      }
-    };
-
-    fetchUserGrowth();
-  }, []);
-
-  useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     if (!backendUrl) {
       console.error('NEXT_PUBLIC_BACKEND_URL is not defined');
@@ -144,13 +90,53 @@ export default function DashboardOverview() {
     });
 
     let debounceTimer: NodeJS.Timeout | null = null;
+    let fallbackTimer: NodeJS.Timeout | null = null;
+    let statsReceived = false;
 
+    const fetchInitialStats = async () => {
+      try {
+        const [allRes, activeRes, monthlyRes] = await Promise.all([
+          apiAdmin.get('/api/admin/panel/all-users'),
+          apiAdmin.get('/api/admin/panel/approved-users'),
+          apiAdmin.get('/api/admin/panel/monthly-users'),
+        ]);
+
+        await fetchPendingUsers();
+
+        const totalUsers = allRes.data.length;
+        const activeUsers = activeRes.data.length;
+        const pendingApprovals = pendingUsersList.length;
+
+        const current = monthlyRes.data.currentMonth;
+        const last = monthlyRes.data.lastMonth;
+        const growth = last > 0 ? ((current - last) / last) * 100 : 100;
+
+        setStats((prev) => ({
+          ...prev,
+          totalUsers,
+          activeUsers,
+          pendingApprovals,
+        }));
+
+        setGrowthPercent(growth.toFixed(1));
+        setLoading(false);
+      } catch (err) {
+        console.error('❌ Error fetching initial dashboard stats:', err);
+        setLoading(false);
+      }
+    };
+
+    // Fetch immediately for fast UI
+    fetchInitialStats();
+
+    // Setup WebSocket
     socket.on('connect', () => {
       console.log('✅ Connected to WebSocket:', socket.id);
     });
 
     socket.on('dashboard:stats', (data: Partial<DashboardStats>) => {
       console.log('📡 Real-time stats received:', data);
+      statsReceived = true;
 
       setStats((prev) => ({
         ...prev,
@@ -173,11 +159,68 @@ export default function DashboardOverview() {
       console.log('❌ WebSocket disconnected');
     });
 
+    // Fallback if socket doesn't emit in 4s
+    fallbackTimer = setTimeout(() => {
+      if (!statsReceived) {
+        console.warn('⚠️ No WebSocket stats received — using fallback only');
+        // Already fetched above, so no need to re-fetch
+        setLoading(false);
+      }
+    }, 4000);
+
     return () => {
       socket.disconnect();
       if (debounceTimer) clearTimeout(debounceTimer);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
   }, []);
+
+
+
+
+  useEffect(() => {
+    const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL!, {
+      withCredentials: true,
+    });
+
+    let socketReceived = false;
+
+    socket.on('connect', () => {
+      console.log('✅ Connected to WebSocket');
+    });
+
+    socket.on('analytics:update', (data) => {
+      if (data.type === 'userGrowth') {
+        console.log('📈 WebSocket userGrowth:', data);
+        setUserData(data.values || []);
+        setDays(data.labels || []);
+        setLoading(false);
+        socketReceived = true;
+      }
+    });
+
+    const fallbackTimer = setTimeout(async () => {
+      if (!socketReceived) {
+        console.warn('⚠️ No WebSocket userGrowth — using fallback API');
+        try {
+          const res = await apiAdmin.get('/api/admin/panel/analytics/user-growth');
+          setUserData(res.data.values || []);
+          setDays(res.data.labels || []);
+        } catch (err) {
+          console.error('❌ Fallback API failed:', err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }, 4000);
+
+    return () => {
+      socket.disconnect();
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+
 
   useEffect(() => {
     if (!alertMessage) return;
@@ -274,67 +317,14 @@ export default function DashboardOverview() {
           </div>
           <div className="text-xs mt-2 text-orange-700">Requires action</div>
         </div>
+        {/*yhn add hoga*/}
 
-        {/* Total Revenue */}
-        <div className="bg-white border-2 border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="text-xs sm:text-sm font-medium text-gray-800">
-              Total Revenue
-            </div>
-            <div className="p-2 sm:p-3 bg-purple-50 rounded-lg shadow-sm">
-              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-            ₹{stats.totalRevenue.toLocaleString()}
-          </div>
-          <div className="flex items-center gap-1 text-xs mt-2 text-purple-600">
-            <TrendingUp className="w-4 h-4" />
-            <span>+24% this month</span>
-          </div>
-        </div>
-
-        {/* Total Paid Users */}
-        <div className="bg-white border-2 border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="text-xs sm:text-sm font-medium text-gray-800">
-              Total Paid Users
-            </div>
-            <div className="p-2 sm:p-3 bg-cyan-50 rounded-lg shadow-sm">
-              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-            {stats.totalPaidUsers}
-          </div>
-          <div className="text-xs mt-2 text-cyan-700">
-            Purchased at least one quiz
-          </div>
-        </div>
-
-        {/* Free Quiz Attempts */}
-        <div className="bg-white border-2 border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="text-xs sm:text-sm font-medium text-gray-800">
-              Free Quiz Attempts
-            </div>
-            <div className="p-2 sm:p-3 bg-indigo-50 rounded-lg shadow-sm">
-              <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-900">
-            {stats.freeQuizAttempts.toLocaleString()}
-          </div>
-          <div className="text-xs mt-2 text-indigo-700">
-            Total free attempts
-          </div>
-        </div>
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
         {/* Daily Revenue Chart */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+        {/* <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
           <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">
             Daily Revenue (Last 14 Days)
           </h3>
@@ -391,7 +381,7 @@ export default function DashboardOverview() {
               );
             })()}
           </div>
-        </div>
+        </div> */}
 
         {/* User Growth Chart */}
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -443,55 +433,55 @@ export default function DashboardOverview() {
                               </linearGradient>
                             </defs>
 
-                        
-
-                        {/* Area fill */}
-                        <path
-                          d={`M 0,${height - ((userData[0] - minUsers) / range) * height
-                            } ${userData
-                              .map(
-                                (users, index) =>
-                                  `L ${(index / (userData.length - 1)) * width},${height - ((users - minUsers) / range) * height}`
-                              )
-                              .join(' ')} L ${width},${height} L 0,${height} Z`}
-                          fill="url(#userGradient)"
-                        />
-
-                        {/* Line path */}
-                        <path
-                          d={`M 0,${height - ((userData[0] - minUsers) / range) * height
-                            } ${userData
-                              .map(
-                                (users, index) =>
-                                  `L ${(index / (userData.length - 1)) * width},${height - ((users - minUsers) / range) * height}`
-                              )
-                              .join(' ')}`}
-                          fill="none"
-                          stroke="#22c55e"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                        />
 
 
-                        {/* Dots */}
-                        {userData.map((users, index) => {
-                          const cx = `${(index / (userData.length - 1)) * 100}%`;
-                          const baseY = 200 - ((users - minUsers) / range) * 200;
-                          const cy = users === 0 ? 200 : baseY + 6;
-                          const color = users === 0 ? '#22c55e' : '#ef4444';
+                            {/* Area fill */}
+                            <path
+                              d={`M 0,${height - ((userData[0] - minUsers) / range) * height
+                                } ${userData
+                                  .map(
+                                    (users, index) =>
+                                      `L ${(index / (userData.length - 1)) * width},${height - ((users - minUsers) / range) * height}`
+                                  )
+                                  .join(' ')} L ${width},${height} L 0,${height} Z`}
+                              fill="url(#userGradient)"
+                            />
 
-                          return (
-                            <g key={index}>
-                              <circle
-                                cx={cx}
-                                cy={cy}
-                                r="5"
-                                fill={color}
-                                className="hover:r-7 transition-all cursor-pointer"
-                              />
-                            </g>
-                          );
-                        })}
+                            {/* Line path */}
+                            <path
+                              d={`M 0,${height - ((userData[0] - minUsers) / range) * height
+                                } ${userData
+                                  .map(
+                                    (users, index) =>
+                                      `L ${(index / (userData.length - 1)) * width},${height - ((users - minUsers) / range) * height}`
+                                  )
+                                  .join(' ')}`}
+                              fill="none"
+                              stroke="#22c55e"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                            />
+
+
+                            {/* Dots */}
+                            {userData.map((users, index) => {
+                              const cx = `${(index / (userData.length - 1)) * 100}%`;
+                              const baseY = 200 - ((users - minUsers) / range) * 200;
+                              const cy = users === 0 ? 200 : baseY + 6;
+                              const color = users === 0 ? '#22c55e' : '#ef4444';
+
+                              return (
+                                <g key={index}>
+                                  <circle
+                                    cx={cx}
+                                    cy={cy}
+                                    r="5"
+                                    fill={color}
+                                    className="hover:r-7 transition-all cursor-pointer"
+                                  />
+                                </g>
+                              );
+                            })}
                           </svg>
                         );
                       })()}
@@ -549,24 +539,24 @@ export default function DashboardOverview() {
 
 
         {/* Quiz Completion Rate */}
-        <QuizCompletionRate />
+        {/* <QuizCompletionRate /> */}
 
         {/* Category Participation */}
-        <CategoryParticipation />
+        {/* <CategoryParticipation /> */}
       </div>
 
       {/* Widgets Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
-        <TopUsers />
+        {/* <TopUsers />
         <UpcomingQuizzes />
-        <RecentAdminActions />
+        <RecentAdminActions /> */}
       </div>
 
       {/* Live Metric Widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <LiveUsersWidget />
-        <ActiveQuizzesWidget />
-        <TodayRevenueWidget />
+        {/* <ActiveQuizzesWidget />
+        <TodayRevenueWidget /> */}
       </div>
 
       {/* Pending Users Modal */}

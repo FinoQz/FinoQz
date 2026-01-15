@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus, Search, TrendingUp, MessageSquare, Eye, ThumbsUp, FileText, Edit2, Trash2, Pin } from 'lucide-react';
-import StatusMessage from '../components/StatusMessage';
+import StatusMessage from '../components/community/StatusMessage'
 
 interface Post {
   _id: string;

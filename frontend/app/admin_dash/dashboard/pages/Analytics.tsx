@@ -11,7 +11,7 @@ import TopCategories from '../components/analytics/TopCategories';
 import TopQuizzes from '../components/analytics/TopQuizzes';
 import EngagementHours from '../components/analytics/EngagementHours';
 import RecentEvents from '../components/analytics/RecentEvents';
-import Toast from '../components/Toast';
+import Toast from '../components/analytics/Toast';
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');

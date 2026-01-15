@@ -1,11 +1,30 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { exportToExcel, exportToJSON, exportToPDF } from "@/utils/exportUtils";
 import apiAdmin from "@/lib/apiAdmin";
-import { Search, Filter, Download, Eye, Edit, Trash2, Ban, CheckCircle, XCircle } from "lucide-react";
+import { io, Socket } from "socket.io-client";
+import {
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Edit,
+  Trash2,
+  Ban,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 
-interface AllUser { _id: string; fullName: string; email: string; mobile?: string; status: "Active" | "Inactive" | "Blocked"; registrationDate: string; lastLogin: string; }
+interface AllUser {
+  _id: string;
+  fullName: string;
+  email: string;
+  mobile?: string;
+  status: "Active" | "Inactive" | "Blocked";
+  registrationDate: string;
+  lastLogin: string;
+}
 
 type ModalType = "view" | "edit" | "block" | "unblock" | "delete" | null;
 
@@ -28,7 +47,6 @@ interface ActionModalProps {
   onConfirm: () => void;
 }
 
-
 // ✅ Reusable modal component
 function ActionModal({
   type,
@@ -39,7 +57,6 @@ function ActionModal({
   onConfirm,
 }: ActionModalProps) {
   if (!user || !type) return null;
-
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -52,31 +69,17 @@ function ActionModal({
           {type === "delete" && "Delete User"}
         </h2>
 
-        {/* VIEW DETAILS */}
         {type === "view" && (
           <div className="space-y-3 text-sm text-gray-700">
-            <p>
-              <strong>Name:</strong> {user.fullName}
-            </p>
-            <p>
-              <strong>Email:</strong> {user.email}
-            </p>
-            <p>
-              <strong>Mobile:</strong> {user.mobile || "N/A"}
-            </p>
-            <p>
-              <strong>Status:</strong> {user.status}
-            </p>
-            <p>
-              <strong>Registered:</strong> {user.registrationDate}
-            </p>
-            <p>
-              <strong>Last Login:</strong> {user.lastLogin}
-            </p>
+            <p><strong>Name:</strong> {user.fullName}</p>
+            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>Mobile:</strong> {user.mobile || "N/A"}</p>
+            <p><strong>Status:</strong> {user.status}</p>
+            <p><strong>Registered:</strong> {user.registrationDate}</p>
+            <p><strong>Last Login:</strong> {user.lastLogin}</p>
           </div>
         )}
 
-        {/* EDIT USER */}
         {type === "edit" && (
           <div className="space-y-4">
             <input
@@ -106,27 +109,13 @@ function ActionModal({
           </div>
         )}
 
-        {/* BLOCK USER */}
-        {type === "block" && (
+        {(type === "block" || type === "unblock" || type === "delete") && (
           <p className="text-gray-700">
-            Are you sure you want to block{" "}
-            <strong>{user.fullName}</strong>?
-          </p>
-        )}
-
-        {/* UNBLOCK USER */}
-        {type === "unblock" && (
-          <p className="text-gray-700">
-            Are you sure you want to unblock{" "}
-            <strong>{user.fullName}</strong>?
-          </p>
-        )}
-
-        {/* DELETE USER */}
-        {type === "delete" && (
-          <p className="text-gray-700">
-            Are you sure you want to permanently delete{" "}
-            <strong>{user.fullName}</strong>?
+            Are you sure you want to{" "}
+            <strong>
+              {type} {user.fullName}
+            </strong>
+            ?
           </p>
         )}
 
@@ -142,13 +131,13 @@ function ActionModal({
             type === "unblock" ||
             type === "delete" ||
             type === "edit") && (
-              <button
-                onClick={onConfirm}
-                className="px-4 py-2 rounded-xl bg-gray-900 text-white hover:bg-black"
-              >
-                Confirm
-              </button>
-            )}
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-xl bg-gray-900 text-white hover:bg-black"
+            >
+              Confirm
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -166,33 +155,67 @@ export default function AllUsersTable() {
     position: { x: number; y: number };
   } | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [activeModal, setActiveModal] = useState<{
     type: ModalType;
     user: AllUser | null;
   }>({ type: null, user: null });
-
   const [editData, setEditData] = useState({
     fullName: "",
     email: "",
     mobile: "",
   });
-  // ✅ Fetch all users from backend using cookie
+
+  const socketRef = useRef<Socket | null>(null);
+
+  // ✅ WebSocket-based real-time user sync
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await apiAdmin.get("api/admin/panel/all-users");
-        setUsers(res.data || []);
-      } catch (err) {
-        console.error("Failed to fetch users:", err);
-      } finally {
-        setLoading(false);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl) return;
+
+    if (socketRef.current) return;
+
+    const socket = io(backendUrl, { withCredentials: true });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("✅ Connected to WebSocket:", socket.id);
+    });
+
+    socket.on("users:update", (data) => {
+      console.log("📡 Received users:update:", data);
+      if (Array.isArray(data?.approved)) {
+        type BackendUser = {
+          _id: string;
+          fullName: string;
+          email: string;
+          mobile?: string;
+          createdAt: string;
+          lastLoginAt?: string;
+        };
+        const formatted = data.approved.map((u: BackendUser) => ({
+          _id: u._id,
+          fullName: u.fullName,
+          email: u.email,
+          mobile: u.mobile || "N/A",
+          status: "Active",
+          registrationDate: u.createdAt,
+          lastLogin: u.lastLoginAt || u.createdAt,
+        }));
+        setUsers(formatted);
       }
+      setLoading(false);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.warn("❌ WebSocket disconnected:", reason);
+    });
+
+    return () => {
+      socket.disconnect();
     };
+  }, []);
 
-    fetchUsers();
-  }, []); // ✅ Run only once on mount
-
+  // ...rest of your table rendering logic (search, filter, actions, modals, etc.)
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-IN", {

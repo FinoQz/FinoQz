@@ -10,7 +10,7 @@ import QuestionStats from '../components/reports/QuestionStats';
 import Leaderboard from '../components/reports/Leaderboard';
 import ExportControls from '../components/reports/ExportControls';
 import ScheduleReportModal, { ScheduleConfig } from '../components/reports/ScheduleReportModal';
-import Toast from '../components/Toast';
+import Toast from '../components/reports/Toast';
 
 export default function QuizReports() {
   const [selectedQuiz, setSelectedQuiz] = useState('all');

@@ -3,31 +3,65 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Activity } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
+import { io } from 'socket.io-client';
 
 export default function LiveUsersWidget() {
   const [liveUsers, setLiveUsers] = useState<number>(0);
   const [sparklineData, setSparklineData] = useState<number[]>([]);
+  const [socketReceived, setSocketReceived] = useState(false);
 
   useEffect(() => {
-    const fetchLiveData = async () => {
-      try {
-        const res = await apiAdmin.get('api/admin/panel/analytics/live-users', {
-          headers: {
-            'Cache-Control': 'no-store',
-          },
-        });
-        setLiveUsers(res.data.liveUsers || 0);
-        setSparklineData(res.data.sparkline || []);
-      } catch (err) {
-        console.error('❌ Failed to fetch live user data:', err);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl) {
+      console.error('❌ NEXT_PUBLIC_BACKEND_URL not defined');
+      return;
+    }
+
+    const socket = io(backendUrl, {
+      withCredentials: true,
+    });
+
+    const fallbackTimer: NodeJS.Timeout = setTimeout(() => {
+      if (!socketReceived) {
+        console.warn('⚠️ No WebSocket data — using fallback API');
+        fetchLiveDataFallback();
       }
+    }, 4000);
+
+    socket.on('connect', () => {
+      console.log('✅ Connected to WebSocket');
+    });
+
+    socket.on('analytics:update', (data) => {
+      if (data.type === 'liveUsers') {
+        console.log('📡 WebSocket liveUsers:', data);
+        setLiveUsers(data.liveUsers || 0);
+        setSparklineData(data.sparkline || []);
+        setSocketReceived(true);
+      }
+    });
+
+    // fallbackTimer is now declared and assigned above as a const
+
+    return () => {
+      socket.disconnect();
+      clearTimeout(fallbackTimer);
     };
-
-    fetchLiveData();
-
-    const interval = setInterval(fetchLiveData, 30000); // refresh every 30s
-    return () => clearInterval(interval);
   }, []);
+
+  const fetchLiveDataFallback = async () => {
+    try {
+      const res = await apiAdmin.get('/api/admin/panel/analytics/live-users', {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      });
+      setLiveUsers(res.data.liveUsers || 0);
+      setSparklineData(res.data.sparkline || []);
+    } catch (err) {
+      console.error('❌ Fallback API failed:', err);
+    }
+  };
 
   const maxValue = Math.max(...sparklineData, 1); // avoid divide by 0
 
