@@ -4,7 +4,12 @@ import api from "@/lib/api";
 let socket: Socket | null = null;
 let isRefreshing = false;
 
-export const initSocket = (token: string) => {
+export const initSocket = (token: string): Socket => {
+  if (socket?.connected) {
+    console.log("⚠️ Socket already connected:", socket.id);
+    return socket;
+  }
+
   socket = io(process.env.NEXT_PUBLIC_BACKEND_API || "http://localhost:5000", {
     auth: { token },
     withCredentials: true,
@@ -34,11 +39,14 @@ export const initSocket = (token: string) => {
       const res = await api.post("/admin/refresh-token", {}, { withCredentials: true });
       const newToken = res.data.token;
 
-      // ✅ update token globally (auth context/localStorage if needed)
-      socket?.disconnect();
+      // ✅ Optionally store new token in localStorage or context
+      socket?.off(); // remove all listeners before reconnecting
+      if (socket) {
+        socket.disconnect();
+      }
       socket = initSocket(newToken);
     } catch (err) {
-      console.error("❌ Refresh failed, redirecting to login");
+      console.error("❌ Refresh failed, redirecting to login", err);
       window.location.href = "/landing";
     } finally {
       isRefreshing = false;
@@ -48,4 +56,4 @@ export const initSocket = (token: string) => {
   return socket;
 };
 
-export const getSocket = () => socket;
+export const getSocket = (): Socket | null => socket;

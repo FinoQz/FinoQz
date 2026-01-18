@@ -38,7 +38,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://finoqz.com',
   'https://www.finoqz.com',
-  /\.vercel\.app$/, // ✅ allow all Vercel preview URLs
+  'https://fino-qz.vercel.app',
+  /\.vercel\.app$/, // ✅ wildcard for all Vercel preview URLs
   process.env.FRONTEND_URL,
 ];
 
@@ -58,6 +59,7 @@ app.use(require('cors')({
   },
   credentials: true,
 }));
+
 
 // ✅ Middleware
 app.use(express.json());
