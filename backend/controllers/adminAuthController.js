@@ -130,14 +130,16 @@ exports.verifyOtp = async (req, res) => {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    
+
     res.cookie('adminSessionVisible', 'true', {
       httpOnly: false,         // ✅ middleware can read it
-      secure: true,            // ✅ required for SameSite=None
-      sameSite: 'None',        // ✅ required for cross-origin
+      secure: true,
+      sameSite: 'None',
       path: '/',
-      maxAge: 30 * 60 * 1000,  // 30 minutes
+      domain: '.finoqz.com',   // ✅ shared across finoqz.com and api.finoqz.com
+      maxAge: 30 * 60 * 1000,
     });
+
     console.log('✅ Cookie set: adminSessionVisible', res.getHeader('Set-Cookie'));
 
 
@@ -146,6 +148,7 @@ exports.verifyOtp = async (req, res) => {
     res.clearCookie('pendingAdminEmail', {
       ...cookieOptions,
       httpOnly: true,
+      domain: '.finoqz.com',
     });
 
     await emitDashboardStats(req);
