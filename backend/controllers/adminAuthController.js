@@ -168,16 +168,17 @@ exports.verifyOtp = async (req, res) => {
         time: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
       });
 
-      await sendEmail({
+      await emailQueue.add('loginAlert', {
         to: admin.email,
         subject: '🔐 Admin Login Alert',
         html,
       });
 
-      console.log('📧 Login alert email sent to admin');
+      console.log('📨 Login alert job added to queue for:', admin.email);
     } catch (emailErr) {
-      console.error('❌ Failed to send login alert email:', emailErr);
+      console.error('❌ Failed to queue login alert email:', emailErr);
     }
+
 
     res.json({
       message: 'OTP verified',
