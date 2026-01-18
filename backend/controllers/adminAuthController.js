@@ -160,6 +160,24 @@ exports.verifyOtp = async (req, res) => {
       action: 'login_success',
       meta: { loginId },
     });
+    try {
+      const html = loginAlertTemplate({
+        name: admin.name || admin.username,
+        ip,
+        userAgent,
+        time: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      });
+
+      await sendEmail({
+        to: admin.email,
+        subject: '🔐 Admin Login Alert',
+        html,
+      });
+
+      console.log('📧 Login alert email sent to admin');
+    } catch (emailErr) {
+      console.error('❌ Failed to send login alert email:', emailErr);
+    }
 
     res.json({
       message: 'OTP verified',
