@@ -38,6 +38,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://finoqz.com',
   'https://www.finoqz.com',
+  'https://fino-qz.vercel.app',
+  process.env.FRONTEND_URL,
 ];
 app.use(cors({
   origin: (origin, callback) => {

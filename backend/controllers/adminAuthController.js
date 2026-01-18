@@ -12,7 +12,8 @@ const logActivity = require('../utils/logActivity');
 const { emitDashboardStats } = require('./adminPanelController');
 
 
-const isProd = process.env.NODE_ENV === 'production';
+// const isProd = process.env.NODE_ENV === 'production';
+const isProd = false;
 
 const sha256Hex = (input) =>
   crypto.createHash('sha256').update(String(input || '')).digest('hex');
@@ -74,6 +75,10 @@ exports.verifyOtp = async (req, res) => {
       $or: [{ email: loginId.toLowerCase() }, { username: loginId }],
     });
 
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
     const storedOtp = await redis.get(`admin:otp:${admin._id}`);
     if (!storedOtp || storedOtp !== otp) {
       return res.status(403).json({ message: 'Invalid or expired OTP' });
@@ -85,53 +90,59 @@ exports.verifyOtp = async (req, res) => {
 
     const ip = req.ip || req.connection?.remoteAddress || '';
     const userAgent = req.get('user-agent') || '';
-    const fingerprint = sha256Hex(ip + '|' + userAgent);
+    const fingerprint = sha256Hex(`${ip}|${userAgent}`);
 
     const accessToken = jwt.sign(
       {
         _id: admin._id,
         role: admin.role,
-        email: admin.email, // ✅ added for socket
+        email: admin.email,
         fingerprint,
       },
       process.env.JWT_SECRET,
       { expiresIn: '30m' }
     );
 
-    const refreshToken = jwt.sign({ _id: admin._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const refreshToken = jwt.sign(
+      { _id: admin._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
     await redis.set(`session:${admin._id}`, accessToken, 'EX', 30 * 60);
     await redis.set(`admin:refresh:${admin._id}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
-
-    // ✅ Track live admin safely
     await redis.incr('liveUserCount');
 
-    res.cookie('adminToken', accessToken, {
-      httpOnly: true,
+    const cookieOptions = {
       secure: isProd,
       sameSite: isProd ? 'None' : 'Lax',
       path: '/',
+    };
+
+    res.cookie('adminToken', accessToken, {
+      ...cookieOptions,
+      httpOnly: true,
       maxAge: 30 * 60 * 1000,
     });
 
     res.cookie('adminRefresh', refreshToken, {
+      ...cookieOptions,
       httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'None' : 'Lax',
-      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.clearCookie('pendingAdminEmail', {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'None' : 'Lax',
-      path: '/',
+    res.cookie('adminSessionVisible', 'true', {
+      ...cookieOptions,
+      httpOnly: false, // ✅ middleware can read this
+      maxAge: 30 * 60 * 1000,
     });
 
-    await emitDashboardStats(req)
+    res.clearCookie('pendingAdminEmail', {
+      ...cookieOptions,
+      httpOnly: true,
+    });
+
+    await emitDashboardStats(req);
 
     await logActivity({
       req,
@@ -141,12 +152,18 @@ exports.verifyOtp = async (req, res) => {
       meta: { loginId },
     });
 
-    res.json({ message: 'OTP verified', token: accessToken, refreshToken });
+    res.json({
+      message: 'OTP verified',
+      token: accessToken,
+      refreshToken,
+      success: true,
+    });
   } catch (err) {
     console.error('❌ Verify OTP error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 // ✅ Refresh token → issue new access token
 exports.refreshToken = async (req, res) => {

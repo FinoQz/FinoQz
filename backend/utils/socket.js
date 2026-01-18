@@ -242,7 +242,7 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const logger = require('./logger');
-const redis = require('./redis'); 
+const redis = require('./redis');
 const { emitLiveUserStats } = require('./emmiters');
 
 
@@ -257,11 +257,20 @@ const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH !== 'false';
 function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: allowedOrigins,
+      origin: function (origin, callback) {
+        console.log('🌐 Incoming socket origin:', origin);
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.error('❌ Blocked by CORS:', origin);
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
     },
     pingTimeout: 30000,
   });
+
 
   io.use((socket, next) => {
     const cookies = socket.handshake.headers.cookie;

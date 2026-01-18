@@ -73,29 +73,6 @@ async function emitDashboardStats(req) {
 
 
 
-// 🔁 Emit real-time user list to all admins
-// async function emitUsersUpdate(req) {
-//   const io = req.app.get("io");
-//   if (!io) return;
-
-//   try {
-//     const [pending, approved, rejected] = await Promise.all([
-//       User.find({ status: 'awaiting_admin_approval' }),
-//       User.find({ status: 'approved' }),
-//       User.find({ status: 'rejected' }),
-//     ]);
-
-//     io.to('admin-room').emit('users:update', {
-//       pending,
-//       approved,
-//       rejected,
-//     });
-
-//     console.log('📡 Emitted users:update');
-//   } catch (err) {
-//     console.error('❌ emitUsersUpdate error:', err);
-//   }
-// }
 
 exports.emitDashboardStats = emitDashboardStats;
 
@@ -138,20 +115,32 @@ const { emitLiveUserStats, emitAnalyticsUpdate} = require('../utils/emmiters');
 
 
 
-// ✅ Get all users awaiting admin approval
-exports.getPendingUsers = async (req, res) => {
+
+// ✅ Get all users
+
+exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ status: 'awaiting_admin_approval' })
-      .select('_id fullName email mobile createdAt status emailVerified mobileVerified')
+    const users = await User.find({})
+      .select('_id fullName email mobile status createdAt lastLoginAt')
       .sort({ createdAt: -1 });
 
-    res.json(users);
+    const formatted = users.map(u => ({
+      _id: u._id,
+      fullName: u.fullName,
+      email: u.email,
+      mobile: u.mobile || 'N/A',
+      status: u.status === 'approved' ? 'Active' : 'Inactive',
+      registrationDate: u.createdAt,
+      lastLogin: u.lastLoginAt || u.createdAt
+    }));
+
+    return res.json(formatted);
+
   } catch (err) {
-    console.error("Error fetching pending users:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ getAllUsers error:", err);
+    return res.status(500).json({ message: "Server error fetching users" });
   }
 };
-
 
 // ✅ Approve a user
 
@@ -282,32 +271,20 @@ exports.rejectUser = async (req, res) => {
   }
 };
 
-
-// ✅ Get all users
-
-exports.getAllUsers = async (req, res) => {
+// ✅ Get all users awaiting admin approval
+exports.getPendingUsers = async (req, res) => {
   try {
-    const users = await User.find({})
-      .select('_id fullName email mobile status createdAt lastLoginAt')
+    const users = await User.find({ status: 'awaiting_admin_approval' })
+      .select('_id fullName email mobile createdAt status emailVerified mobileVerified')
       .sort({ createdAt: -1 });
 
-    const formatted = users.map(u => ({
-      _id: u._id,
-      fullName: u.fullName,
-      email: u.email,
-      mobile: u.mobile || 'N/A',
-      status: u.status === 'approved' ? 'Active' : 'Inactive',
-      registrationDate: u.createdAt,
-      lastLogin: u.lastLoginAt || u.createdAt
-    }));
-
-    return res.json(formatted);
-
+    res.json(users);
   } catch (err) {
-    console.error("❌ getAllUsers error:", err);
-    return res.status(500).json({ message: "Server error fetching users" });
+    console.error("Error fetching pending users:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 //  ✅ Get approved users
 

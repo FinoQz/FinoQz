@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 let isRefreshing = false;
 
 export const initSocket = (token: string) => {
-  socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000", {
+  socket = io(process.env.NEXT_PUBLIC_BACKEND_API || "http://localhost:5000", {
     auth: { token },
     withCredentials: true,
     transports: ["websocket"],
