@@ -38,14 +38,23 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://finoqz.com',
   'https://www.finoqz.com',
-  'https://fino-qz.vercel.app',
-  'https://fino-9fohhjger-finoqzs-projects.vercel.app',
+  /\.vercel\.app$/, // ✅ allow all Vercel preview URLs
   process.env.FRONTEND_URL,
 ];
-app.use(cors({
+
+app.use(require('cors')({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error('Not allowed by CORS'));
+    if (
+      !origin ||
+      allowedOrigins.some(o =>
+        typeof o === 'string' ? o === origin : o.test(origin)
+      )
+    ) {
+      callback(null, true);
+    } else {
+      console.warn('❌ Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
 }));
