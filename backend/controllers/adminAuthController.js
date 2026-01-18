@@ -113,10 +113,11 @@ exports.verifyOtp = async (req, res) => {
     await redis.incr('liveUserCount');
 
     const cookieOptions = {
-      secure: isProd,
-      sameSite: isProd ? 'None' : 'Lax',
+      secure: true, // ✅ always true for cross-origin cookies
+      sameSite: 'None', // ✅ required for cross-origin + credentials
       path: '/',
     };
+
 
     res.cookie('adminToken', accessToken, {
       ...cookieOptions,
@@ -135,6 +136,7 @@ exports.verifyOtp = async (req, res) => {
       httpOnly: false, // ✅ middleware can read this
       maxAge: 30 * 60 * 1000,
     });
+
 
     res.clearCookie('pendingAdminEmail', {
       ...cookieOptions,
