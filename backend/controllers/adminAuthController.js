@@ -130,12 +130,17 @@ exports.verifyOtp = async (req, res) => {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-
+    
     res.cookie('adminSessionVisible', 'true', {
-      ...cookieOptions,
-      httpOnly: false, // ✅ middleware can read this
-      maxAge: 30 * 60 * 1000,
+      httpOnly: false,         // ✅ middleware can read it
+      secure: true,            // ✅ required for SameSite=None
+      sameSite: 'None',        // ✅ required for cross-origin
+      path: '/',
+      maxAge: 30 * 60 * 1000,  // 30 minutes
     });
+    console.log('✅ Cookie set: adminSessionVisible', res.getHeader('Set-Cookie'));
+
+
 
 
     res.clearCookie('pendingAdminEmail', {
