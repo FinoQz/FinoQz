@@ -12,8 +12,7 @@ const logActivity = require('../utils/logActivity');
 const { emitDashboardStats } = require('./adminPanelController');
 
 
-// const isProd = process.env.NODE_ENV === 'production';
-const isProd = false;
+const isProd = process.env.NODE_ENV === 'production';
 
 const sha256Hex = (input) =>
   crypto.createHash('sha256').update(String(input || '')).digest('hex');
