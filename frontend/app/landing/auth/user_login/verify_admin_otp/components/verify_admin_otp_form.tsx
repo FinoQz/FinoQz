@@ -44,9 +44,7 @@ export default function VerifyOtpForm() {
   try {
     const payload = { identifier: email, otp };
 
-    await apiAdmin.post('api/admin/verify-otp', payload, {
-      withCredentials: true,
-    });
+    await apiAdmin.post('api/admin/verify-otp', payload);
 
     router.push('/admin_dash');
   } catch (err: unknown) {
