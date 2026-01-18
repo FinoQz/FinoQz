@@ -250,16 +250,23 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://finoqz.com',
   'https://www.finoqz.com',
+  /\.vercel\.app$/, // ✅ wildcard for all Vercel preview URLs
 ];
+
 
 const STRICT_AUTH = process.env.SOCKET_STRICT_AUTH !== 'false';
 
 function initSocket(server) {
-  io = new Server(server, {
+  const io = new Server(server, {
     cors: {
       origin: function (origin, callback) {
         console.log('🌐 Incoming socket origin:', origin);
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (
+          !origin ||
+          allowedOrigins.some(o =>
+            typeof o === 'string' ? o === origin : o.test(origin)
+          )
+        ) {
           callback(null, true);
         } else {
           console.error('❌ Blocked by CORS:', origin);
