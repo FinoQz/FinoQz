@@ -39,6 +39,7 @@ const allowedOrigins = [
   'https://finoqz.com',
   'https://www.finoqz.com',
   'https://fino-qz.vercel.app',
+  'https://fino-9fohhjger-finoqzs-projects.vercel.app',
   process.env.FRONTEND_URL,
 ];
 app.use(cors({
