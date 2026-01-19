@@ -131,14 +131,7 @@ exports.verifyOtp = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.cookie('adminSessionVisible', 'true', {
-      httpOnly: false,         // ✅ middleware can read it
-      secure: true,
-      sameSite: 'None',
-      path: '/',
-      domain: '.finoqz.com',   // ✅ shared across finoqz.com and api.finoqz.com
-      maxAge: 30 * 60 * 1000,
-    });
+    res.cookie('adminSessionVisible', 'true', { httpOnly: false, secure: true, sameSite: 'None', path: '/', domain: isProd ? '.finoqz.com' : 'localhost', maxAge: 30 * 60 * 1000, });
 
     console.log('✅ Cookie set: adminSessionVisible', res.getHeader('Set-Cookie'));
 

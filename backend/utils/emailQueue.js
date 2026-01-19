@@ -1,10 +1,13 @@
 // utils/emailQueue.js
+
 const { Queue } = require('bullmq');
+
+const isSecure = process.env.REDIS_URL?.startsWith('rediss://');
 
 const emailQueue = new Queue('emailQueue', {
   connection: {
-    url: process.env.REDIS_URL, // ✅ Upstash TLS URL
-    tls: {},                    // ✅ Required for Upstash
+    url: process.env.REDIS_URL,
+    ...(isSecure ? { tls: {} } : {}), // ✅ only add TLS if using rediss://
   },
   defaultJobOptions: {
     attempts: 3,
@@ -15,21 +18,3 @@ const emailQueue = new Queue('emailQueue', {
 });
 
 module.exports = emailQueue;
-// const { Queue } = require('bullmq');
-
-// const connection = {
-//   url: process.env.REDIS_URL, // ✅ Upstash TLS URL
-//   tls: {},                    // ✅ Required for Upstash
-// };
-
-// const emailQueue = new Queue('emailQueue', {
-//   connection,
-//   defaultJobOptions: {
-//     attempts: 3, // ✅ retry up to 3 times
-//     backoff: { type: 'exponential', delay: 5000 }, // ✅ exponential backoff
-//     removeOnComplete: true, // ✅ auto-clean successful jobs
-//     removeOnFail: false,    // ❌ keep failed jobs for inspection
-//   },
-// });
-
-// module.exports = emailQueue;
