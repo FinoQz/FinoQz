@@ -16,9 +16,6 @@ const redis = require('../utils/redis');
 const mongoose = require('mongoose');
 
 
-
-
-
 async function emitDashboardStats(req) {
   console.log("📊 emitDashboardStats triggered");
 
@@ -71,47 +68,182 @@ async function emitDashboardStats(req) {
   }
 }
 
-
-
-
 exports.emitDashboardStats = emitDashboardStats;
-
-
-// 🔁 Emit real-time user list to all admins
-async function emitUsersUpdate(req) {
-  const io = req.app.get("io");
-  if (!io) {
-    console.warn("⚠️ Socket.io instance not found in app");
-    return;
-  }
-
-  try {
-    console.log("🔄 Fetching users for users:update emit...");
-
-    const [pending, approved, rejected] = await Promise.all([
-      User.find({ status: 'awaiting_admin_approval' }),
-      User.find({ status: 'approved' }),
-      User.find({ status: 'rejected' }),
-    ]);
-
-    io.to('admin-room').emit('users:update', {
-      pending,
-      approved,
-      rejected,
-    });
-
-    console.log(`📡 Emitted users:update → pending: ${pending.length}, approved: ${approved.length}, rejected: ${rejected.length}`);
-  } catch (err) {
-    console.error('❌ emitUsersUpdate error:', err);
-  }
-}
-
 
 const { emitLiveUserStats, emitAnalyticsUpdate} = require('../utils/emmiters');
 
+// ✅ Get monthly user registrations (current & last month)
+exports.getMonthlyUsers = async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-indexed
+
+    const startOfCurrentMonth = new Date(year, month, 1);
+    const startOfLastMonth = new Date(year, month - 1, 1);
+    const endOfLastMonth = new Date(year, month, 0);
+
+    const cacheKey = `dashboard:monthlyUsers:${year}-${month + 1}`;
+
+    // ✅ Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (io) {
+        await emitAnalyticsUpdate(io, {
+          type: 'monthlyUsers',
+          ...parsed,
+        });
+      }
+      return res.json({ type: 'monthlyUsers', ...parsed });
+    }
+
+    // 🔍 Fresh counts
+    const [currentMonthCount, lastMonthCount] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: startOfCurrentMonth } }),
+      User.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+    ]);
+
+    const payload = {
+      currentMonth: currentMonthCount,
+      lastMonth: lastMonthCount,
+    };
+
+    // 💾 Cache for 1 hour
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
+
+    // 📡 Emit via WebSocket
+    if (io) {
+      await emitAnalyticsUpdate(io, {
+        type: 'monthlyUsers',
+        ...payload,
+      });
+    }
+
+    return res.json({ type: 'monthlyUsers', ...payload });
+  } catch (err) {
+    console.error('❌ Error fetching monthly users:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+exports.getUserGrowthData = async (req, res) => {
+  try {
+    const io = req.app.get('io');
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-indexed
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
+    const cacheKey = `dashboard:userGrowth:${year}-${month + 1}`; // e.g., dashboard:userGrowth:2026-01
+
+    // ✅ Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (io) {
+        await emitAnalyticsUpdate(io, {
+          type: 'userGrowth',
+          labels: parsed.labels,
+          values: parsed.values,
+        });
+      }
+      return res.json({ type: 'userGrowth', ...parsed });
+    }
+
+    // 🔍 MongoDB aggregation
+    const pipeline = [
+      {
+        $match: {
+          createdAt: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ];
+
+    const results = await User.aggregate(pipeline);
+    const resultMap = Object.fromEntries(results.map(r => [r._id, r.count]));
+
+    const labels = [];
+    const values = [];
+    const totalDays = endDate.getDate();
+
+    for (let i = 1; i <= totalDays; i++) {
+      const date = new Date(year, month, i);
+      const isoDate = date.toISOString().split('T')[0];
+      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      labels.push(label);
+      values.push(resultMap[isoDate] || 0);
+    }
+
+    const payload = { labels, values };
+
+    // 💾 Cache for 1 hour
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
+
+    // 📡 Emit via WebSocket
+    if (io) {
+      await emitAnalyticsUpdate(io, {
+        type: 'userGrowth',
+        labels,
+        values,
+      });
+    }
+
+    return res.json({ type: 'userGrowth', ...payload });
+  } catch (err) {
+    console.error('❌ Error fetching user growth data:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 
 
+exports.getLiveUsers = async (req, res) => {
+  try {
+    // ✅ Get count from Redis Set
+    const liveUserCount = await redis.scard('liveUsers');
+
+    // ✅ Push to sparkline list
+    await redis.lpush('liveUserSparkline', liveUserCount);
+    await redis.ltrim('liveUserSparkline', 0, 19); // Keep last 20 entries
+
+    // ✅ Fetch sparkline
+    const sparklineRaw = await redis.lrange('liveUserSparkline', 0, -1);
+    const sparkline = sparklineRaw.map(Number).reverse();
+
+    const data = {
+      type: 'liveUsers',
+      liveUsers: liveUserCount,
+      sparkline,
+    };
+
+    // ✅ Emit to admin-room
+    const io = req.app.get('io');
+    if (io) {
+      await emitLiveUserStats(io);
+    }
+
+    return res.json(data);
+  } catch (err) {
+    console.error('❌ Live user fetch error:', err);
+    return res.status(500).json({ message: 'Failed to fetch live users' });
+  }
+};
 
 // ✅ Get all users
 
@@ -140,7 +272,6 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // ✅ Approve a user
-
 exports.approveUser = async (req, res) => {
   const { userId } = req.params;
 
@@ -215,7 +346,6 @@ exports.approveUser = async (req, res) => {
 
 
 // ✅ Reject a user
-
 exports.rejectUser = async (req, res) => {
   const { userId } = req.params;
 
@@ -284,7 +414,6 @@ exports.getPendingUsers = async (req, res) => {
 
 
 //  ✅ Get approved users
-
 exports.getApprovedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'approved' })
@@ -650,178 +779,6 @@ exports.sendBulkEmail = async (req, res) => {
   }
 };
 
-// ✅ Get monthly user registrations (current & last month)
-exports.getMonthlyUsers = async (req, res) => {
-  try {
-    const io = req.app.get('io');
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
-
-    const startOfCurrentMonth = new Date(year, month, 1);
-    const startOfLastMonth = new Date(year, month - 1, 1);
-    const endOfLastMonth = new Date(year, month, 0);
-
-    const cacheKey = `dashboard:monthlyUsers:${year}-${month + 1}`;
-
-    // ✅ Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (io) {
-        await emitAnalyticsUpdate(io, {
-          type: 'monthlyUsers',
-          ...parsed,
-        });
-      }
-      return res.json({ type: 'monthlyUsers', ...parsed });
-    }
-
-    // 🔍 Fresh counts
-    const [currentMonthCount, lastMonthCount] = await Promise.all([
-      User.countDocuments({ createdAt: { $gte: startOfCurrentMonth } }),
-      User.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
-    ]);
-
-    const payload = {
-      currentMonth: currentMonthCount,
-      lastMonth: lastMonthCount,
-    };
-
-    // 💾 Cache for 1 hour
-    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
-
-    // 📡 Emit via WebSocket
-    if (io) {
-      await emitAnalyticsUpdate(io, {
-        type: 'monthlyUsers',
-        ...payload,
-      });
-    }
-
-    return res.json({ type: 'monthlyUsers', ...payload });
-  } catch (err) {
-    console.error('❌ Error fetching monthly users:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-
-exports.getUserGrowthData = async (req, res) => {
-  try {
-    const io = req.app.get('io');
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth(); // 0-indexed
-    const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, month + 1, 0);
-    const cacheKey = `dashboard:userGrowth:${year}-${month + 1}`; // e.g., dashboard:userGrowth:2026-01
-
-    // ✅ Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (io) {
-        await emitAnalyticsUpdate(io, {
-          type: 'userGrowth',
-          labels: parsed.labels,
-          values: parsed.values,
-        });
-      }
-      return res.json({ type: 'userGrowth', ...parsed });
-    }
-
-    // 🔍 MongoDB aggregation
-    const pipeline = [
-      {
-        $match: {
-          createdAt: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
-
-    const results = await User.aggregate(pipeline);
-    const resultMap = Object.fromEntries(results.map(r => [r._id, r.count]));
-
-    const labels = [];
-    const values = [];
-    const totalDays = endDate.getDate();
-
-    for (let i = 1; i <= totalDays; i++) {
-      const date = new Date(year, month, i);
-      const isoDate = date.toISOString().split('T')[0];
-      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      labels.push(label);
-      values.push(resultMap[isoDate] || 0);
-    }
-
-    const payload = { labels, values };
-
-    // 💾 Cache for 1 hour
-    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
-
-    // 📡 Emit via WebSocket
-    if (io) {
-      await emitAnalyticsUpdate(io, {
-        type: 'userGrowth',
-        labels,
-        values,
-      });
-    }
-
-    return res.json({ type: 'userGrowth', ...payload });
-  } catch (err) {
-    console.error('❌ Error fetching user growth data:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-
-
-exports.getLiveUsers = async (req, res) => {
-  try {
-    // ✅ Get count from Redis Set
-    const liveUserCount = await redis.scard('liveUsers');
-
-    // ✅ Push to sparkline list
-    await redis.lpush('liveUserSparkline', liveUserCount);
-    await redis.ltrim('liveUserSparkline', 0, 19); // Keep last 20 entries
-
-    // ✅ Fetch sparkline
-    const sparklineRaw = await redis.lrange('liveUserSparkline', 0, -1);
-    const sparkline = sparklineRaw.map(Number).reverse();
-
-    const data = {
-      type: 'liveUsers',
-      liveUsers: liveUserCount,
-      sparkline,
-    };
-
-    // ✅ Emit to admin-room
-    const io = req.app.get('io');
-    if (io) {
-      await emitLiveUserStats(io);
-    }
-
-    return res.json(data);
-  } catch (err) {
-    console.error('❌ Live user fetch error:', err);
-    return res.status(500).json({ message: 'Failed to fetch live users' });
-  }
-};
 
 
 

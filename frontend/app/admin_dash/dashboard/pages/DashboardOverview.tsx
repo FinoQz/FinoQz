@@ -60,6 +60,104 @@ export default function DashboardOverview() {
     }
   };
 
+  // useEffect(() => {
+  //   isPendingModalOpenRef.current = isPendingModalOpen;
+  // }, [isPendingModalOpen]);
+
+  // useEffect(() => {
+  //   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  //   if (!backendUrl) {
+  //     console.error('NEXT_PUBLIC_BACKEND_URL is not defined');
+  //     return;
+  //   }
+
+  //   // ✅ Single socket instance
+  //   if (!socketRef.current) {
+  //     socketRef.current = io(backendUrl, { withCredentials: true });
+  //   }
+  //   const socket = socketRef.current;
+
+  //   const fetchInitialStats = async () => {
+  //     try {
+  //       const [allRes, activeRes, monthlyRes] = await Promise.all([
+  //         apiAdmin.get('/api/admin/panel/all-users'),
+  //         apiAdmin.get('/api/admin/panel/approved-users'),
+  //         apiAdmin.get('/api/admin/panel/monthly-users'),
+  //       ]);
+
+  //       await fetchPendingUsers();
+
+  //       const totalUsers = allRes.data.length;
+  //       const activeUsers = activeRes.data.length;
+  //       const pendingApprovals = pendingUsersList.length;
+
+  //       const current = monthlyRes.data.currentMonth;
+  //       const last = monthlyRes.data.lastMonth;
+  //       const growth = last > 0 ? ((current - last) / last) * 100 : 100;
+
+  //       setStats((prev) => ({
+  //         ...prev,
+  //         totalUsers,
+  //         activeUsers,
+  //         pendingApprovals,
+  //       }));
+
+  //       setGrowthPercent(growth.toFixed(1));
+  //       setLoading(false);
+  //     } catch (err) {
+  //       console.error('❌ Error fetching initial dashboard stats:', err);
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchInitialStats();
+
+  //   socket.on('connect', () => {
+  //     console.log('✅ Connected to WebSocket:', socket.id);
+  //   });
+
+  //   socket.on('dashboard:stats', (data: Partial<DashboardStats>) => {
+  //     console.log('📡 Real-time stats received:', data);
+
+  //     setStats((prev) => ({
+  //       ...prev,
+  //       ...data,
+  //     }));
+
+  //     if (typeof data.pendingApprovals === 'number') {
+  //       setAlertMessage(`You have ${data.pendingApprovals} pending user approvals`);
+  //     }
+
+  //     if (isPendingModalOpenRef.current) {
+  //       fetchPendingUsers();
+  //     }
+  //   });
+
+  //   socket.on('analytics:update', (data) => {
+  //     if (data.type === 'userGrowth') {
+  //       console.log('📈 WebSocket userGrowth:', data);
+  //       setUserData(data.values || []);
+  //       setDays(data.labels || []);
+  //       setLoading(false);
+  //     }
+  //   });
+
+  //   return () => {
+  //     socket.off('dashboard:stats');
+  //     socket.off('analytics:update');
+  //   };
+  // }, []);
+
+  // useEffect(() => {
+  //   if (!alertMessage) return;
+  //   const timer = setTimeout(() => setAlertMessage(null), 3000);
+  //   return () => clearTimeout(timer);
+  // }, [alertMessage]);
+
+  // const handleOpenPendingModal = async () => {
+  //   setIsPendingModalOpen(true);
+  //   await fetchPendingUsers();
+  // };
   useEffect(() => {
     isPendingModalOpenRef.current = isPendingModalOpen;
   }, [isPendingModalOpen]);
@@ -71,7 +169,6 @@ export default function DashboardOverview() {
       return;
     }
 
-    // ✅ Single socket instance
     if (!socketRef.current) {
       socketRef.current = io(backendUrl, { withCredentials: true });
     }
@@ -79,17 +176,18 @@ export default function DashboardOverview() {
 
     const fetchInitialStats = async () => {
       try {
-        const [allRes, activeRes, monthlyRes] = await Promise.all([
+        const [allRes, activeRes, monthlyRes, pendingRes] = await Promise.all([
           apiAdmin.get('/api/admin/panel/all-users'),
           apiAdmin.get('/api/admin/panel/approved-users'),
           apiAdmin.get('/api/admin/panel/monthly-users'),
+          apiAdmin.get('/api/admin/panel/pending-users'),
         ]);
 
-        await fetchPendingUsers();
+        setPendingUsersList(pendingRes.data);
 
         const totalUsers = allRes.data.length;
         const activeUsers = activeRes.data.length;
-        const pendingApprovals = pendingUsersList.length;
+        const pendingApprovals = pendingRes.data.length;
 
         const current = monthlyRes.data.currentMonth;
         const last = monthlyRes.data.lastMonth;
@@ -114,15 +212,12 @@ export default function DashboardOverview() {
 
     socket.on('connect', () => {
       console.log('✅ Connected to WebSocket:', socket.id);
+      socket.emit('join-admin-room'); // ✅ This line is critical
     });
 
     socket.on('dashboard:stats', (data: Partial<DashboardStats>) => {
       console.log('📡 Real-time stats received:', data);
-
-      setStats((prev) => ({
-        ...prev,
-        ...data,
-      }));
+      setStats((prev) => ({ ...prev, ...data }));
 
       if (typeof data.pendingApprovals === 'number') {
         setAlertMessage(`You have ${data.pendingApprovals} pending user approvals`);
@@ -149,6 +244,27 @@ export default function DashboardOverview() {
   }, []);
 
   useEffect(() => {
+    const fallbackTimer = setTimeout(async () => {
+      if (userData.length === 0 || days.length === 0) {
+        console.warn('⚠️ No WebSocket userGrowth — using fallback API');
+        try {
+          const res = await apiAdmin.get('/api/admin/panel/analytics/user-growth');
+          console.log('📊 Fallback userGrowth:', res.data);
+          setUserData(res.data.values || []);
+          setDays(res.data.labels || []);
+          setLoading(false);
+        } catch (err) {
+          console.error('❌ Fallback userGrowth fetch failed:', err);
+        }
+      }
+    }, 4000); // wait 4 seconds for WebSocket
+
+    return () => clearTimeout(fallbackTimer);
+  }, [userData, days]);
+
+
+
+  useEffect(() => {
     if (!alertMessage) return;
     const timer = setTimeout(() => setAlertMessage(null), 3000);
     return () => clearTimeout(timer);
@@ -158,6 +274,7 @@ export default function DashboardOverview() {
     setIsPendingModalOpen(true);
     await fetchPendingUsers();
   };
+
 
   if (loading) {
     return (
@@ -249,65 +366,6 @@ export default function DashboardOverview() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
-        {/* Daily Revenue Chart */}
-        {/* <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">
-            Daily Revenue (Last 14 Days)
-          </h3>
-          <div className="h-64">
-            {(() => {
-              const revenueData = [
-                3200, 4100, 3800, 5200, 6300, 5800, 7100,
-                6800, 7800, 8200, 7500, 8900, 9200, 8450,
-              ];
-              const maxRevenue = Math.max(...revenueData);
-              const days = [
-                'Jan 5', 'Jan 6', 'Jan 7', 'Jan 8', 'Jan 9', 'Jan 10',
-                'Jan 11', 'Jan 12', 'Jan 13', 'Jan 14', 'Jan 15',
-                'Jan 16', 'Jan 17', 'Jan 18',
-              ];
-
-              return (
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 flex items-end justify-between gap-2 border-b-2 border-l-2 border-gray-300 pb-2 pl-2">
-                    {revenueData.map((revenue, index) => (
-                      <div
-                        key={index}
-                        className="flex-1 flex flex-col items-center group"
-                      >
-                        <div className="w-full relative">
-                          <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            ₹{revenue.toLocaleString()}
-                          </div>
-                          <div
-                            className="w-full bg-gradient-to-t from-[#253A7B] to-[#4a6bb5] rounded-t hover:from-[#1a2a5e] hover:to-[#253A7B] transition-all duration-300 cursor-pointer"
-                            style={{
-                              height: `${(revenue / maxRevenue) * 200}px`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between mt-2 pl-2">
-                    {days.map((day, index) =>
-                      index % 2 === 0 ? (
-                        <div
-                          key={index}
-                          className="text-xs text-gray-600 flex-1 text-center"
-                        >
-                          {day}
-                        </div>
-                      ) : (
-                        <div key={index} className="flex-1" />
-                      )
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        </div> */}
 
         {/* User Growth Chart */}
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -463,7 +521,65 @@ export default function DashboardOverview() {
           </div>
         </div>
 
+        {/* Daily Revenue Chart */}
+        {/* <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">
+            Daily Revenue (Last 14 Days)
+          </h3>
+          <div className="h-64">
+            {(() => {
+              const revenueData = [
+                3200, 4100, 3800, 5200, 6300, 5800, 7100,
+                6800, 7800, 8200, 7500, 8900, 9200, 8450,
+              ];
+              const maxRevenue = Math.max(...revenueData);
+              const days = [
+                'Jan 5', 'Jan 6', 'Jan 7', 'Jan 8', 'Jan 9', 'Jan 10',
+                'Jan 11', 'Jan 12', 'Jan 13', 'Jan 14', 'Jan 15',
+                'Jan 16', 'Jan 17', 'Jan 18',
+              ];
 
+              return (
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 flex items-end justify-between gap-2 border-b-2 border-l-2 border-gray-300 pb-2 pl-2">
+                    {revenueData.map((revenue, index) => (
+                      <div
+                        key={index}
+                        className="flex-1 flex flex-col items-center group"
+                      >
+                        <div className="w-full relative">
+                          <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                            ₹{revenue.toLocaleString()}
+                          </div>
+                          <div
+                            className="w-full bg-gradient-to-t from-[#253A7B] to-[#4a6bb5] rounded-t hover:from-[#1a2a5e] hover:to-[#253A7B] transition-all duration-300 cursor-pointer"
+                            style={{
+                              height: `${(revenue / maxRevenue) * 200}px`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-2 pl-2">
+                    {days.map((day, index) =>
+                      index % 2 === 0 ? (
+                        <div
+                          key={index}
+                          className="text-xs text-gray-600 flex-1 text-center"
+                        >
+                          {day}
+                        </div>
+                      ) : (
+                        <div key={index} className="flex-1" />
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div> */}
         {/* Quiz Completion Rate */}
         {/* <QuizCompletionRate /> */}
 
