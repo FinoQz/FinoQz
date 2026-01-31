@@ -88,81 +88,6 @@ exports.initiateSignup = async (req, res) => {
 };
 
 
-
-// ✅ STEP 2: Verify Email OTP
-// exports.verifyEmailOtp = async (req, res) => {
-//   try {
-//     const email = req.body.email || req.query.email || req.headers["x-signup-email"];
-//     const { otp } = req.body;   // ✅ yaha add karo
-
-//     console.log("➡️ Verifying email OTP for:", email);
-
-//     const redisKey = `user:emailOtp:${email}`;
-//     const stored = await redis.get(redisKey);
-
-//     if (!stored) {
-//       console.log("❌ No OTP found or expired");
-//       return res.status(404).json({ message: "No OTP found or expired." });
-//     }
-
-//     const { otp: storedOtp, fullName } = JSON.parse(stored);
-
-//     if (storedOtp !== otp) {
-//       console.log("❌ Incorrect OTP");
-
-//       await logActivity({
-//         req,
-//         actorType: "user",
-//         actorId: null,
-//         action: "signup_email_otp_incorrect",
-//         meta: { email }
-//       });
-
-//       return res.status(403).json({ message: "Incorrect OTP" });
-//     }
-
-
-//     const existingUser = await User.findOne({ email });
-//     if (existingUser) {
-//       console.log("⚠️ User already exists during OTP verify");
-//       return res.status(409).json({
-//         message: "Email already registered. Resume signup.",
-//         status: existingUser.status,
-//       });
-//     }
-
-//     const user = new User({
-//       fullName,
-//       email,
-//       emailVerified: true,
-//       status: "email_verified",
-//     });
-
-//     await user.save();
-//     await redis.del(redisKey);
-
-//     console.log("✅ Email verified & user created:", user._id);
-
-//     await logActivity({
-//       req,
-//       actorType: "user",
-//       actorId: user._id,
-//       action: "signup_email_verified",
-//       meta: {
-//         email,
-//         device: getDeviceInfo(req)
-//       }
-//     });
-
-//     return res.json({
-//       message: "Email verified.",
-//       nextStep: "mobile_password",
-//     });
-//   } catch (err) {
-//     console.error("❌ verifyEmailOtp error:", err);
-//     return res.status(500).json({ message: "Server error during OTP verification." });
-//   }
-// };
 exports.verifyEmailOtp = async (req, res) => {
   try {
     const email =
@@ -242,61 +167,6 @@ exports.verifyEmailOtp = async (req, res) => {
 };
 
 
-
-
-// ✅ STEP 3: Resend Email OTP
-// exports.resendEmailOtp = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     console.log("➡️ Resend email OTP for:", email);
-
-//     const stored = await redis.get(`user:emailOtp:${email}`);
-//     if (!stored) {
-//       console.log("❌ No OTP found to resend");
-//       return res.status(404).json({
-//         message: "No OTP found. Please initiate signup first.",
-//       });
-//     }
-
-//     const parsed = JSON.parse(stored);
-//     const newOtp = generateOTP();
-
-//     await redis.set(
-//       `user:emailOtp:${email}`,
-//       JSON.stringify({ ...parsed, otp: newOtp }),
-//       "EX",
-//       600
-//     );
-
-//     console.log("✅ New email OTP generated:", newOtp);
-
-//     await emailQueue.add("userEmailOtp", {
-//       to: email,
-//       subject: "FinoQz Email OTP",
-//       html: userOtpTemplate(newOtp),
-//     });
-
-//     console.log("📨 Resend OTP queued");
-
-//     await logActivity({
-//       req,
-//       actorType: "user",
-//       actorId: null,
-//       action: "signup_email_otp_resent",
-//       meta: { email }
-//     });
-
-//     return res.json({
-//       message: "New OTP sent to email.",
-//       otp: newOtp,
-//       nextStep: "verify_email_otp",
-//     });
-//   } catch (err) {
-//     console.error("❌ resendEmailOtp error:", err);
-//     return res.status(500).json({ message: "Server error during resend OTP." });
-//   }
-// };
 exports.resendEmailOtp = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email;
@@ -481,8 +351,9 @@ exports.submitMobilePassword = async (req, res) => {
       })
       .json({
         message: "OTP generated",
-        ...(process.env.NODE_ENV !== 'production' && { otp }),
+        otp // ✅ always include this for now
       });
+
 
   } catch (err) {
     console.error("❌ submitMobilePassword error:", err);
