@@ -71,6 +71,7 @@ async function emitDashboardStats(req) {
 exports.emitDashboardStats = emitDashboardStats;
 
 const { emitLiveUserStats, emitAnalyticsUpdate} = require('../utils/emmiters');
+const userApprovalSuccessTemplate = require('../emailTemplates/userApprovalSuccessTemplate');
 
 // ✅ Get monthly user registrations (current & last month)
 exports.getMonthlyUsers = async (req, res) => {
@@ -319,7 +320,7 @@ exports.approveUser = async (req, res) => {
     sendEmail(
       savedUser.email,
       'FinoQz Account Approved',
-      approvalSuccessTemplate({
+      userApprovalSuccessTemplate({
         fullName: savedUser.fullName,
         email: savedUser.email,
         password: 'Your chosen password'
