@@ -19,12 +19,20 @@ export default function VerifyMobileOtpPage() {
   const [cooldown, setCooldown] = useState(0);
   const router = useRouter();
 
-  useEffect(() => {
-    const getCookie = (name: string) => {
-      const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-      return match ? decodeURIComponent(match[2]) : null;
-    };
+  const setClientCookie = (name: string, value: string, maxAgeSeconds: number) => {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax; Secure`;
+  };
 
+  const deleteClientCookie = (name: string) => {
+    document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax; Secure`;
+  };
+
+  const getCookie = (name: string) => {
+    const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+    return match ? decodeURIComponent(match[2]) : null;
+  };
+
+  useEffect(() => {
     const storedMobile = getCookie("userMobile");
     if (storedMobile) setMobile(storedMobile);
 
@@ -33,7 +41,7 @@ export default function VerifyMobileOtpPage() {
       setTempOtp(storedOtp);
       setTimeout(() => {
         setTempOtp(null);
-        document.cookie = "tempOtp=; Max-Age=0; path=/; SameSite=Lax";
+        deleteClientCookie("tempOtp");
       }, 10000);
     }
   }, []);
@@ -54,9 +62,7 @@ export default function VerifyMobileOtpPage() {
     }
 
     try {
-      const match = document.cookie.match(/(?:^|; )userEmail=([^;]+)/);
-      const email = match ? decodeURIComponent(match[1]) : null;
-
+      const email = getCookie("userEmail");
       if (!email) {
         setFormError("Email not found. Please restart signup.");
         return;
@@ -91,9 +97,7 @@ export default function VerifyMobileOtpPage() {
     setLoading(true);
     setResendMessage("");
     try {
-      const match = document.cookie.match(/(?:^|; )userEmail=([^;]+)/);
-      const email = match ? decodeURIComponent(match[1]) : null;
-
+      const email = getCookie("userEmail");
       if (!email) {
         setFormError("Email not found. Please restart signup.");
         return;
@@ -106,11 +110,11 @@ export default function VerifyMobileOtpPage() {
 
       const newOtp = res.data?.otp;
       if (newOtp) {
-        document.cookie = `tempOtp=${encodeURIComponent(newOtp)}; path=/; max-age=10; SameSite=Lax`;
+        setClientCookie("tempOtp", newOtp, 10);
         setTempOtp(newOtp);
         setTimeout(() => {
           setTempOtp(null);
-          document.cookie = "tempOtp=; Max-Age=0; path=/; SameSite=Lax";
+          deleteClientCookie("tempOtp");
         }, 10000);
       }
     } catch (err) {
@@ -147,7 +151,7 @@ export default function VerifyMobileOtpPage() {
             <button
               onClick={() => {
                 setTempOtp(null);
-                document.cookie = "tempOtp=; Max-Age=0; path=/; SameSite=Lax";
+                deleteClientCookie("tempOtp");
               }}
               className="absolute top-1 right-2 text-sm text-gray-500 hover:text-gray-800"
             >
