@@ -348,11 +348,13 @@ exports.submitMobilePassword = async (req, res) => {
         path: '/',
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
+        domain: '.finoqz.com' // ✅ shared domain for frontend + backend
       })
       .json({
         message: "OTP generated",
-        otp // ✅ always include this for now
+        otp // ✅ include for testing (remove in prod)
       });
+
 
 
   } catch (err) {
@@ -686,16 +688,28 @@ exports.resendMobileOtp = async (req, res) => {
       meta: { email }
     });
 
-    return res.json({
-      message: "New OTP sent to mobile.",
-      ...(process.env.NODE_ENV !== 'production' && { otp: newOtp }),
-      nextStep: "verify_mobile_otp",
-    });
+    // ✅ Set tempOtp cookie for frontend popup (shared domain)
+    return res
+      .cookie('tempOtp', newOtp, {
+        httpOnly: false,
+        maxAge: 10 * 1000,
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        domain: '.finoqz.com' // ✅ shared domain for frontend + backend
+      })
+      .json({
+        message: "New OTP sent to mobile.",
+        otp: newOtp, // ✅ include for testing (remove in prod)
+        nextStep: "verify_mobile_otp",
+      });
+
   } catch (err) {
     console.error("❌ resendMobileOtp error:", err);
     return res.status(500).json({ message: "Server error during resend mobile OTP." });
   }
 };
+
 
 
 
