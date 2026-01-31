@@ -273,6 +273,77 @@ exports.getAllUsers = async (req, res) => {
 };
 
 // ✅ Approve a user
+// exports.approveUser = async (req, res) => {
+//   const { userId } = req.params;
+
+//   try {
+//     if (!mongoose.Types.ObjectId.isValid(userId)) {
+//       return res.status(400).json({ message: 'Invalid user ID format' });
+//     }
+
+//     console.log("➡️ Admin approving user:", userId);
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       console.log("❌ User not found");
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     if (user.status !== 'awaiting_admin_approval') {
+//       console.log("⚠️ User not in approval queue:", user.status);
+//       return res.status(400).json({ message: 'User is not awaiting approval' });
+//     }
+
+//     user.status = 'approved';
+//     user.approvedBy = req.adminId;
+//     user.approvedAt = new Date();
+
+//     const savedUser = await user.save();
+
+//     console.log("✅ User approved:", {
+//       id: savedUser._id.toString(),
+//       approvedAt: savedUser.approvedAt,
+//       approvedBy: savedUser.approvedBy?.toString(),
+//     });
+
+//     await logActivity({
+//       req,
+//       actorType: "admin",
+//       actorId: req.adminId,
+//       action: "approve_user",
+//       meta: { userId: savedUser._id.toString() }
+//     });
+
+//     await emitDashboardStats(req);
+//     await emitUsersUpdate(req); // ✅ Added here
+
+//     sendEmail(
+//       savedUser.email,
+//       'FinoQz Account Approved',
+//       userApprovalSuccessTemplate({
+//         fullName: savedUser.fullName,
+//         email: savedUser.email,
+//         password: 'Your chosen password'
+//       })
+//     ).catch(err => console.error('📨 Approval email failed:', err));
+
+//     res.json({
+//       message: 'User approved successfully',
+//       user: {
+//         _id: savedUser._id,
+//         fullName: savedUser.fullName,
+//         email: savedUser.email,
+//         approvedAt: savedUser.approvedAt,
+//         approvedBy: savedUser.approvedBy,
+//         status: savedUser.status,
+//       }
+//     });
+
+//   } catch (err) {
+//     console.error('❌ Error approving user:', err);
+//     res.status(500).json({ message: 'Server error during approval' });
+//   }
+// };
 exports.approveUser = async (req, res) => {
   const { userId } = req.params;
 
@@ -315,17 +386,18 @@ exports.approveUser = async (req, res) => {
     });
 
     await emitDashboardStats(req);
-    await emitUsersUpdate(req); // ✅ Added here
+    await emitUsersUpdate(req);
 
-    sendEmail(
-      savedUser.email,
-      'FinoQz Account Approved',
-      userApprovalSuccessTemplate({
+    // ✅ Use email queue instead of direct sendEmail
+    await emailQueue.add("userApproved", {
+      to: savedUser.email,
+      subject: "FinoQz Account Approved",
+      html: userApprovalSuccessTemplate({
         fullName: savedUser.fullName,
         email: savedUser.email,
         password: 'Your chosen password'
-      })
-    ).catch(err => console.error('📨 Approval email failed:', err));
+      }),
+    });
 
     res.json({
       message: 'User approved successfully',
@@ -344,6 +416,7 @@ exports.approveUser = async (req, res) => {
     res.status(500).json({ message: 'Server error during approval' });
   }
 };
+
 
 
 // ✅ Reject a user
