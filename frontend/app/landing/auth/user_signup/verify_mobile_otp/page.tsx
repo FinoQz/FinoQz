@@ -19,14 +19,6 @@ export default function VerifyMobileOtpPage() {
   const [cooldown, setCooldown] = useState(0);
   const router = useRouter();
 
-  const setClientCookie = (name: string, value: string, maxAgeSeconds: number) => {
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax; Secure`;
-  };
-
-  const deleteClientCookie = (name: string) => {
-    document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax; Secure`;
-  };
-
   const getCookie = (name: string) => {
     const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
     return match ? decodeURIComponent(match[2]) : null;
@@ -36,12 +28,12 @@ export default function VerifyMobileOtpPage() {
     const storedMobile = getCookie("userMobile");
     if (storedMobile) setMobile(storedMobile);
 
-    const storedOtp = getCookie("tempOtp");
+    const storedOtp = localStorage.getItem("tempOtp");
     if (storedOtp) {
       setTempOtp(storedOtp);
       setTimeout(() => {
         setTempOtp(null);
-        deleteClientCookie("tempOtp");
+        localStorage.removeItem("tempOtp");
       }, 10000);
     }
   }, []);
@@ -110,11 +102,11 @@ export default function VerifyMobileOtpPage() {
 
       const newOtp = res.data?.otp;
       if (newOtp) {
-        setClientCookie("tempOtp", newOtp, 10);
+        localStorage.setItem("tempOtp", newOtp);
         setTempOtp(newOtp);
         setTimeout(() => {
           setTempOtp(null);
-          deleteClientCookie("tempOtp");
+          localStorage.removeItem("tempOtp");
         }, 10000);
       }
     } catch (err) {
@@ -151,7 +143,7 @@ export default function VerifyMobileOtpPage() {
             <button
               onClick={() => {
                 setTempOtp(null);
-                deleteClientCookie("tempOtp");
+                localStorage.removeItem("tempOtp");
               }}
               className="absolute top-1 right-2 text-sm text-gray-500 hover:text-gray-800"
             >
