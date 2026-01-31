@@ -24,16 +24,20 @@ export default function VerifyMobileOtpPage() {
     return match ? decodeURIComponent(match[2]) : null;
   };
 
+  const deleteCookie = (name: string) => {
+    document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax; Secure`;
+  };
+
   useEffect(() => {
     const storedMobile = getCookie("userMobile");
     if (storedMobile) setMobile(storedMobile);
 
-    const storedOtp = localStorage.getItem("tempOtp");
+    const storedOtp = getCookie("tempOtp");
     if (storedOtp) {
       setTempOtp(storedOtp);
       setTimeout(() => {
         setTempOtp(null);
-        localStorage.removeItem("tempOtp");
+        deleteCookie("tempOtp");
       }, 10000);
     }
   }, []);
@@ -100,13 +104,12 @@ export default function VerifyMobileOtpPage() {
       setResendMessage("New OTP has been sent to your mobile.");
       setCooldown(30);
 
-      const newOtp = res.data?.otp;
+      const newOtp = getCookie("tempOtp"); // ✅ read from cookie set by backend
       if (newOtp) {
-        localStorage.setItem("tempOtp", newOtp);
         setTempOtp(newOtp);
         setTimeout(() => {
           setTempOtp(null);
-          localStorage.removeItem("tempOtp");
+          deleteCookie("tempOtp");
         }, 10000);
       }
     } catch (err) {
@@ -143,7 +146,7 @@ export default function VerifyMobileOtpPage() {
             <button
               onClick={() => {
                 setTempOtp(null);
-                localStorage.removeItem("tempOtp");
+                deleteCookie("tempOtp");
               }}
               className="absolute top-1 right-2 text-sm text-gray-500 hover:text-gray-800"
             >
