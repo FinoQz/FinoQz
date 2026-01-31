@@ -337,7 +337,7 @@ export default function AllUsersTable() {
     try {
       // ✅ EDIT USER
       if (activeModal.type === "edit") {
-        await apiAdmin.put(`api/admin/panel/user/${userId}`, editData);
+        await apiAdmin.put(`/api/admin/panel/user/${userId}`, editData);
         setUsers((prev) =>
           prev.map((u) => (u._id === userId ? { ...u, ...editData } : u))
         );
@@ -345,7 +345,7 @@ export default function AllUsersTable() {
 
       // ✅ BLOCK USER
       if (activeModal.type === "block") {
-        await apiAdmin.post(`api/admin/panel/user/${userId}/block`);
+        await apiAdmin.post(`/api/admin/panel/user/${userId}/block`);
         setUsers((prev) =>
           prev.map((u) =>
             u._id === userId ? { ...u, status: "Blocked" } : u
@@ -355,7 +355,7 @@ export default function AllUsersTable() {
 
       // ✅ UNBLOCK USER
       if (activeModal.type === "unblock") {
-        await apiAdmin.post(`api/admin/panel/user/${userId}/unblock`);
+        await apiAdmin.post(`/api/admin/panel/user/${userId}/unblock`);
         setUsers((prev) =>
           prev.map((u) =>
             u._id === userId ? { ...u, status: "Active" } : u
@@ -365,7 +365,7 @@ export default function AllUsersTable() {
 
       // ✅ DELETE USER
       if (activeModal.type === "delete") {
-        await apiAdmin.delete(`api/admin/panel/user/${userId}`);
+        await apiAdmin.delete(`/api/admin/panel/user/${userId}`);
         setUsers((prev) => prev.filter((u) => u._id !== userId));
       }
 

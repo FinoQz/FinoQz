@@ -35,7 +35,7 @@ export default function QuizManagement() {
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/quizzes/quizzes');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/quizzes/quizzes`);
       const result = await res.json();
 
       const quizzesArray = Array.isArray(result.data) ? result.data : result;
