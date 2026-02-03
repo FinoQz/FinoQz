@@ -10,6 +10,8 @@ const generateOTP = require('../utils/generateOTP');
 const signinOtpTemplate = require('../emailTemplates/signinotpTemplate');
 const getDeviceInfo = require('../utils/getDeviceInfo');
 
+const { emitLiveUserStats } = require('../utils/emmiters');
+
 // ✅ STEP 1 — LOGIN (Password Check + Redis OTP + Queue Email)
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -146,6 +148,12 @@ exports.verifyLoginOtp = async (req, res) => {
     });
 
     await redis.sadd('liveUsers', user._id.toString());
+    await redis.set(`liveUser:${user._id}`, 1, 'EX', 900); // 15 min expiry
+
+    const io = req.app.get('io');
+    if (io) {
+      await emitLiveUserStats(io);
+    }
 
     return res.json({
       message: "Login successful",
