@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -53,7 +52,10 @@ const userSchema = new mongoose.Schema({
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
   approvedAt: { type: Date, default: null },
 
-  role: { type: String, default: "user" }
+  role: { type: String, default: "user" },
+
+  emailVerified: { type: Boolean, default: false },
+  mobileVerified: { type: Boolean, default: false }
 });
 
 module.exports = mongoose.model('User', userSchema);

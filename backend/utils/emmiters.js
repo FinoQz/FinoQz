@@ -1,5 +1,6 @@
 // utils/emitters.js
 const redis = require('./redis');
+const User = require('../models/User'); // Add this at the top if not present
 
 async function emitLiveUserStats(io) {
   const liveUsers = await redis.scard('liveUsers');
@@ -135,11 +136,26 @@ async function emitAnalyticsUpdate(io, payload) {
   console.log('📡 Emitted analytics:update', payload);
 }
 
-
-
+async function emitUsersUpdate(req) {
+  const io = req.app.get('io');
+  if (!io) {
+    console.warn("⚠️ emitUsersUpdate: Socket.io instance not found");
+    return;
+  }
+  try {
+    const users = await User.find({})
+      .select('_id fullName email mobile status createdAt lastLoginAt')
+      .sort({ createdAt: -1 });
+    io.to('admin-room').emit('users:update', users);
+    console.log('📡 Emitted users:update', users.length);
+  } catch (err) {
+    console.error('❌ emitUsersUpdate error:', err);
+  }
+}
 
 module.exports = {
   emitLiveUserStats,
   emitDashboardStats,
-  emitAnalyticsUpdate
+  emitAnalyticsUpdate,
+  emitUsersUpdate
 };

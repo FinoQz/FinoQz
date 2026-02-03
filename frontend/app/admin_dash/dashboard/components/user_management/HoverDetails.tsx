@@ -21,7 +21,9 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
     return date.toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -30,7 +32,9 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
   };
 
   const formatTime = (dateString: string) => {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',

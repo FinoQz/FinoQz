@@ -226,67 +226,6 @@ exports.resendEmailOtp = async (req, res) => {
 
 
 
-
-// ✅ STEP 4: Submit Mobile + Password
-// exports.submitMobilePassword = async (req, res) => {
-//   try {
-//     const email = req.body.email || req.headers["x-signup-email"];
-//     const { mobile, password } = req.body;   // ✅ yaha add karo
-
-//     console.log("➡️ Submitting mobile + password for:", email);
-
-//     const user = await User.findOne({ email });
-//     if (!user || user.status !== "email_verified") {
-//       console.log("❌ Invalid user or status");
-//       return res.status(400).json({ message: "User not verified or invalid status." });
-//     }
-
-//     // ✅ NEW: Check if mobile already exists
-//     const mobileExists = await User.findOne({ mobile });
-//     if (mobileExists) {
-//       console.log("❌ Mobile already registered:", mobile);
-//       return res.status(409).json({
-//         message: "Mobile number already registered.",
-//         nextStep: "login"
-//       });
-//     }
-
-//     const otp = generateOTP();
-//     const hash = await bcrypt.hash(password, 10);
-
-//     await redis.set(
-//       `user:mobileOtp:${email}`,
-//       JSON.stringify({ otp, mobile }),
-//       "EX",
-//       600
-//     );
-
-//     console.log("✅ Mobile OTP generated:", otp);
-
-//     user.mobile = mobile;
-//     user.passwordHash = hash;
-//     user.status = "pending_mobile_verification";
-//     await user.save();
-
-//     console.log("✅ User updated for mobile verification");
-
-//     await logActivity({
-//       req,
-//       actorType: "user",
-//       actorId: user._id,
-//       action: "signup_mobile_password_submitted",
-//       meta: { email, mobile }
-//     });
-
-//     return res.json({
-//       message: "OTP generated",
-//       otp,
-//     });
-//   } catch (err) {
-//     console.error("❌ submitMobilePassword error:", err);
-//     return res.status(500).json({ message: "Server error during signup." });
-//   }
-// };
 exports.submitMobilePassword = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email || req.headers["x-signup-email"];
@@ -364,126 +303,6 @@ exports.submitMobilePassword = async (req, res) => {
 };
 
 
-
-// ✅ STEP 5: Verify Mobile OTP
-// exports.verifyMobileOtp = async (req, res) => {
-//   try {
-//     const email = req.body.email || req.headers["x-signup-email"];
-//     const { otp } = req.body;   // ✅ yaha destructure karo
-
-//     console.log("➡️ Verifying mobile OTP for:", email);
-
-//     const user = await User.findOne({ email });
-//     if (!user || user.status !== "pending_mobile_verification") {
-//       console.log("❌ Invalid user or status");
-//       return res.status(400).json({ message: "Invalid user or status" });
-//     }
-
-//     const redisKey = `user:mobileOtp:${email}`;
-//     const stored = await redis.get(redisKey);
-
-//     if (!stored) {
-//       console.log("❌ No mobile OTP found");
-//       return res.status(404).json({ message: "No OTP found or expired." });
-//     }
-
-//     const { otp: storedOtp, mobile } = JSON.parse(stored);
-
-//     // ✅ OTP check
-//     if (storedOtp !== otp) {
-//       console.log("❌ Incorrect mobile OTP");
-
-//       await logActivity({
-//         req,
-//         actorType: "user",
-//         actorId: user._id,
-//         action: "signup_mobile_otp_incorrect",
-//         meta: { email }
-//       });
-
-//       return res.status(403).json({ message: "Incorrect OTP" });
-//     }
-
-//     // ✅ Double-check mobile not used by another user
-//     const mobileExists = await User.findOne({ mobile, _id: { $ne: user._id } });
-//     if (mobileExists) {
-//       console.log("❌ Duplicate mobile detected during OTP verify");
-//       return res.status(409).json({
-//         message: "Mobile number already registered.",
-//         nextStep: "login"
-//       });
-//     }
-
-//     // ✅ Update user
-//     user.mobileVerified = true;
-//     user.status = "awaiting_admin_approval";
-//     await user.save();
-//     await redis.del(redisKey);
-
-//     console.log("✅ Mobile OTP verified for:", user._id);
-
-//     await logActivity({
-//       req,
-//       actorType: "user",
-//       actorId: user._id,
-//       action: "signup_mobile_verified",
-//       meta: {
-//         email,
-//         mobile,
-//         device: getDeviceInfo(req)
-//       }
-//     });
-
-//     // ✅ Real-time dashboard update
-//     const io = req.app.get("io");
-//     if (io) {
-//       const [totalUsers, activeUsers, pendingApprovals] = await Promise.all([
-//         User.countDocuments({}),
-//         User.countDocuments({ status: "approved" }),
-//         User.countDocuments({ status: "awaiting_admin_approval" }),
-//       ]);
-
-//       io.emit("dashboard:stats", {
-//         totalUsers,
-//         activeUsers,
-//         pendingApprovals,
-//       });
-
-//       console.log("📡 Emitted dashboard:stats from verifyMobileOtp");
-//     }
-
-//     // ✅ Emails
-//     try {
-//       await emailQueue.add("userAwaitingApproval", {
-//         to: user.email,
-//         subject: "FinoQz Signup Complete — Awaiting Approval",
-//         html: awaitingApprovalTemplate({
-//           fullName: user.fullName,
-//           email: user.email,
-//         }),
-//       });
-
-//       await emailQueue.add("adminApprovalRequest", {
-//         to: "info.finoqz@gmail.com",
-//         subject: "New User Awaiting Approval",
-//         html: approvalRequestTemplate({
-//           fullName: user.fullName,
-//           email: user.email,
-//           mobile: mobile || user.mobile,
-//         }),
-//       });
-
-//       console.log("📨 Approval emails queued");
-//     } catch (queueErr) {
-//       console.error("❌ Queue error:", queueErr);
-//     }
-
-//     return res.json({ message: "Mobile OTP verified — awaiting admin approval" });
-//   } catch (err) {
-//     console.error("❌ verifyMobileOtp error:", err);
-//     return res.status(500).json({ message: "Server error during OTP verification" });
-//   }
-// };
 exports.verifyMobileOtp = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email || req.headers["x-signup-email"];
@@ -604,52 +423,6 @@ exports.verifyMobileOtp = async (req, res) => {
 
 
 
-
-// ✅ STEP 6: Resend Mobile OTP
-// exports.resendMobileOtp = async (req, res) => {
-//   try {
-//     const { email } = req.body;
-
-//     console.log("➡️ Resend mobile OTP for:", email);
-
-//     const stored = await redis.get(`user:mobileOtp:${email}`);
-//     if (!stored) {
-//       console.log("❌ No mobile OTP found to resend");
-//       return res.status(404).json({
-//         message: "No OTP found. Please submit mobile & password first.",
-//       });
-//     }
-
-//     const parsed = JSON.parse(stored);
-//     const newOtp = generateOTP();
-
-//     await redis.set(
-//       `user:mobileOtp:${email}`,
-//       JSON.stringify({ ...parsed, otp: newOtp }),
-//       "EX",
-//       600
-//     );
-
-//     console.log("✅ New mobile OTP generated:", newOtp);
-
-//     await logActivity({
-//       req,
-//       actorType: "user",
-//       actorId: null,
-//       action: "signup_mobile_otp_resent",
-//       meta: { email }
-//     });
-
-//     return res.json({
-//       message: "New OTP sent to mobile.",
-//       otp: newOtp,
-//       nextStep: "verify_mobile_otp",
-//     });
-//   } catch (err) {
-//     console.error("❌ resendMobileOtp error:", err);
-//     return res.status(500).json({ message: "Server error during resend mobile OTP." });
-//   }
-// };
 exports.resendMobileOtp = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email;
@@ -713,74 +486,6 @@ exports.resendMobileOtp = async (req, res) => {
 
 
 
-
-// ✅ STEP 7: Get Signup Status
-// exports.getSignupStatus = async (req, res) => {
-//   try {
-//     const { email } = req.query;
-
-//     console.log("➡️ Checking signup status for:", email);
-
-//     await logActivity({
-//       req,
-//       actorType: "user",
-//       actorId: null,
-//       action: "signup_status_checked",
-//       meta: { email }
-//     });
-
-//     if (!email) return res.status(400).json({ message: "Email is required" });
-
-//     const user = await User.findOne({ email });
-
-//     if (!user) {
-//       console.log("ℹ️ No user found, signup not started");
-//       return res.json({
-//         exists: false,
-//         nextStep: "email_otp",
-//         status: "not_started",
-//       });
-//     }
-
-//     const passwordSet = Boolean(user.passwordHash);
-//     const emailVerified = Boolean(user.emailVerified);
-//     const mobileVerified = Boolean(user.mobileVerified);
-
-//     let nextStep = "email_otp";
-
-//     switch (user.status) {
-//       case "email_verified":
-//         nextStep = "mobile_password";
-//         break;
-//       case "pending_mobile_verification":
-//         nextStep = "verify_mobile_otp";
-//         break;
-//       case "awaiting_admin_approval":
-//         nextStep = "awaiting_approval";
-//         break;
-//       case "approved":
-//         nextStep = passwordSet ? "login" : "set_password";
-//         break;
-//       case "rejected":
-//         nextStep = "support";
-//         break;
-//     }
-
-//     console.log("✅ Signup status:", user.status);
-
-//     return res.json({
-//       exists: true,
-//       status: user.status,
-//       emailVerified,
-//       mobileVerified,
-//       passwordSet,
-//       nextStep,
-//     });
-//   } catch (err) {
-//     console.error("❌ getSignupStatus error:", err);
-//     return res.status(500).json({ message: "Server error getting signup status" });
-//   }
-// };
 // ✅ STEP 7: Get Signup Status
 exports.getSignupStatus = async (req, res) => {
   try {
@@ -852,97 +557,97 @@ exports.getSignupStatus = async (req, res) => {
 
 
 
-// ✅ STEP 8: Admin Approves User
-// exports.approveUser = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     console.log("➡️ Admin approving user:", userId);
+//✅ STEP 8: Admin Approves User
+exports.approveUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("➡️ Admin approving user:", userId);
 
-//     const user = await User.findById(userId);
+    const user = await User.findById(userId);
 
-//     if (!user || user.status !== "awaiting_admin_approval") {
-//       console.log("❌ Invalid user or status");
-//       return res.status(400).json({ message: "Invalid user or status" });
-//     }
+    if (!user || user.status !== "awaiting_admin_approval") {
+      console.log("❌ Invalid user or status");
+      return res.status(400).json({ message: "Invalid user or status" });
+    }
 
-//     if (!user.email) {
-//       console.error("❌ User email missing, cannot send approval email");
-//       return res.status(500).json({ message: "User email missing" });
-//     }
+    if (!user.email) {
+      console.error("❌ User email missing, cannot send approval email");
+      return res.status(500).json({ message: "User email missing" });
+    }
 
-//     user.status = "approved";
-//     await user.save();
+    user.status = "approved";
+    await user.save();
 
-//     console.log("✅ User approved:", userId);
+    console.log("✅ User approved:", userId);
 
-//     await logActivity({
-//       req,
-//       actorType: "admin",
-//       actorId: req.adminId,
-//       action: "user_approved",
-//       meta: { userId }
-//     });
+    await logActivity({
+      req,
+      actorType: "admin",
+      actorId: req.adminId,
+      action: "user_approved",
+      meta: { userId }
+    });
 
-//     await emailQueue.add("userApproved", {
-//       to: user.email,
-//       subject: "FinoQz Account Approved",
-//       html: approvalSuccessTemplate({
-//         fullName: user.fullName || "User",
-//         email: user.email,
-//         password: "Password you set during signup",
-//       }),
-//     });
+    await emailQueue.add("userApproved", {
+      to: user.email,
+      subject: "FinoQz Account Approved",
+      html: approvalSuccessTemplate({
+        fullName: user.fullName || "User",
+        email: user.email,
+        password: "Password you set during signup",
+      }),
+    });
 
-//     console.log("📨 Approval email queued");
+    console.log("📨 Approval email queued");
 
-//     return res.json({ message: "User approved" });
-//   } catch (err) {
-//     console.error("❌ approveUser error:", err);
-//     return res.status(500).json({ message: "Server error approving user" });
-//   }
-// };
-
-
+    return res.json({ message: "User approved" });
+  } catch (err) {
+    console.error("❌ approveUser error:", err);
+    return res.status(500).json({ message: "Server error approving user" });
+  }
+};
 
 
-// // ✅ STEP 9: Admin Rejects User
-// exports.rejectUser = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
 
-//     console.log("➡️ Admin rejecting user:", userId);
 
-//     const user = await User.findById(userId);
+// ✅ STEP 9: Admin Rejects User
+exports.rejectUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
 
-//     if (!user || user.status !== "awaiting_admin_approval") {
-//       console.log("❌ Invalid user or status");
-//       return res.status(400).json({ message: "Invalid user or status" });
-//     }
+    console.log("➡️ Admin rejecting user:", userId);
 
-//     user.status = "rejected";
-//     await user.save();
+    const user = await User.findById(userId);
 
-//     console.log("✅ User rejected:", userId);
+    if (!user || user.status !== "awaiting_admin_approval") {
+      console.log("❌ Invalid user or status");
+      return res.status(400).json({ message: "Invalid user or status" });
+    }
 
-//     await logActivity({
-//       req,
-//       actorType: "admin",
-//       actorId: req.adminId,
-//       action: "user_rejected",
-//       meta: { userId }
-//     });
+    user.status = "rejected";
+    await user.save();
 
-//     await emailQueue.add("userRejected", {
-//       to: user.email,
-//       subject: "FinoQz Signup Update",
-//       html: rejectionTemplate(user.fullName),
-//     });
+    console.log("✅ User rejected:", userId);
 
-//     console.log("📨 Rejection email queued");
+    await logActivity({
+      req,
+      actorType: "admin",
+      actorId: req.adminId,
+      action: "user_rejected",
+      meta: { userId }
+    });
 
-//     return res.json({ message: "User rejected" });
-//   } catch (err) {
-//     console.error("❌ rejectUser error:", err);
-//     return res.status(500).json({ message: "Server error rejecting user" });
-//   }
-// };
+    await emailQueue.add("userRejected", {
+      to: user.email,
+      subject: "FinoQz Signup Update",
+      html: rejectionTemplate(user.fullName),
+    });
+
+    console.log("📨 Rejection email queued");
+
+    return res.json({ message: "User rejected" });
+  } catch (err) {
+    console.error("❌ rejectUser error:", err);
+    return res.status(500).json({ message: "Server error rejecting user" });
+  }
+};

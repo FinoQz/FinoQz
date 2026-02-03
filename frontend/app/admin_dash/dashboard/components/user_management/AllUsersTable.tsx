@@ -58,6 +58,31 @@ function ActionModal({
 }: ActionModalProps) {
   if (!user || !type) return null;
 
+  const formatDate = (dateString: string) => {
+    if (!dateString || dateString === "N/A") return "N/A";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString || dateString === "N/A") return "N/A";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl p-6 w-[90%] sm:w-full max-w-md shadow-xl animate-in fade-in zoom-in-95 duration-200">
@@ -75,8 +100,8 @@ function ActionModal({
             <p><strong>Email:</strong> {user.email}</p>
             <p><strong>Mobile:</strong> {user.mobile || "N/A"}</p>
             <p><strong>Status:</strong> {user.status}</p>
-            <p><strong>Registered:</strong> {user.registrationDate}</p>
-            <p><strong>Last Login:</strong> {user.lastLogin}</p>
+            <p><strong>Registered:</strong> {formatDate(user.registrationDate)}</p>
+            <p><strong>Last Login:</strong> {formatDateTime(user.lastLogin)}</p>
           </div>
         )}
 
@@ -168,8 +193,9 @@ export default function AllUsersTable() {
   const socketRef = useRef<Socket | null>(null);
 
   // ✅ WebSocket-based real-time user sync
-    // ✅ WebSocket-based real-time user sync
-  useEffect(() => {
+useEffect(() => {
+  setLoading(true);
+  let didReceiveSocketData = false;
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   if (!backendUrl) return;
 
@@ -183,6 +209,7 @@ export default function AllUsersTable() {
   });
 
   socket.on("users:update", (data) => {
+    didReceiveSocketData = true;
     console.log("📡 Received users:update:", data);
     if (Array.isArray(data?.approved)) {
       type BackendUser = {
@@ -190,7 +217,7 @@ export default function AllUsersTable() {
         fullName: string;
         email: string;
         mobile?: string;
-        createdAt: string;
+        createdAt?: string;
         lastLoginAt?: string;
       };
       const formatted = data.approved.map((u: BackendUser) => ({
@@ -199,8 +226,10 @@ export default function AllUsersTable() {
         email: u.email,
         mobile: u.mobile || "N/A",
         status: "Active",
-        registrationDate: u.createdAt,
-        lastLogin: u.lastLoginAt || u.createdAt,
+        registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
+        lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
+          ? u.lastLoginAt
+          : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
       }));
       setUsers(formatted);
     }
@@ -211,25 +240,50 @@ export default function AllUsersTable() {
     console.warn("❌ WebSocket disconnected:", reason);
   });
 
-  // ✅ Fallback: if no socket data in 4s, fetch via API
+  // ✅ Parallel API call
   const fallbackTimer = setTimeout(async () => {
-    if (loading) {
-      console.warn("⚠️ No WebSocket data — using fallback API");
-      try {
-        const res = await apiAdmin.get("/api/admin/panel/all-users", {
-          headers: { "Cache-Control": "no-store" },
-        });
-        setUsers(res.data || []);
-      } catch (err) {
-        console.error("❌ Fallback API failed:", err);
-      } finally {
-        setLoading(false);
+    try {
+      const res = await apiAdmin.get("/api/admin/panel/all-users", {
+        headers: { "Cache-Control": "no-store" },
+      });
+      // Fallback API mapping:
+      if (Array.isArray(res.data)) {
+        type ApiUser = {
+          _id: string;
+          fullName: string;
+          email: string;
+          mobile?: string;
+          status?: "Active" | "Inactive" | "Blocked";
+          createdAt?: string;
+          lastLoginAt?: string;
+        };
+        const formatted = (res.data as ApiUser[]).map((u) => ({
+          _id: u._id,
+          fullName: u.fullName,
+          email: u.email,
+          mobile: u.mobile || "N/A",
+          status: u.status || "Active",
+          registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
+          lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
+            ? u.lastLoginAt
+            : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
+        }));
+        setUsers(formatted);
+      } else {
+        setUsers([]);
       }
+    } catch (err) {
+      console.error("❌ Fallback API failed:", err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
-  }, 4000);
+  }, 2000);
 
   return () => {
     socket.off("users:update");
+    socket.off("connect");
+    socket.off("disconnect");
     clearTimeout(fallbackTimer);
   };
 }, []);
@@ -238,7 +292,9 @@ export default function AllUsersTable() {
 
   // ...rest of your table rendering logic (search, filter, actions, modals, etc.)
   const formatDate = (dateString: string) => {
+    if (!dateString || dateString === "N/A") return "N/A";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
     return date.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -247,7 +303,9 @@ export default function AllUsersTable() {
   };
 
   const formatDateTime = (dateString: string) => {
+    if (!dateString || dateString === "N/A") return "N/A";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
     return date.toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -337,42 +395,50 @@ export default function AllUsersTable() {
     try {
       // ✅ EDIT USER
       if (activeModal.type === "edit") {
-        await apiAdmin.put(`/api/admin/panel/user/${userId}`, editData);
         setUsers((prev) =>
           prev.map((u) => (u._id === userId ? { ...u, ...editData } : u))
         );
+        setActiveModal({ type: null, user: null });
+        await apiAdmin.put(`/api/admin/panel/user/${userId}`, editData);
       }
 
       // ✅ BLOCK USER
       if (activeModal.type === "block") {
-        await apiAdmin.post(`/api/admin/panel/user/${userId}/block`);
         setUsers((prev) =>
           prev.map((u) =>
             u._id === userId ? { ...u, status: "Blocked" } : u
           )
         );
+        setActiveModal({ type: null, user: null });
+        await apiAdmin.post(`/api/admin/panel/user/${userId}/block`);
       }
 
       // ✅ UNBLOCK USER
       if (activeModal.type === "unblock") {
-        await apiAdmin.post(`/api/admin/panel/user/${userId}/unblock`);
         setUsers((prev) =>
           prev.map((u) =>
             u._id === userId ? { ...u, status: "Active" } : u
           )
         );
+        setActiveModal({ type: null, user: null });
+        await apiAdmin.post(`/api/admin/panel/user/${userId}/unblock`);
       }
 
       // ✅ DELETE USER
       if (activeModal.type === "delete") {
-        await apiAdmin.delete(`/api/admin/panel/user/${userId}`);
         setUsers((prev) => prev.filter((u) => u._id !== userId));
+        setActiveModal({ type: null, user: null });
+        try {
+          await apiAdmin.delete(`/api/admin/panel/user/${userId}`);
+        } catch {
+          // If API fails, revert the optimistic update and show error
+          setUsers((prev) => [...prev, activeModal.user!]);
+          alert("Failed to delete user. Please try again.");
+        }
       }
-
-      setActiveModal({ type: null, user: null });
     } catch (err) {
       console.error("❌ Action failed:", err);
-      alert("Action failed");
+      // Optionally: show a toast or revert optimistic update if needed
     }
   };
 
