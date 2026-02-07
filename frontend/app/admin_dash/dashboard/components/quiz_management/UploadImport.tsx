@@ -1,412 +1,563 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Upload, FileText, FileJson, Download, Check, X, Edit2, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  FileText, FileJson, Brain, PlusCircle, Edit2, Loader2, FileUp, FileSpreadsheet, Trash2, UploadCloud
+} from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin'; // <-- apne axios instance ka sahi path lagayein
 
-interface ExtractedQuestion {
-  id: string;
-  type: 'mcq' | 'true-false' | 'short-answer';
+type Question = {
   text: string;
-  options?: string[];
-  correct?: number | string;
-  marks: number;
-  confidence: 'high' | 'medium' | 'low';
-  status: 'pending' | 'accepted' | 'rejected';
-}
+  options: string[];
+  correct: number;
+  explanation: string;
+};
 
-interface UploadImportProps {
-  onQuestionsImported?: (questions: ExtractedQuestion[]) => void;
-}
+const TABS = [
+  { key: 'manual', label: 'Manual Setup', icon: <PlusCircle className="w-5 h-5" /> },
+  { key: 'upload', label: 'Upload File', icon: <FileUp className="w-5 h-5" /> },
+  { key: 'ai', label: 'Finoqz.AI', icon: <Brain className="w-5 h-5" /> },
+];
 
-export default function UploadImport({ onQuestionsImported }: UploadImportProps) {
-  const [uploadType, setUploadType] = useState<'csv-json' | 'pdf'>('pdf');
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [isParsing, setIsParsing] = useState(false);
-  const [parseStatus, setParseStatus] = useState<'idle' | 'parsing' | 'ready' | 'failed'>('idle');
-  const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Dummy extracted questions for demo
-  const dummyQuestions: ExtractedQuestion[] = [
-    {
-      id: '1',
-      type: 'mcq',
-      text: 'What is the primary purpose of diversification in investment?',
-      options: ['To maximize returns', 'To reduce risk', 'To increase liquidity', 'To avoid taxes'],
-      correct: 1,
-      marks: 1,
-      confidence: 'high',
-      status: 'pending'
-    },
-    {
-      id: '2',
-      type: 'mcq',
-      text: 'Which financial ratio measures a company\'s ability to pay short-term obligations?',
-      options: ['Debt-to-equity', 'Current ratio', 'ROE', 'P/E ratio'],
-      correct: 1,
-      marks: 1,
-      confidence: 'high',
-      status: 'pending'
-    },
-    {
-      id: '3',
-      type: 'true-false',
-      text: 'Compound interest is calculated only on the principal amount.',
-      options: ['True', 'False'],
-      correct: 1,
-      marks: 1,
-      confidence: 'medium',
-      status: 'pending'
-    }
-  ];
-
-  const handleFileUpload = (file: File) => {
-    if (file.type === 'application/pdf') {
-      setPdfFile(file);
-      setParseStatus('idle');
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileUpload(file);
-  };
-
-  const handleGenerateJSON = async () => {
-    if (!pdfFile) return;
-
-    setIsParsing(true);
-    setParseStatus('parsing');
-
-    // Simulate PDF parsing with delay
-    setTimeout(() => {
-      setExtractedQuestions(dummyQuestions);
-      setParseStatus('ready');
-      setIsParsing(false);
-    }, 3000);
-  };
-
-  const handleAccept = (id: string) => {
-    setExtractedQuestions(prev =>
-      prev.map(q => q.id === id ? { ...q, status: 'accepted' as const } : q)
-    );
-  };
-
-  const handleReject = (id: string) => {
-    setExtractedQuestions(prev =>
-      prev.map(q => q.id === id ? { ...q, status: 'rejected' as const } : q)
-    );
-  };
-
-  const handleAcceptAll = () => {
-    setExtractedQuestions(prev =>
-      prev.map(q => ({ ...q, status: 'accepted' as const }))
-    );
-  };
-
-  const handleRejectAll = () => {
-    setExtractedQuestions(prev =>
-      prev.map(q => ({ ...q, status: 'rejected' as const }))
-    );
-  };
-
-  const handleImportToQuiz = () => {
-    const accepted = extractedQuestions.filter(q => q.status === 'accepted');
-    onQuestionsImported?.(accepted);
-    alert(`${accepted.length} questions imported successfully!`);
-  };
-
-  const handleDownloadJSON = () => {
-    const jsonData = {
-      quizTitle: 'Sample Quiz',
-      category: 'Personal Finance',
-      questions: extractedQuestions.filter(q => q.status === 'accepted')
-    };
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'quiz-questions.json';
-    a.click();
-  };
-
-  const acceptedCount = extractedQuestions.filter(q => q.status === 'accepted').length;
-  const lowConfidenceCount = extractedQuestions.filter(q => q.confidence === 'low').length;
+export default function UploadImport() {
+  const [tab, setTab] = useState('manual');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload & Import Questions</h2>
-        <p className="text-sm text-gray-600">Upload question files or convert PDF to structured questions</p>
-      </div>
-
-      {/* Upload Type Selection */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* CSV/JSON Upload */}
-        <div className={`p-5 rounded-xl border-2 cursor-pointer transition ${
-          uploadType === 'csv-json' ? 'border-[#253A7B] bg-[#253A7B] bg-opacity-5' : 'border-gray-200 hover:border-gray-300'
-        }`}
-          onClick={() => setUploadType('csv-json')}
-        >
-          <FileJson className="w-10 h-10 text-[#253A7B] mb-3" />
-          <h3 className="font-semibold text-gray-900 mb-1">Upload CSV / JSON</h3>
-          <p className="text-sm text-gray-600 mb-3">Upload pre-formatted question files</p>
-          <a href="#" className="text-xs text-[#253A7B] hover:underline">Download template</a>
-        </div>
-
-        {/* PDF Upload */}
-        <div className={`p-5 rounded-xl border-2 cursor-pointer transition ${
-          uploadType === 'pdf' ? 'border-[#253A7B] bg-[#253A7B] bg-opacity-5' : 'border-gray-200 hover:border-gray-300'
-        }`}
-          onClick={() => setUploadType('pdf')}
-        >
-          <FileText className="w-10 h-10 text-[#253A7B] mb-3" />
-          <h3 className="font-semibold text-gray-900 mb-1">Upload PDF</h3>
-          <p className="text-sm text-gray-600">Convert question paper to JSON using AI</p>
-        </div>
-      </div>
-
-      {/* PDF Upload Area */}
-      {uploadType === 'pdf' && (
-        <div className="space-y-4">
-          {/* Drag & Drop Area */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition ${
-              isDragging ? 'border-[#253A7B] bg-[#253A7B] bg-opacity-5' : 'border-gray-300 hover:border-gray-400'
-            }`}
+    <div className="max-w-4xl mx-auto w-full px-2 sm:px-4">
+      {/* Tab Navigation */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold transition border
+              ${tab === t.key
+                ? 'bg-[#253A7B] text-white border-[#253A7B]'
+                : 'bg-white text-[#253A7B] border-[#253A7B] hover:bg-[#253A7B]/10'
+              }`}
+            onClick={() => setTab(t.key)}
           >
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-700 font-medium mb-1">Drag & drop your PDF here</p>
-            <p className="text-sm text-gray-500 mb-4">or</p>
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] cursor-pointer transition">
-              <Upload className="w-4 h-4" />
-              Browse Files
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => e.target.files && handleFileUpload(e.target.files[0])}
-                className="hidden"
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 border w-full">
+        {/* TODO: Replace 'your-quiz-id' with the actual quizId from your parent or context */}
+        {tab === 'manual' && <ManualQuizSetup quizId="your-quiz-id" />}
+        {tab === 'upload' && <UploadQuizFile quizId="your-quiz-id" />}
+        {tab === 'ai' && <AIQuizGenerator quizId="your-quiz-id" />}
+      </div>
+    </div>
+  );
+}
+
+// 1. Manual Quiz Setup
+function ManualQuizSetup({ quizId }: { quizId: string }) {
+  const [questions, setQuestions] = useState<Question[]>([
+    { text: '', options: ['', '', '', ''], correct: 0, explanation: '' }
+  ]);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Add or update question
+  const handleSaveQuestion = (idx: number, q: Question) => {
+    setQuestions(prev => prev.map((item, i) => (i === idx ? q : item)));
+    setEditingIdx(null);
+  };
+
+  // Add new question
+  const handleAddQuestion = () => {
+    setQuestions(prev => [
+      ...prev,
+      { text: '', options: ['', '', '', ''], correct: 0, explanation: '' }
+    ]);
+    setEditingIdx(questions.length);
+  };
+
+  // Remove question
+  const handleRemoveQuestion = (idx: number) => {
+    setQuestions(prev => prev.filter((_, i) => i !== idx));
+    setEditingIdx(null);
+  };
+
+  // Edit question
+  const handleEditQuestion = (idx: number) => setEditingIdx(idx);
+
+  // Backend se save
+  const handleSaveQuiz = async () => {
+    if (!quizId) return alert('Quiz not created yet!');
+    setSaving(true);
+    try {
+      await apiAdmin.post('/api/upload/manual', {
+        quizId,
+        questions,
+      });
+      alert('Quiz questions saved!');
+    } catch {
+      alert('Failed to save quiz');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Manual Quiz Setup</h2>
+      <div className="space-y-6">
+        {questions.map((q, idx) => (
+          <div key={idx} className="border rounded-xl p-4 bg-gray-50 relative">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+              <span className="font-semibold text-[#253A7B]">Question {idx + 1}</span>
+              <div className="flex gap-2">
+                <button
+                  className="text-[#253A7B] hover:bg-[#253A7B]/10 p-1 rounded"
+                  onClick={() => handleEditQuestion(idx)}
+                  title="Edit"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  className="text-red-500 hover:bg-red-100 p-1 rounded"
+                  onClick={() => handleRemoveQuestion(idx)}
+                  title="Delete"
+                  disabled={questions.length === 1}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            {editingIdx === idx ? (
+              <ManualQuestionEditor
+                question={q}
+                onSave={(q: Question) => handleSaveQuestion(idx, q)}
+                onCancel={() => setEditingIdx(null)}
               />
-            </label>
-            <p className="text-xs text-gray-500 mt-4">Max 10MB, up to 200 pages</p>
+            ) : (
+              <div>
+                <div className="mb-2">
+                  <span className="font-medium">Q:</span> {q.text || <span className="italic text-gray-400">[No question]</span>}
+                </div>
+                <ul className="mb-2">
+                  {q.options.map((opt, i) => (
+                    <li key={i} className={`flex items-center gap-2 ${q.correct === i ? 'font-semibold text-green-700' : ''}`}>
+                      <span className={`inline-block w-6 h-6 rounded-full text-center border ${q.correct === i ? 'bg-green-100 border-green-400' : 'bg-gray-100 border-gray-300'}`}>{String.fromCharCode(65 + i)}</span>
+                      {opt || <span className="italic text-gray-400">[No option]</span>}
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-xs text-gray-500">
+                  <span className="font-medium">Explanation:</span> {q.explanation || <span className="italic text-gray-400">[No explanation]</span>}
+                </div>
+              </div>
+            )}
           </div>
+        ))}
+      </div>
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
+        <button
+          className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 justify-center"
+          onClick={handleAddQuestion}
+        >
+          <PlusCircle className="w-4 h-4" /> Add Question
+        </button>
+        <button
+          className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold"
+          onClick={handleSaveQuiz}
+          disabled={saving}
+        >
+          {saving ? <Loader2 className="animate-spin w-5 h-5" /> : 'Save Quiz'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
-          {/* File Metadata */}
-          {pdfFile && (
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <FileText className="w-10 h-10 text-[#253A7B] mt-1" />
-                  <div>
-                    <h4 className="font-medium text-gray-900">{pdfFile.name}</h4>
-                    <p className="text-sm text-gray-600">
-                      {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    <div className="flex gap-4 mt-2 text-xs text-gray-600">
-                      <span>📄 Estimated: 15-25 pages</span>
-                      <span>🌐 Language: English</span>
-                    </div>
-                  </div>
-                </div>
+type ManualQuestionEditorProps = {
+  question: Question;
+  onSave: (q: Question) => void;
+  onCancel: () => void;
+};
+
+function ManualQuestionEditor({ question, onSave, onCancel }: ManualQuestionEditorProps) {
+  const [q, setQ] = useState<Question>({ ...question });
+
+  return (
+    <div className="space-y-2">
+      <input
+        className="w-full border rounded px-2 py-1"
+        value={q.text}
+        onChange={e => setQ({ ...q, text: e.target.value })}
+        placeholder="Enter question"
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {q.options.map((opt: string, i: number) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              type="radio"
+              checked={q.correct === i}
+              onChange={() => setQ({ ...q, correct: i })}
+              className="accent-[#253A7B]"
+            />
+            <input
+              className="w-full border rounded px-2 py-1"
+              value={opt}
+              onChange={e => {
+                const options = [...q.options];
+                options[i] = e.target.value;
+                setQ({ ...q, options });
+              }}
+              placeholder={`Option ${String.fromCharCode(65 + i)}`}
+            />
+          </div>
+        ))}
+      </div>
+      <input
+        className="w-full border rounded px-2 py-1"
+        value={q.explanation}
+        onChange={e => setQ({ ...q, explanation: e.target.value })}
+        placeholder="Explanation (optional)"
+      />
+      <div className="flex gap-2 mt-2 flex-col sm:flex-row">
+        <button
+          className="bg-[#253A7B] text-white px-3 py-1 rounded"
+          onClick={() => onSave(q)}
+        >
+          Save
+        </button>
+        <button
+          className="bg-gray-200 text-gray-700 px-3 py-1 rounded"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 2. Upload File (PDF/JSON)
+function UploadQuizFile({ quizId }: { quizId: string }) {
+  const [fileType, setFileType] = useState('pdf');
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [importing, setImporting] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) setFile(e.target.files[0]);
+  };
+
+  // Backend se parse
+  const handleParse = async () => {
+    setLoading(true);
+    try {
+      let res;
+      if (fileType === 'pdf') {
+        const formData = new FormData();
+        formData.append('pdf', file!);
+        res = await apiAdmin.post('/api/upload/pdf', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else if (fileType === 'json') {
+        const text = await file!.text();
+        const json = JSON.parse(text);
+        res = await apiAdmin.post('/api/upload/json', { questions: json.questions || json });
+      } else {
+        alert('Only PDF/JSON supported for now.');
+        setLoading(false);
+        return;
+      }
+      setQuestions(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse file');
+    }
+    setLoading(false);
+  };
+
+  // Backend pe import
+  const handleImport = async () => {
+    if (!quizId) return alert('Quiz not created yet!');
+    setImporting(true);
+    try {
+      await apiAdmin.post('/api/upload/manual', {
+        quizId,
+        questions,
+      });
+      alert('Questions imported!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to import questions');
+    }
+    setImporting(false);
+  };
+
+  // For editing extracted questions
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+
+  // Save edited question
+  const handleSaveQuestion = (idx: number, q: Question) => {
+    setQuestions(prev => prev.map((item, i) => (i === idx ? q : item)));
+    setEditingIdx(null);
+  };
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Upload Quiz File</h2>
+      <div className="flex flex-wrap gap-3 mb-4">
+        {['pdf', 'csv', 'json', 'xlsx'].map(type => (
+          <button
+            key={type}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition
+              ${fileType === type
+                ? 'bg-[#253A7B] text-white border-[#253A7B]'
+                : 'bg-white text-[#253A7B] border-[#253A7B] hover:bg-[#253A7B]/10'
+              }`}
+            onClick={() => setFileType(type)}
+          >
+            {type === 'pdf' && <FileText className="w-4 h-4" />}
+            {type === 'csv' && <FileSpreadsheet className="w-4 h-4" />}
+            {type === 'json' && <FileJson className="w-4 h-4" />}
+            {type === 'xlsx' && <FileSpreadsheet className="w-4 h-4" />}
+            {type.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      {/* Custom Upload Box */}
+      <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#253A7B] rounded-xl px-4 py-6 sm:px-6 sm:py-8 cursor-pointer bg-[#f5f8ff] hover:bg-[#e9f0ff] transition mb-4 w-full">
+        <UploadCloud className="w-10 h-10 text-[#253A7B] mb-2" />
+        <span className="font-semibold text-[#253A7B] mb-1 text-center break-all">
+          {file ? file.name : `Click to upload ${fileType.toUpperCase()} file`}
+        </span>
+        <span className="text-xs text-gray-500 mb-2 text-center">
+          Supported: {fileType.toUpperCase()}
+        </span>
+        <input
+          type="file"
+          accept={fileType === 'pdf' ? '.pdf' : fileType === 'csv' ? '.csv' : fileType === 'json' ? '.json' : '.xlsx'}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </label>
+      <button
+        className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
+        onClick={handleParse}
+        disabled={!file || loading}
+      >
+        {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Parse & Generate'}
+      </button>
+      {questions.length > 0 && (
+        <div className="space-y-6 mt-6">
+          <h3 className="font-semibold mb-2">Extracted Questions</h3>
+          {questions.map((q, idx) => (
+            <div key={idx} className="border rounded-xl p-4 bg-gray-50 relative">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                <span className="font-semibold text-[#253A7B]">Question {idx + 1}</span>
                 <button
-                  onClick={() => setPdfFile(null)}
-                  className="p-2 hover:bg-gray-200 rounded-lg transition"
+                  className="text-[#253A7B] hover:bg-[#253A7B]/10 p-1 rounded"
+                  onClick={() => setEditingIdx(idx)}
+                  title="Edit"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <Edit2 className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Generate JSON Button */}
-              {parseStatus === 'idle' && (
-                <button
-                  onClick={handleGenerateJSON}
-                  className="w-full mt-4 px-4 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
-                >
-                  <FileJson className="w-5 h-5" />
-                  Generate JSON
-                </button>
-              )}
-
-              {/* Parsing Status */}
-              {parseStatus === 'parsing' && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Parsing PDF...</p>
-                      <p className="text-xs text-blue-700">This may take up to 30s depending on file size</p>
-                    </div>
+              {editingIdx === idx ? (
+                <ManualQuestionEditor
+                  question={q}
+                  onSave={q => handleSaveQuestion(idx, q)}
+                  onCancel={() => setEditingIdx(null)}
+                />
+              ) : (
+                <div>
+                  <div className="mb-2">
+                    <span className="font-medium">Q:</span> {q.text}
                   </div>
-                </div>
-              )}
-
-              {/* Parse Complete */}
-              {parseStatus === 'ready' && (
-                <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200">
-                  <div className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="text-sm font-medium text-green-900">
-                        PDF parsed — {extractedQuestions.length} questions detected
-                      </p>
-                      <p className="text-xs text-green-700">Review and edit questions below</p>
-                    </div>
+                  <ul className="mb-2">
+                    {q.options.map((opt: string, i: number) => (
+                      <li key={i} className={`flex items-center gap-2 ${q.correct === i ? 'font-semibold text-green-700' : ''}`}>
+                        <span className={`inline-block w-6 h-6 rounded-full text-center border ${q.correct === i ? 'bg-green-100 border-green-400' : 'bg-gray-100 border-gray-300'}`}>{String.fromCharCode(65 + i)}</span>
+                        {opt}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-xs text-gray-500">
+                    <span className="font-medium">Explanation:</span> {q.explanation}
                   </div>
                 </div>
               )}
             </div>
-          )}
-
-          {/* Extracted Questions Preview */}
-          {parseStatus === 'ready' && (
-            <div className="space-y-4">
-              {/* Actions Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium text-gray-900">{acceptedCount} Accepted</span>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-gray-600">{extractedQuestions.length} Total</span>
-                  {lowConfidenceCount > 0 && (
-                    <>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-orange-600 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {lowConfidenceCount} Need Review
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleAcceptAll}
-                    className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
-                  >
-                    Accept All
-                  </button>
-                  <button
-                    onClick={handleRejectAll}
-                    className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                  >
-                    Reject All
-                  </button>
-                  <button
-                    onClick={handleDownloadJSON}
-                    className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-1"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download JSON
-                  </button>
-                </div>
-              </div>
-
-              {/* Questions List */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {extractedQuestions.map((question) => (
-                  <div
-                    key={question.id}
-                    className={`p-4 rounded-xl border-2 transition ${
-                      question.status === 'accepted'
-                        ? 'border-green-300 bg-green-50'
-                        : question.status === 'rejected'
-                        ? 'border-red-300 bg-red-50'
-                        : 'border-gray-200 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                            question.type === 'mcq' ? 'bg-blue-100 text-blue-700' :
-                            question.type === 'true-false' ? 'bg-purple-100 text-purple-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {question.type.toUpperCase()}
-                          </span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                            question.confidence === 'high' ? 'bg-green-100 text-green-700' :
-                            question.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {question.confidence} confidence
-                          </span>
-                          <span className="text-xs text-gray-600">{question.marks} mark(s)</span>
-                        </div>
-                        <p className="text-sm text-gray-900 font-medium mb-2">{question.text}</p>
-                        {question.options && (
-                          <div className="space-y-1">
-                            {question.options.map((option, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                                <span className={`${idx === question.correct ? 'text-green-600 font-medium' : ''}`}>
-                                  {String.fromCharCode(65 + idx)}. {option}
-                                  {idx === question.correct && ' ✓'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {question.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleAccept(question.id)}
-                              className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
-                              title="Accept"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => setEditingId(question.id)}
-                              className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleReject(question.id)}
-                              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
-                              title="Reject"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        {question.status === 'accepted' && (
-                          <span className="px-3 py-1 bg-green-600 text-white rounded-lg text-xs font-medium">
-                            Accepted
-                          </span>
-                        )}
-                        {question.status === 'rejected' && (
-                          <span className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-medium">
-                            Rejected
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Import Button */}
-              {acceptedCount > 0 && (
-                <button
-                  onClick={handleImportToQuiz}
-                  className="w-full px-4 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
-                >
-                  <Check className="w-5 h-5" />
-                  Import {acceptedCount} Question{acceptedCount > 1 ? 's' : ''} to Quiz
-                </button>
-              )}
-            </div>
-          )}
+          ))}
+          <button
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
+            onClick={handleImport}
+            disabled={importing}
+          >
+            {importing ? <Loader2 className="animate-spin w-5 h-5" /> : 'Import to Quiz'}
+          </button>
         </div>
       )}
     </div>
   );
 }
+
+// 3. Generate with Finoqz.AI
+function AIQuizGenerator({ quizId }: { quizId: string }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [importing, setImporting] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) setFile(e.target.files[0]);
+  };
+
+  // Backend se generate
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const pdfText = '';
+      if (file) {
+        // 1. PDF ko backend pe bhejo, text extract karo
+        const formData = new FormData();
+        formData.append('pdf', file);
+        // Optionally, extract text and use in prompt
+        // For now, skip and just use prompt
+      }
+      // 2. Ab Gemini ko prompt + PDF text bhejo
+      const res = await apiAdmin.post('/api/quizzes/admin/generate-questions', {
+        prompt: `${prompt}\n\nPDF Content:\n${pdfText}`,
+        numQuestions: 10, // ya jitne user ne set kiye hain
+        topic: '',
+      });
+      setQuestions(res.data.data || res.data.questions || []);
+    } catch (err: unknown) {
+      console.error(err);
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { error?: { status?: string } } } }).response === 'object' &&
+        (err as { response?: { data?: { error?: { status?: string } } } }).response?.data?.error?.status === 'UNAVAILABLE'
+      ) {
+        alert('Gemini AI model is overloaded. Please try again after some time.');
+      } else {
+        alert('AI generation failed');
+      }
+    }
+    setLoading(false);
+  };
+
+  // Backend pe import
+  const handleImport = async () => {
+    if (!quizId) return alert('Quiz not created yet!');
+    setImporting(true);
+    try {
+      await apiAdmin.post('/api/upload/manual', {
+        quizId,
+        questions,
+      });
+      alert('AI Quiz imported!');
+    } catch {
+      alert('Failed to import AI questions');
+    }
+    setImporting(false);
+  };
+
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+
+  // Save edited question
+  const handleSaveQuestion = (idx: number, q: Question) => {
+    setQuestions(prev => prev.map((item, i) => (i === idx ? q : item)));
+    setEditingIdx(null);
+  };
+
+  // For editing generated questions
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Generate Quiz with Finoqz.AI</h2>
+      {/* Custom Upload Box */}
+      <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#253A7B] rounded-xl px-4 py-6 sm:px-6 sm:py-8 cursor-pointer bg-[#f5f8ff] hover:bg-[#e9f0ff] transition mb-4 w-full">
+        <UploadCloud className="w-10 h-10 text-[#253A7B] mb-2" />
+        <span className="font-semibold text-[#253A7B] mb-1 text-center break-all">
+          {file ? file.name : 'Click to upload PDF file'}
+        </span>
+        <span className="text-xs text-gray-500 mb-2 text-center">
+          Supported: PDF
+        </span>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </label>
+      <textarea
+        className="w-full border rounded-lg px-3 py-2 mb-4"
+        rows={2}
+        value={prompt}
+        onChange={e => setPrompt(e.target.value)}
+        placeholder="Enter prompt for AI (e.g. 'Generate MCQs on chapter 2')"
+      />
+      <button
+        className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 w-full sm:w-auto justify-center"
+        onClick={handleGenerate}
+        disabled={!file || !prompt || loading}
+      >
+        {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Brain className="w-5 h-5" />}
+        Generate Quiz
+      </button>
+      {questions.length > 0 && (
+        <div className="space-y-6 mt-6">
+          <h3 className="font-semibold mb-2">Generated Questions</h3>
+          {questions.map((q, idx) => (
+            <div key={idx} className="border rounded-xl p-4 bg-gray-50 relative">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                <span className="font-semibold text-[#253A7B]">Question {idx + 1}</span>
+                <button
+                  className="text-[#253A7B] hover:bg-[#253A7B]/10 p-1 rounded"
+                  onClick={() => setEditingIdx(idx)}
+                  title="Edit"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+              {editingIdx === idx ? (
+                <ManualQuestionEditor
+                  question={q}
+                  onSave={q => handleSaveQuestion(idx, q)}
+                  onCancel={() => setEditingIdx(null)}
+                />
+              ) : (
+                <div>
+                  <div className="mb-2">
+                    <span className="font-medium">Q:</span> {q.text}
+                  </div>
+                  <ul className="mb-2">
+                    {q.options.map((opt: string, i: number) => (
+                      <li key={i} className={`flex items-center gap-2 ${q.correct === i ? 'font-semibold text-green-700' : ''}`}>
+                        <span className={`inline-block w-6 h-6 rounded-full text-center border ${q.correct === i ? 'bg-green-100 border-green-400' : 'bg-gray-100 border-gray-300'}`}>{String.fromCharCode(65 + i)}</span>
+                        {opt}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-xs text-gray-500">
+                    <span className="font-medium">Explanation:</span> {q.explanation}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
+            onClick={handleImport}
+            disabled={importing}
+          >
+            {importing ? <Loader2 className="animate-spin w-5 h-5" /> : 'Import to Quiz'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Parent component me <ManualQuizSetup quizId={quizId} />, <UploadQuizFile quizId={quizId} />, <AIQuizGenerator quizId={quizId} /> pass karo.

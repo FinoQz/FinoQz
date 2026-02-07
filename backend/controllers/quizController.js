@@ -8,12 +8,13 @@
 // - basic input checks and numeric normalizations
 
 const Quiz = require('../models/Quiz');
+const cloudinary = require('../utils/cloudinary');
 const mongoose = require('mongoose');
+const generatorService = require('../services/generatorService');
 
 // Helpers
 const parseDateTime = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return null;
-  // create local Date from YYYY-MM-DD and HH:mm (no 'Z' so local timezone is used)
   const iso = `${dateStr}T${timeStr}:00`;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
@@ -58,27 +59,55 @@ exports.createQuiz = async (req, res) => {
       visibility, assignedGroups,
       tags, difficultyLevel, coverImage,
       saveAsDraft,
+      numberOfQuestions,
+      coupon // { discountType, discountValue, visibility }
     } = req.body;
 
-    // basic validations (adjust as per your requirements)
     if (!quizTitle || !description) {
       return res.status(400).json({ message: 'quizTitle and description are required' });
     }
 
-    // parse dates only if provided
+    // Cover image upload (base64)
+    let coverImageUrl = '';
+    if (coverImage && coverImage.startsWith('data:')) {
+      const uploadRes = await cloudinary.uploader.upload(coverImage, { folder: 'quiz-covers' });
+      coverImageUrl = uploadRes.secure_url;
+    } else if (coverImage) {
+      coverImageUrl = coverImage;
+    }
+
+    // Coupon logic
+    let couponDetails = {};
+    if (pricingType === 'paid' && coupon) {
+      couponDetails = {
+        code: couponCode || coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        visibility: coupon.visibility
+      };
+    }
+
+    // Dates
     const startAt = startDate && startTime ? parseDateTime(startDate, startTime) : undefined;
     const endAt = endDate && endTime ? parseDateTime(endDate, endTime) : undefined;
+
+    // Groups logic
+    let groups = [];
+    if (visibility === 'private' && Array.isArray(assignedGroups)) {
+      groups = assignedGroups;
+    }
 
     const quiz = new Quiz({
       category,
       pricingType,
       price: pricingType === 'paid' ? Number(price || 0) : 0,
-      couponCode,
+      couponCode: couponDetails.code,
       allowOfflinePayment: !!allowOfflinePayment,
       quizTitle,
       description,
       duration: Number(duration || 0),
       totalMarks: Number(totalMarks || 0),
+      numberOfQuestions: Number(numberOfQuestions || 0),
       attemptLimit,
       shuffleQuestions: !!shuffleQuestions,
       negativeMarking: !!negativeMarking,
@@ -86,12 +115,13 @@ exports.createQuiz = async (req, res) => {
       ...(startAt ? { startAt } : {}),
       ...(endAt ? { endAt } : {}),
       visibility,
-      assignedGroups: Array.isArray(assignedGroups) ? assignedGroups : [],
+      assignedGroups: groups,
       tags: Array.isArray(tags) ? tags : [],
       difficultyLevel,
-      coverImage,
+      coverImage: coverImageUrl,
       status: saveAsDraft ? 'draft' : 'published',
       createdBy: req.adminId || req.userId || null,
+      coupon: couponDetails
     });
 
     await quiz.save();
@@ -99,6 +129,18 @@ exports.createQuiz = async (req, res) => {
   } catch (err) {
     console.error("❌ createQuiz error:", err);
     return res.status(500).json({ message: err.message || "Server error creating quiz" });
+  }
+};
+
+// AI description generator
+exports.generateDescription = async (req, res) => {
+  try {
+    const { quizTitle } = req.body;
+    if (!quizTitle) return res.status(400).json({ message: 'quizTitle required' });
+    const result = await generatorService.generateDescription(quizTitle);
+    return res.json({ description: result });
+  } catch (err) {
+    return res.status(500).json({ message: 'AI description generation failed' });
   }
 };
 
@@ -288,5 +330,25 @@ exports.enroll = async (req, res) => {
   } catch (err) {
     console.error("❌ enroll error:", err);
     return res.status(500).json({ message: "Server error enrolling" });
+  }
+};
+
+// Generate questions from prompt
+exports.generateQuestions = async (req, res) => {
+  try {
+    const { prompt, numQuestions, topic } = req.body;
+    const result = await require('../services/generatorService').generateFromPrompt(prompt, numQuestions, topic);
+    // Normalize for frontend
+    const normalized = Array.isArray(result.questions)
+      ? result.questions.map(q => ({
+          text: String(q.text || '').trim(),
+          options: Array.isArray(q.options) ? q.options.map(String) : ['', '', '', ''],
+          correct: typeof q.correct === 'number' ? q.correct : 0,
+          explanation: q.explanation ? String(q.explanation) : ''
+        })).filter(q => q.text)
+      : [];
+    return res.json({ data: normalized });
+  } catch (err) {
+    return res.status(500).json({ message: 'AI question generation failed' });
   }
 };

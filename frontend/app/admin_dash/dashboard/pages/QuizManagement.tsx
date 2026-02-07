@@ -11,7 +11,7 @@ import ParticipantsDrawer from '../components/quiz_management/ParticipantsDrawer
 
 interface Quiz {
   _id: string;
-  quizTitle: string;   // ✅ backend field is quizTitle
+  quizTitle: string;
   description: string;
   createdAt: string;
   duration: number;
@@ -20,10 +20,18 @@ interface Quiz {
   participantCount?: number;
 }
 
+interface ApiResponse {
+  data: Quiz[];
+  message?: string;
+}
+
+const QUIZZES_API = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/quizzes/quizzes`;
+
 export default function QuizManagement() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [actionStatus, setActionStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -31,33 +39,31 @@ export default function QuizManagement() {
   const [showParticipantsDrawer, setShowParticipantsDrawer] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
 
-  // ✅ Fetch quizzes from backend
   const fetchQuizzes = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/quizzes/quizzes`);
-      const result = await res.json();
-
-      const quizzesArray = Array.isArray(result.data) ? result.data : result;
+      const res = await fetch(QUIZZES_API);
+      if (!res.ok) throw new Error('Failed to fetch quizzes');
+      const result: ApiResponse = await res.json();
+      const quizzesArray = Array.isArray(result.data) ? result.data : [];
       setQuizzes(quizzesArray);
       setFilteredQuizzes(quizzesArray);
-    } catch (err) {
-      console.error('❌ Failed to fetch quizzes:', err);
+    } catch {
+      setError('Failed to fetch quizzes');
+      setQuizzes([]);
+      setFilteredQuizzes([]);
     } finally {
       setLoading(false);
     }
   };
 
-
   useEffect(() => {
     fetchQuizzes();
   }, []);
 
-  const handleSearch = (query: string) => setSearchQuery(query);
-  const handleStatusChange = (status: string) => setSelectedStatus(status);
-
-  const handleApplyFilters = () => {
-    let filtered = [...quizzes];
+  useEffect(() => {
+    let filtered = quizzes;
     if (searchQuery.trim()) {
       filtered = filtered.filter(q =>
         q.quizTitle.toLowerCase().includes(searchQuery.toLowerCase())
@@ -67,7 +73,10 @@ export default function QuizManagement() {
       filtered = filtered.filter(q => q.status === selectedStatus);
     }
     setFilteredQuizzes(filtered);
-  };
+  }, [searchQuery, selectedStatus, quizzes]);
+
+  const handleSearch = (query: string) => setSearchQuery(query);
+  const handleStatusChange = (status: string) => setSelectedStatus(status);
 
   const handleCreateQuiz = () => setShowCreateForm(true);
   const handleFormClose = () => setShowCreateForm(false);
@@ -75,7 +84,7 @@ export default function QuizManagement() {
   const handleFormSuccess = async () => {
     setActionStatus('Quiz created successfully!');
     setTimeout(() => setActionStatus(''), 3000);
-    await fetchQuizzes(); // ✅ refresh list after create
+    await fetchQuizzes();
   };
 
   const handleViewParticipants = (quizId: string) => {
@@ -86,24 +95,35 @@ export default function QuizManagement() {
     }
   };
 
-  // ✅ Enroll user in quiz
   const handleEnroll = async (quizId: string) => {
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch(`http://localhost:5000/api/quizzes/${quizId}/enroll`, {
-        method: 'POST'
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/quizzes/${quizId}/enroll`,
+        { method: 'POST' }
+      );
       const data = await res.json();
       if (res.ok) {
         setActionStatus('Enrolled successfully!');
         setTimeout(() => setActionStatus(''), 3000);
-        // update participant count locally
-        setQuizzes(prev => prev.map(q => q._id === quizId ? { ...q, participantCount: data.participantCount } : q));
-        setFilteredQuizzes(prev => prev.map(q => q._id === quizId ? { ...q, participantCount: data.participantCount } : q));
+        setQuizzes(prev =>
+          prev.map(q =>
+            q._id === quizId ? { ...q, participantCount: data.participantCount } : q
+          )
+        );
+        setFilteredQuizzes(prev =>
+          prev.map(q =>
+            q._id === quizId ? { ...q, participantCount: data.participantCount } : q
+          )
+        );
       } else {
-        alert(`Error: ${data.message}`);
+        setError(data.message || 'Failed to enroll');
       }
-    } catch (err) {
-      console.error('❌ Enroll error:', err);
+    } catch {
+      setError('Enroll error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,21 +137,20 @@ export default function QuizManagement() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-gray-700">Quiz Management</h1>
         <CreateQuizButton onClick={handleCreateQuiz} />
       </div>
 
       {actionStatus && <StatusMessage message={actionStatus} />}
+      {error && <StatusMessage message={error} type="error" />}
 
       <QuizFilters
         onSearch={handleSearch}
         onStatusChange={handleStatusChange}
-        onApply={handleApplyFilters}
+        onApply={() => {}}
       />
 
-      {/* Quiz List */}
       <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
         <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 pb-4 mb-4 border-b border-gray-200">
           <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title</div>
@@ -157,14 +176,13 @@ export default function QuizManagement() {
                 key={quiz._id}
                 quiz={quiz}
                 onViewParticipants={handleViewParticipants}
-                onEnroll={() => handleEnroll(quiz._id)} // ✅ pass enroll handler
+                onEnroll={() => handleEnroll(quiz._id)}
               />
             ))}
           </div>
         )}
       </div>
 
-      {/* Stats Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <div className="bg-white rounded-2xl p-4 sm:p-6 border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between">
@@ -207,7 +225,6 @@ export default function QuizManagement() {
         </div>
       </div>
 
-      {/* Participants Drawer */}
       {selectedQuiz && (
         <ParticipantsDrawer
           isOpen={showParticipantsDrawer}

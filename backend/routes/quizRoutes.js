@@ -23,6 +23,7 @@ const createSchema = celebrate({
     description: Joi.string().min(10).required(),
     duration: Joi.number().min(1).required(),
     totalMarks: Joi.number().min(1).required(),
+    numberOfQuestions: Joi.number().min(1).required(),
     attemptLimit: Joi.string().valid('unlimited', '1').required(),
     shuffleQuestions: Joi.boolean(),
     negativeMarking: Joi.boolean(),
@@ -41,6 +42,13 @@ const createSchema = celebrate({
     difficultyLevel: Joi.string().valid('easy','medium','hard').required(),
 
     saveAsDraft: Joi.boolean().default(false),
+
+    coupon: Joi.object({
+      code: Joi.string().allow(''),
+      discountType: Joi.string().valid('percentage', 'flat'),
+      discountValue: Joi.number().min(0),
+      visibility: Joi.string().valid('all', 'new_users', 'existing_users')
+    }).optional()
   })
 });
 
@@ -51,6 +59,7 @@ const updateSchema = celebrate({
     description: Joi.string(),
     duration: Joi.number(),
     totalMarks: Joi.number(),
+    numberOfQuestions: Joi.number(),
     attemptLimit: Joi.string().valid('unlimited', '1'),
     shuffleQuestions: Joi.boolean(),
     negativeMarking: Joi.boolean(),
@@ -69,6 +78,12 @@ const updateSchema = celebrate({
     tags: Joi.array().items(Joi.string()),
     difficultyLevel: Joi.string().valid('easy','medium','hard'),
     status: Joi.string().valid('draft','published'),
+    coupon: Joi.object({
+      code: Joi.string().allow(''),
+      discountType: Joi.string().valid('percentage', 'flat'),
+      discountValue: Joi.number().min(0),
+      visibility: Joi.string().valid('all', 'new_users', 'existing_users')
+    }).optional()
   })
 });
 
@@ -97,6 +112,14 @@ router.get('/admin/quizzes/:id', adminAuth, c.getById);
 router.put('/admin/quizzes/:id', adminAuth, writeLimiter, updateSchema, c.updateQuiz);
 router.post('/admin/quizzes/:id/status', adminAuth, writeLimiter, statusSchema, c.setStatus);
 router.delete('/admin/quizzes/:id', adminAuth, writeLimiter, c.deleteQuiz);
+
+// AI description generator
+router.post('/admin/generate-description', adminAuth, celebrate({
+  body: Joi.object({ quizTitle: Joi.string().min(3).required() })
+}), c.generateDescription);
+
+// AI quiz question generator
+router.post('/admin/generate-questions', adminAuth, c.generateQuestions);
 
 // Public routes (user panel)
 router.get('/quizzes', listLimiter, c.listPublic);

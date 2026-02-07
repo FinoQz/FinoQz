@@ -195,7 +195,6 @@ export default function AllUsersTable() {
   // ✅ WebSocket-based real-time user sync
 useEffect(() => {
   setLoading(true);
-  let didReceiveSocketData = false;
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   if (!backendUrl) return;
 
@@ -209,7 +208,6 @@ useEffect(() => {
   });
 
   socket.on("users:update", (data) => {
-    didReceiveSocketData = true;
     console.log("📡 Received users:update:", data);
     if (Array.isArray(data?.approved)) {
       type BackendUser = {

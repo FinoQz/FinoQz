@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Eye } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Eye, Brain, Loader2 } from 'lucide-react';
 import CategorySelection from './CategorySelection';
 import PricingAccess from './PricingAccess';
 import BasicSettings from './BasicSettings';
@@ -25,8 +25,18 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
   // Step 2: Pricing
   const [pricingType, setPricingType] = useState<'free' | 'paid'>('free');
   const [price, setPrice] = useState('');
-  const [couponCode, setCouponCode] = useState('');
-  const [allowOfflinePayment, setAllowOfflinePayment] = useState(false);
+  const [coupon, setCoupon] = useState<{
+    code: string;
+    discountType: 'percentage' | 'flat';
+    discountValue: number;
+    visibility: 'all' | 'new_users' | 'existing_users';
+  }>({
+    code: '',
+    discountType: 'percentage',
+    discountValue: 0,
+    visibility: 'all',
+  });
+  // const [allowOfflinePayment, setAllowOfflinePayment] = useState(false);
 
   // Step 3: Basic Settings
   const [quizTitle, setQuizTitle] = useState('');
@@ -37,6 +47,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [negativeMarking, setNegativeMarking] = useState(false);
   const [negativePerWrong, setNegativePerWrong] = useState('');
+  const [numberOfQuestions, setNumberOfQuestions] = useState('');
 
   // Step 4: Upload (managed internally by component)
 
@@ -45,7 +56,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
   const [startTime, setStartTime] = useState('');
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'unlisted' | 'private'>('public');
+  const [postType, setPostType] = useState<'live' | 'scheduled'>('live'); // <-- Add this line
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [assignedGroups, setAssignedGroups] = useState<string[]>([]);
 
   // Step 6: Media & Advanced
@@ -57,6 +69,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
 
   const [showSummary, setShowSummary] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [loadingDesc, setLoadingDesc] = useState(false); // Add this state
 
   const canProceed = () => {
     switch (currentStep) {
@@ -68,14 +81,28 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
         }
         return true;
       case 3:
-        return quizTitle.trim() !== '' && description.trim() !== '' && duration !== '' && totalMarks !== '';
+        return quizTitle.trim() !== '' && description.trim() !== '' && duration !== '' && totalMarks !== '' && numberOfQuestions !== '';
       case 4:
         return true; // Upload is optional
       case 5:
-        if (visibility === 'private') {
-          return startDate && startTime && endDate && endTime && assignedGroups.length > 0;
+        if (postType === 'scheduled') {
+          if (visibility === 'private') {
+            return (
+              startDate &&
+              startTime &&
+              endDate &&
+              endTime &&
+              assignedGroups.length > 0
+            );
+          }
+          return startDate && startTime && endDate && endTime;
+        } else {
+          // postType === 'live'
+          if (visibility === 'private') {
+            return assignedGroups.length > 0;
+          }
+          return true;
         }
-        return startDate && startTime && endDate && endTime;
       case 6:
         return true; // All optional
       default:
@@ -105,8 +132,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       category: selectedCategory,
       pricingType,
       price: pricingType === 'paid' ? Number(price) : 0,
-      couponCode,
-      allowOfflinePayment,
+      couponCode: coupon.code,
+      // allowOfflinePayment,
       quizTitle,
       description,
       duration: Number(duration),
@@ -115,6 +142,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       shuffleQuestions,
       negativeMarking,
       negativePerWrong: Number(negativePerWrong || 0),
+      numberOfQuestions: Number(numberOfQuestions || 0),
       startDate,
       startTime,
       endDate,
@@ -123,7 +151,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       assignedGroups,
       tags,
       difficultyLevel,
-      coverImage: coverImagePreview, // agar tum image upload karna chahte ho to alag API banani hogi
+      coverImage: coverImagePreview,
       saveAsDraft
     };
 
@@ -153,7 +181,6 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
     }
   };
 
-
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -165,19 +192,6 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
         );
       case 2:
         return (
-          <PricingAccess
-            pricingType={pricingType}
-            price={price}
-            couponCode={couponCode}
-            allowOfflinePayment={allowOfflinePayment}
-            onPricingTypeChange={setPricingType}
-            onPriceChange={setPrice}
-            onCouponCodeChange={setCouponCode}
-            onOfflinePaymentChange={setAllowOfflinePayment}
-          />
-        );
-      case 3:
-        return (
           <BasicSettings
             quizTitle={quizTitle}
             description={description}
@@ -187,6 +201,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             shuffleQuestions={shuffleQuestions}
             negativeMarking={negativeMarking}
             negativePerWrong={negativePerWrong}
+            numberOfQuestions={numberOfQuestions}
             onQuizTitleChange={setQuizTitle}
             onDescriptionChange={setDescription}
             onDurationChange={setDuration}
@@ -195,7 +210,20 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             onShuffleQuestionsChange={setShuffleQuestions}
             onNegativeMarkingChange={setNegativeMarking}
             onNegativePerWrongChange={setNegativePerWrong}
+            onNumberOfQuestionsChange={setNumberOfQuestions}
           />
+        );
+      case 3:
+        return (
+          <PricingAccess
+            pricingType={pricingType}
+            price={price}
+            coupon={coupon}
+            onPricingTypeChange={setPricingType}
+            onPriceChange={setPrice}
+            onCouponChange={setCoupon}
+          />
+
         );
       case 4:
         return <UploadImport />;
@@ -214,6 +242,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             onEndTimeChange={setEndTime}
             onVisibilityChange={setVisibility}
             onAssignedGroupsChange={setAssignedGroups}
+            postType={postType} // <-- Pass postType
+            onPostTypeChange={setPostType} // <-- Pass setter
           />
         );
       case 6:
@@ -382,8 +412,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             onClick={handleNext}
             disabled={!canProceed()}
             className={`px-6 py-3 rounded-xl transition font-medium flex items-center gap-2 ${canProceed()
-                ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
           >
             {currentStep === totalSteps ? (

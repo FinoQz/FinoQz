@@ -14,6 +14,7 @@ const createSchema = celebrate({
 // Public routes
 router.get('/', c.listCategories);
 router.post('/', createSchema, c.createCategory);
+router.delete('/:id', c.deleteCategory);
 
 // Celebrate error handler
 router.use(errors());

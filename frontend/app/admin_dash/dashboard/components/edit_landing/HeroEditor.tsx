@@ -108,22 +108,19 @@ export default function HeroEditor() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append(
-        'payload',
-        JSON.stringify({
-          hero: {
-            heading,
-            tagline,
-            buttonText,
-            buttonLink,
-            imageUrl: imagePreview,
-            stats,
-          },
-        })
-      );
+      const hero = {
+        heading,
+        tagline,
+        buttonText,
+        buttonLink,
+        imageUrl: imagePreview,
+        stats,
+      };
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}api/admin/landing`, {
+      const formData = new FormData();
+      formData.append('payload', JSON.stringify({ hero }));
+
+      const res = await fetch('/api/admin/landing', {
         method: 'PATCH',
         body: formData,
       });

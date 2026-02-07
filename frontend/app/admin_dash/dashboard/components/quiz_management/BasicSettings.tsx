@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Clock, Target, RotateCw, AlertCircle } from 'lucide-react';
+import { Clock, Target, RotateCw, AlertCircle, Brain, Loader2 } from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface BasicSettingsProps {
   quizTitle: string;
@@ -12,6 +13,7 @@ interface BasicSettingsProps {
   shuffleQuestions: boolean;
   negativeMarking: boolean;
   negativePerWrong: string;
+  numberOfQuestions: string; // <-- Added
   onQuizTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onDurationChange: (value: string) => void;
@@ -20,11 +22,13 @@ interface BasicSettingsProps {
   onShuffleQuestionsChange: (value: boolean) => void;
   onNegativeMarkingChange: (value: boolean) => void;
   onNegativePerWrongChange: (value: string) => void;
+  onNumberOfQuestionsChange: (value: string) => void; // <-- Added
 
   // Connection props
-  quizId?: string;            // if provided, component will fetch and autosave to backend
-  autosave?: boolean;         // default true when quizId provided
+  quizId?: string;
+  autosave?: boolean;
   onSaveError?: (err: unknown) => void;
+  getAuthToken?: () => Promise<string | null>; // <-- inject token provider
 }
 
 const durationPresets = [15, 30, 45, 60];
@@ -39,6 +43,7 @@ export default function BasicSettings({
   shuffleQuestions,
   negativeMarking,
   negativePerWrong,
+  numberOfQuestions, // <-- Added
   onQuizTitleChange,
   onDescriptionChange,
   onDurationChange,
@@ -47,11 +52,12 @@ export default function BasicSettings({
   onShuffleQuestionsChange,
   onNegativeMarkingChange,
   onNegativePerWrongChange,
+  onNumberOfQuestionsChange, // <-- Added
   quizId,
   autosave = true,
-  onSaveError
+  onSaveError,
+  getAuthToken
 }: BasicSettingsProps) {
-  // Local state to allow editing and debounced autosave
   const [localTitle, setLocalTitle] = useState(quizTitle);
   const [localDesc, setLocalDesc] = useState(description);
   const [localDuration, setLocalDuration] = useState(duration);
@@ -60,13 +66,13 @@ export default function BasicSettings({
   const [localShuffle, setLocalShuffle] = useState(shuffleQuestions);
   const [localNegative, setLocalNegative] = useState(negativeMarking);
   const [localNegativePerWrong, setLocalNegativePerWrong] = useState(negativePerWrong);
+  const [localNumberOfQuestions, setLocalNumberOfQuestions] = useState(numberOfQuestions); // <-- Added
 
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   const debounceRef = useRef<number | null>(null);
 
-  // Sync incoming props -> local when parent changes
   useEffect(() => setLocalTitle(quizTitle), [quizTitle]);
   useEffect(() => setLocalDesc(description), [description]);
   useEffect(() => setLocalDuration(duration), [duration]);
@@ -75,14 +81,15 @@ export default function BasicSettings({
   useEffect(() => setLocalShuffle(shuffleQuestions), [shuffleQuestions]);
   useEffect(() => setLocalNegative(negativeMarking), [negativeMarking]);
   useEffect(() => setLocalNegativePerWrong(negativePerWrong), [negativePerWrong]);
+  useEffect(() => setLocalNumberOfQuestions(numberOfQuestions), [numberOfQuestions]); // <-- Added
 
-  // If quizId provided, fetch quiz data on mount
+  // Fetch quiz data on mount if quizId provided
   useEffect(() => {
     if (!quizId) return;
     let mounted = true;
     (async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = getAuthToken ? await getAuthToken() : null;
         const res = await fetch(`${API_BASE}/api/admin/quizzes/${quizId}`, {
           method: 'GET',
           headers: {
@@ -91,15 +98,13 @@ export default function BasicSettings({
           }
         });
         if (!res.ok) {
-          // don't throw to avoid breaking UI; forward to callback if needed
           console.warn('Failed fetching quiz', await res.text());
           return;
         }
-        const json = await res.json();
-        const q = json.data || json;
+        const qRes = await res.json();
+        const q = qRes.data?.data || qRes.data;
         if (!q || !mounted) return;
 
-        // populate both local and parent via callbacks
         const incomingDuration = q.duration ? String(q.duration) : '';
         const incomingTotal = q.totalMarks ? String(q.totalMarks) : '';
 
@@ -126,6 +131,9 @@ export default function BasicSettings({
 
         setLocalNegativePerWrong(String(q.negativePerWrong ?? ''));
         onNegativePerWrongChange(String(q.negativePerWrong ?? ''));
+
+        setLocalNumberOfQuestions(String(q.numberOfQuestions ?? ''));
+        onNumberOfQuestionsChange(String(q.numberOfQuestions ?? ''));
       } catch (err) {
         console.error('Error fetching quiz in BasicSettings', err);
       }
@@ -135,30 +143,22 @@ export default function BasicSettings({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizId]);
 
-  // Helper to trigger parent callbacks when local changes
-  useEffect(() => { onQuizTitleChange(localTitle); scheduleSave(); }, [localTitle]);
-  useEffect(() => { onDescriptionChange(localDesc); scheduleSave(); }, [localDesc]);
-  useEffect(() => { onDurationChange(localDuration); scheduleSave(); }, [localDuration]);
-  useEffect(() => { onTotalMarksChange(localTotalMarks); scheduleSave(); }, [localTotalMarks]);
-  useEffect(() => { onAttemptLimitChange(localAttemptLimit); scheduleSave(); }, [localAttemptLimit]);
-  useEffect(() => { onShuffleQuestionsChange(localShuffle); scheduleSave(); }, [localShuffle]);
-  useEffect(() => { onNegativeMarkingChange(localNegative); scheduleSave(); }, [localNegative]);
-  useEffect(() => { onNegativePerWrongChange(localNegativePerWrong); scheduleSave(); }, [localNegativePerWrong]);
-
-  function scheduleSave() {
-    if (!autosave || !quizId) return;
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => {
-      void saveToServer();
-    }, 1000);
-  }
-
-  async function saveToServer() {
+  const saveToServer = React.useCallback(async () => {
     if (!quizId) return;
     setSaving(true);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const payload: unknown = {
+      const token = getAuthToken ? await getAuthToken() : null;
+      const payload: {
+        quizTitle: string;
+        description: string;
+        duration: number;
+        totalMarks: number;
+        attemptLimit: 'unlimited' | '1';
+        shuffleQuestions: boolean;
+        negativeMarking: boolean;
+        negativePerWrong: number;
+        numberOfQuestions: number;
+      } = {
         quizTitle: localTitle,
         description: localDesc,
         duration: localDuration ? Number(localDuration) : 0,
@@ -166,7 +166,8 @@ export default function BasicSettings({
         attemptLimit: localAttemptLimit,
         shuffleQuestions: localShuffle,
         negativeMarking: localNegative,
-        negativePerWrong: localNegativePerWrong ? Number(localNegativePerWrong) : 0
+        negativePerWrong: localNegativePerWrong ? Number(localNegativePerWrong) : 0,
+        numberOfQuestions: localNumberOfQuestions ? Number(localNumberOfQuestions) : 0
       };
 
       const res = await fetch(`${API_BASE}/api/admin/quizzes/${quizId}`, {
@@ -180,21 +181,50 @@ export default function BasicSettings({
 
       if (!res.ok) {
         const text = await res.text();
-        console.warn('Autosave failed', res.status, text);
         onSaveError?.({ status: res.status, body: text });
       } else {
-        const json = await res.json();
+        await res.json();
         setLastSavedAt(new Date().toISOString());
       }
     } catch (err) {
-      console.error('Autosave error', err);
       onSaveError?.(err);
     } finally {
       setSaving(false);
     }
-  }
+  }, [
+    quizId,
+    localTitle,
+    localDesc,
+    localDuration,
+    localTotalMarks,
+    localAttemptLimit,
+    localShuffle,
+    localNegative,
+    localNegativePerWrong,
+    localNumberOfQuestions,
+    onSaveError,
+    getAuthToken
+  ]);
 
-  // Manual save button (useful if autosave disabled)
+  const scheduleSave = React.useCallback(() => {
+    if (!autosave || !quizId) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      void saveToServer();
+    }, 1000);
+  }, [autosave, quizId, saveToServer]);
+
+  // Helper to trigger parent callbacks when local changes
+  useEffect(() => { onQuizTitleChange(localTitle); scheduleSave(); }, [localTitle, onQuizTitleChange, scheduleSave]);
+  useEffect(() => { onDescriptionChange(localDesc); scheduleSave(); }, [localDesc, onDescriptionChange, scheduleSave]);
+  useEffect(() => { onDurationChange(localDuration); scheduleSave(); }, [localDuration, onDurationChange, scheduleSave]);
+  useEffect(() => { onTotalMarksChange(localTotalMarks); scheduleSave(); }, [localTotalMarks, onTotalMarksChange, scheduleSave]);
+  useEffect(() => { onAttemptLimitChange(localAttemptLimit); scheduleSave(); }, [localAttemptLimit, onAttemptLimitChange, scheduleSave]);
+  useEffect(() => { onShuffleQuestionsChange(localShuffle); scheduleSave(); }, [localShuffle, onShuffleQuestionsChange, scheduleSave]);
+  useEffect(() => { onNegativeMarkingChange(localNegative); scheduleSave(); }, [localNegative, onNegativeMarkingChange, scheduleSave]);
+  useEffect(() => { onNegativePerWrongChange(localNegativePerWrong); scheduleSave(); }, [localNegativePerWrong, onNegativePerWrongChange, scheduleSave]);
+  useEffect(() => { onNumberOfQuestionsChange(localNumberOfQuestions); scheduleSave(); }, [localNumberOfQuestions, onNumberOfQuestionsChange, scheduleSave]); // <-- Added
+
   const handleManualSave = async () => {
     if (debounceRef.current) {
       window.clearTimeout(debounceRef.current);
@@ -204,12 +234,34 @@ export default function BasicSettings({
     alert('Saved');
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
   }, []);
+
+  const [loadingDesc, setLoadingDesc] = useState(false);
+
+  async function handleSuggestDescription(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    if (!localTitle.trim()) return;
+    setLoadingDesc(true);
+    try {
+      const res = await apiAdmin.post('/api/quizzes/admin/generate-description', { quizTitle: localTitle });
+      if (res.status < 200 || res.status >= 300) {
+        throw new Error(res.statusText || 'Failed to generate description');
+      }
+      const data = res.data;
+      if (data?.description) {
+        setLocalDesc(data.description);
+      }
+    } catch (err) {
+      alert('Failed to generate description');
+      if (onSaveError) onSaveError(err);
+    } finally {
+      setLoadingDesc(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -254,18 +306,48 @@ export default function BasicSettings({
       </div>
 
       {/* Description */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <div className="relative">
+          <textarea
+            value={localDesc}
+            onChange={e => setLocalDesc(e.target.value)}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition pr-10"
+            rows={4}
+            placeholder="Enter quiz description"
+          />
+          <button
+            type="button"
+            className="absolute right-3 top-3 text-gray-400 hover:text-[#253A7B] transition"
+            onClick={handleSuggestDescription}
+            disabled={loadingDesc || !quizTitle.trim()}
+            title="Suggest Description with AI"
+          >
+            {loadingDesc ? (
+              <Loader2 className="animate-spin w-5 h-5" />
+            ) : (
+              <Brain className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">You can auto-generate a description using AI.</p>
+      </div>
+
+      {/* Number of Questions */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Short Description <span className="text-red-500">*</span>
+          Number of Questions <span className="text-red-500">*</span>
         </label>
-        <textarea
-          value={localDesc}
-          onChange={(e) => setLocalDesc(e.target.value)}
-          placeholder="Brief description of what this quiz covers..."
-          rows={3}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
+        <input
+          type="number"
+          value={localNumberOfQuestions}
+          onChange={e => setLocalNumberOfQuestions(e.target.value)}
+          placeholder="e.g., 20"
+          min="1"
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
         />
-        <p className="text-xs text-gray-500 mt-1">{localDesc.length}/200 characters</p>
       </div>
 
       {/* Duration */}
@@ -279,11 +361,10 @@ export default function BasicSettings({
               key={preset}
               type="button"
               onClick={() => setLocalDuration(preset.toString())}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                localDuration === preset.toString()
-                  ? 'bg-[#253A7B] text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${localDuration === preset.toString()
+                ? 'bg-[#253A7B] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               {preset} min
             </button>
@@ -331,22 +412,20 @@ export default function BasicSettings({
             <button
               type="button"
               onClick={() => setLocalAttemptLimit('1')}
-              className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                localAttemptLimit === '1'
-                  ? 'bg-[#253A7B] text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-              }`}
+              className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition ${localAttemptLimit === '1'
+                ? 'bg-[#253A7B] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                }`}
             >
               1 Attempt
             </button>
             <button
               type="button"
               onClick={() => setLocalAttemptLimit('unlimited')}
-              className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                localAttemptLimit === 'unlimited'
-                  ? 'bg-[#253A7B] text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-              }`}
+              className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition ${localAttemptLimit === 'unlimited'
+                ? 'bg-[#253A7B] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                }`}
             >
               Unlimited
             </button>
@@ -409,6 +488,7 @@ export default function BasicSettings({
           </div>
         )}
       </div>
+
     </div>
   );
 }

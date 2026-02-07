@@ -42,9 +42,11 @@ const defaultReasons: Reason[] = [
   },
 ];
 
+import { useRef } from 'react';
+
 export default function WhyChooseEditor() {
   const [reasons, setReasons] = useState<Reason[]>(defaultReasons);
-  const [initialReasons, setInitialReasons] = useState<Reason[]>(defaultReasons);
+  const initialReasonsRef = useRef<Reason[]>(defaultReasons);
   const [undoStack, setUndoStack] = useState<Reason[] | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -93,7 +95,7 @@ export default function WhyChooseEditor() {
   };
 
   const handleReset = () => {
-    setReasons(initialReasons);
+    setReasons(initialReasonsRef.current);
     setUndoStack(null);
     setDirty(false);
   };
@@ -108,7 +110,7 @@ export default function WhyChooseEditor() {
         alert('Failed to save reasons');
       } else {
         alert('Saved successfully!');
-        setInitialReasons(reasons);
+        initialReasonsRef.current = reasons;
         setUndoStack(null);
         setDirty(false);
       }

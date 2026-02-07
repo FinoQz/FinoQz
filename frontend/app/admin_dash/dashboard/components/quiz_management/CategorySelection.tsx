@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, PlusCircle } from 'lucide-react';
+import { Check, PlusCircle, Trash2 } from 'lucide-react';
 
 interface Category {
   _id?: string;
@@ -25,6 +25,7 @@ export default function CategorySelection({
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -33,7 +34,12 @@ export default function CategorySelection({
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`);
         const data = await res.json();
-        const normalized = Array.isArray(data.data) ? data.data : data;
+        const rawCategories = Array.isArray(data.data) ? data.data : data;
+        const normalized = rawCategories.map((cat: Category) => ({
+          _id: cat._id, // sirf backend ki _id use karo
+          name: cat.name,
+          description: cat.description,
+        }));
         setCategories(normalized);
       } catch (err) {
         console.error('❌ Failed to fetch categories:', err);
@@ -48,16 +54,6 @@ export default function CategorySelection({
   const handleSaveCategory = async () => {
     if (!customName.trim() || !customDesc.trim()) return;
 
-    const tempId = `temp-${Date.now()}`;
-    const optimisticCat: Category = {
-      id: tempId,
-      name: customName.trim(),
-      description: customDesc.trim(),
-    };
-
-    setCategories((prev) => [...prev, optimisticCat]);
-    onSelectCategory(tempId);
-
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`, {
         method: 'POST',
@@ -69,25 +65,49 @@ export default function CategorySelection({
       });
       const data = await res.json();
 
-      const newCat: Category = {
-        _id: data._id || data.category?._id,
-        name: data.name || data.category?.name,
-        description: data.description || data.category?.description,
-      };
+      // Fetch categories again after successful creation
+      const resList = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`);
+      const dataList = await resList.json();
+      const rawCategories = Array.isArray(dataList.data) ? dataList.data : dataList;
+      const normalized = rawCategories.map((cat: Category) => ({
+        _id: cat._id, // sirf backend ki _id use karo
+        name: cat.name,
+        description: cat.description,
+      }));
+      setCategories(normalized);
 
-      if (newCat._id) {
-        setCategories((prev) =>
-          prev.map((cat) => (cat.id === tempId ? newCat : cat))
-        );
-        onSelectCategory(newCat._id);
-      }
+      // Select the newly created category
+      const newCatId = data._id || data.category?._id;
+      if (newCatId) onSelectCategory(newCatId);
     } catch (err) {
       console.error('❌ Error saving category:', err);
-      setCategories((prev) => prev.filter((cat) => cat.id !== tempId));
+      setError('Failed to create category. Please try again.');
     } finally {
       setShowForm(false);
       setCustomName('');
       setCustomDesc('');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!/^[a-f\d]{24}$/i.test(id)) return; // sirf valid MongoDB id delete karo
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories/${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setCategories((prev) => prev.filter((cat) => cat._id !== id));
+        if (selectedCategory === id) onSelectCategory('');
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to delete category.');
+      }
+    } catch {
+      alert('Failed to delete category.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -104,8 +124,8 @@ export default function CategorySelection({
         <p className="text-red-500 text-sm">{error}</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categories.map((category) => {
-            const id = category._id || category.id!;
+          {categories.map((category, idx) => {
+            const id = category._id || category.id || `fallback-${idx}`;
             const isSelected = selectedCategory === id;
             return (
               <div
@@ -114,17 +134,33 @@ export default function CategorySelection({
                 tabIndex={0}
                 onClick={() => onSelectCategory(id)}
                 onKeyDown={(e) => e.key === 'Enter' && onSelectCategory(id)}
-                className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+                className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 group ${
                   isSelected
                     ? 'border-[#253A7B] bg-white shadow-md'
                     : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                 }`}
               >
+                {/* Check icon if selected */}
                 {isSelected && (
-                  <div className="absolute top-3 right-3 w-6 h-6 bg-[#253A7B] rounded-full flex items-center justify-center">
+                  <div className="absolute top-3 right-10 w-6 h-6 bg-[#253A7B] rounded-full flex items-center justify-center">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                 )}
+                {/* Delete button on hover */}
+                <button
+                  type="button"
+                  className={`absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-600 opacity-0 group-hover:opacity-100 transition ${
+                    deletingId === id ? 'pointer-events-none opacity-60' : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCategory(id);
+                  }}
+                  disabled={deletingId === id}
+                  title="Delete category"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
                 <h3
                   className={`font-semibold text-lg mb-1 ${
                     isSelected ? 'text-[#253A7B]' : 'text-gray-900'
