@@ -11,10 +11,10 @@ const {
 } = require('../controllers/communityController');
 const { celebrate, Joi, Segments } = require('celebrate');
 const verifyToken = require('../middlewares/verifyToken');
-const verifyAdmin = require('../middlewares/verifyAdmin');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Get all posts (public - authenticated users)
-router.get('/posts', verifyToken, getPosts);
+router.get('/posts', verifyToken(), getPosts);
 
 // Get single post by ID
 router.get('/posts/:postId',

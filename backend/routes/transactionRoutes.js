@@ -10,7 +10,7 @@ const {
 } = require('../controllers/transactionController');
 const { celebrate, Joi, Segments } = require('celebrate');
 const verifyToken = require('../middlewares/verifyToken');
-const verifyAdmin = require('../middlewares/verifyAdmin');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Initiate payment
 router.post('/initiate',
@@ -39,10 +39,10 @@ router.post('/verify',
 );
 
 // Get user transaction history
-router.get('/history', verifyToken, getTransactionHistory);
+router.get('/history', verifyToken(), getTransactionHistory);
 
 // Get all transactions (Admin only)
-router.get('/all', verifyToken, verifyAdmin, getAllTransactions);
+router.get('/all', verifyToken(), requireAdmin, getAllTransactions);
 
 // Process refund (Admin only)
 router.post('/:transactionId/refund',
@@ -60,6 +60,6 @@ router.post('/:transactionId/refund',
 );
 
 // Get revenue statistics (Admin only)
-router.get('/revenue-stats', verifyToken, verifyAdmin, getRevenueStats);
+router.get('/revenue-stats', verifyToken(), requireAdmin, getRevenueStats);
 
 module.exports = router;

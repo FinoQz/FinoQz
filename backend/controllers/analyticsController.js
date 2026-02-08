@@ -123,7 +123,7 @@ const getQuizStats = async (req, res) => {
     const { quizId } = req.query;
 
     const matchStage = quizId 
-      ? { quizId: mongoose.Types.ObjectId(quizId), status: 'submitted' }
+      ? { quizId: new mongoose.Types.ObjectId(quizId), status: 'submitted' }
       : { status: 'submitted' };
 
     const stats = await QuizAttempt.aggregate([
@@ -251,7 +251,7 @@ const getTopPerformers = async (req, res) => {
     const { limit = 10, quizId } = req.query;
 
     const matchStage = quizId 
-      ? { quizId: mongoose.Types.ObjectId(quizId), status: 'submitted' }
+      ? { quizId: new mongoose.Types.ObjectId(quizId), status: 'submitted' }
       : { status: 'submitted' };
 
     const topPerformers = await QuizAttempt.aggregate([

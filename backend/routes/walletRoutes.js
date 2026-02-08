@@ -10,7 +10,7 @@ const { celebrate, Joi, Segments } = require('celebrate');
 const verifyToken = require('../middlewares/verifyToken');
 
 // Get wallet balance
-router.get('/balance', verifyToken, getWalletBalance);
+router.get('/balance', verifyToken(), getWalletBalance);
 
 // Add funds to wallet
 router.post('/add-funds',
@@ -39,6 +39,6 @@ router.post('/deduct-funds',
 );
 
 // Get wallet transactions
-router.get('/transactions', verifyToken, getWalletTransactions);
+router.get('/transactions', verifyToken(), getWalletTransactions);
 
 module.exports = router;

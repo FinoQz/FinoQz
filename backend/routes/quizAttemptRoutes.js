@@ -10,13 +10,13 @@ const {
 } = require('../controllers/quizAttemptController');
 const { celebrate, Joi, Segments } = require('celebrate');
 
-// Middleware to verify JWT token (assuming it exists)
+// Middleware to verify JWT token
 const verifyToken = require('../middlewares/verifyToken');
-const verifyAdmin = require('../middlewares/verifyAdmin');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Start a new quiz attempt
 router.post('/start',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.BODY]: Joi.object({
       quizId: Joi.string().required()
@@ -27,7 +27,7 @@ router.post('/start',
 
 // Save an answer
 router.post('/:attemptId/answer',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       attemptId: Joi.string().required()
@@ -43,7 +43,7 @@ router.post('/:attemptId/answer',
 
 // Submit quiz attempt
 router.post('/:attemptId/submit',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       attemptId: Joi.string().required()
@@ -54,7 +54,7 @@ router.post('/:attemptId/submit',
 
 // Get specific attempt details
 router.get('/:attemptId',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       attemptId: Joi.string().required()
@@ -65,14 +65,14 @@ router.get('/:attemptId',
 
 // Get user's all attempts
 router.get('/user/all',
-  verifyToken,
+  verifyToken(),
   getUserAttempts
 );
 
 // Get all attempts for a quiz (Admin only)
 router.get('/quiz/:quizId',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.PARAMS]: Joi.object({
       quizId: Joi.string().required()

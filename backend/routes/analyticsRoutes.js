@@ -9,10 +9,10 @@ const {
   getCategoryPerformance
 } = require('../controllers/analyticsController');
 const verifyToken = require('../middlewares/verifyToken');
-const verifyAdmin = require('../middlewares/verifyAdmin');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // All analytics routes require admin access
-router.use(verifyToken, verifyAdmin);
+router.use(verifyToken(), requireAdmin);
 
 // Get dashboard KPI stats
 router.get('/dashboard-stats', getDashboardStats);

@@ -9,7 +9,7 @@ const {
 } = require('../controllers/certificateController');
 const { celebrate, Joi, Segments } = require('celebrate');
 const verifyToken = require('../middlewares/verifyToken');
-const verifyAdmin = require('../middlewares/verifyAdmin');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Generate certificate
 router.post('/generate',
@@ -23,7 +23,7 @@ router.post('/generate',
 );
 
 // Get user's certificates
-router.get('/user', verifyToken, getUserCertificates);
+router.get('/user', verifyToken(), getUserCertificates);
 
 // Verify certificate by code (public route)
 router.get('/verify/:verificationCode',
@@ -47,6 +47,6 @@ router.get('/:certificateId/download',
 );
 
 // Get all certificates (Admin only)
-router.get('/all', verifyToken, verifyAdmin, getAllCertificates);
+router.get('/all', verifyToken(), requireAdmin, getAllCertificates);
 
 module.exports = router;

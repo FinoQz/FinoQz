@@ -327,7 +327,7 @@ const getAttemptsByQuiz = async (req, res) => {
 
     // Calculate statistics
     const stats = await QuizAttempt.aggregate([
-      { $match: { quizId: mongoose.Types.ObjectId(quizId), status: 'submitted' } },
+      { $match: { quizId: new mongoose.Types.ObjectId(quizId), status: 'submitted' } },
       {
         $group: {
           _id: null,

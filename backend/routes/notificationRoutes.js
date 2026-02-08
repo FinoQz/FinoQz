@@ -9,10 +9,10 @@ const {
 } = require('../controllers/notificationController');
 const { celebrate, Joi, Segments } = require('celebrate');
 const verifyToken = require('../middlewares/verifyToken');
-const verifyAdmin = require('../middlewares/verifyAdmin');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Get user notifications
-router.get('/', verifyToken, getUserNotifications);
+router.get('/', verifyToken(), getUserNotifications);
 
 // Mark notification as read
 router.patch('/:notificationId/read',
@@ -26,7 +26,7 @@ router.patch('/:notificationId/read',
 );
 
 // Mark all notifications as read
-router.patch('/read-all', verifyToken, markAllAsRead);
+router.patch('/read-all', verifyToken(), markAllAsRead);
 
 // Create notification (Admin only)
 router.post('/',
