@@ -617,28 +617,28 @@ useEffect(() => {
           filteredUsers.map((user) => (
             <div
               key={user._id}
-              className="bg-white p-4 rounded-2xl shadow border border-gray-200"
+              className="bg-white p-4 rounded-2xl shadow border border-gray-200 overflow-hidden"
             >
-              <div className="flex justify-between items-center gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-md">
+              <div className="flex justify-between items-start gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-md shrink-0">
                     <span className="text-gray-900 font-semibold">
                       {user.fullName.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">
                       {user.fullName}
                     </p>
-                    <p className="text-sm text-gray-600">{user.email}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                    <p className="text-sm text-gray-600 truncate">
                       {user.mobile || "N/A"}
                     </p>
                   </div>
                 </div>
 
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap shrink-0 ${getStatusClasses(
                     user.status
                   )}`}
                 >
@@ -647,8 +647,8 @@ useEffect(() => {
               </div>
 
               <div className="flex justify-between mt-3 text-xs text-gray-500">
-                <span>Reg: {formatDate(user.registrationDate)}</span>
-                <span>Last: {formatDateTime(user.lastLogin)}</span>
+                <span className="truncate">Reg: {formatDate(user.registrationDate)}</span>
+                <span className="truncate">Last: {formatDateTime(user.lastLogin)}</span>
               </div>
 
               <button
