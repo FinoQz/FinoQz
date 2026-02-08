@@ -103,7 +103,7 @@ export default function VerifyOtpForm() {
 
             {/* OTP BLOCK */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-4 py-6 shadow-md border border-gray-200 mb-6">
-              <div className="flex justify-center gap-3">
+              <div className="grid grid-cols-6 gap-2 sm:gap-3">
                 {otp.map((digit, index) => (
                   <input
                     key={index}
@@ -115,8 +115,8 @@ export default function VerifyOtpForm() {
                     onChange={(e) => handleChange(e.target.value, index)}
                     maxLength={1}
                     className="
-                      w-12 h-16
-                      text-center text-lg font-semibold
+                      w-full h-12 sm:h-16
+                      text-center text-base sm:text-lg font-semibold
                       rounded-xl
                       bg-gray-50
                       border border-gray-300

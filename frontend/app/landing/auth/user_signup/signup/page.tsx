@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import Image from 'next/image';
 import InputField from './components/InputField';
 import ProgressBar from './components/ProgressBar';
-import AuthCard from './components/AuthCard';
 import apiUser from '@/lib/apiUser';
 import { isAxiosError } from 'axios';
 
-const redirectByNextStep = (nextStep: string, router: ReturnType<typeof useRouter>) => {
+const redirectByNextStep = (
+  nextStep: string,
+  router: ReturnType<typeof useRouter>
+) => {
   switch (nextStep) {
     case 'email_otp':
       router.push('/landing/auth/user_signup/verify_email_otp');
@@ -38,6 +41,8 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [formError, setFormError] = useState('');
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const router = useRouter();
 
   const isValidEmail = (email: string) =>
@@ -65,6 +70,8 @@ export default function SignupPage() {
     }
 
     setFormError('');
+    setIsSending(true);
+    setIsFlipped(true);
 
     try {
       const res = await apiUser.post('api/user/signup/initiate', {
@@ -72,20 +79,29 @@ export default function SignupPage() {
         email: trimmedEmail,
       });
 
-      // ✅ Store email in cookie (valid for 5 minutes)
-      document.cookie = `userEmail=${encodeURIComponent(trimmedEmail)}; path=/; max-age=300`;
+      document.cookie = `userEmail=${encodeURIComponent(
+        trimmedEmail
+      )}; path=/; max-age=300`;
 
       const nextStep = res.data?.nextStep || 'email_otp';
-      redirectByNextStep(nextStep, router);
+      setTimeout(() => redirectByNextStep(nextStep, router), 900);
     } catch (err: unknown) {
+      setIsSending(false);
+      setIsFlipped(false);
+
       let msg = 'Something went wrong. Please try again.';
 
       if (isAxiosError(err)) {
-        const data = (err as { response?: { data?: { message?: string; nextStep?: string } } }).response?.data;
+        const data = (err as {
+          response?: { data?: { message?: string; nextStep?: string } };
+        }).response?.data;
+
         msg = data?.message ?? (err as { message?: string }).message ?? msg;
 
         if (data?.nextStep === 'login') {
-          setFormError('This email is already registered and verified. Please sign in instead.');
+          setFormError(
+            'This email is already registered and verified. Please sign in instead.'
+          );
           setTimeout(() => {
             router.push('/landing/auth/user_login/login');
           }, 3000);
@@ -93,7 +109,9 @@ export default function SignupPage() {
         }
 
         if (data?.nextStep) {
-          document.cookie = `userEmail=${encodeURIComponent(trimmedEmail)}; path=/; max-age=300`;
+          document.cookie = `userEmail=${encodeURIComponent(
+            trimmedEmail
+          )}; path=/; max-age=300`;
           redirectByNextStep(data.nextStep, router);
           return;
         }
@@ -121,50 +139,77 @@ export default function SignupPage() {
         <p className="text-sm text-gray-500">Welcome! Let’s get you started.</p>
       </div>
 
-      {/* Progress */}
       <ProgressBar step={1} total={4} />
 
-      {/* Card */}
-      <AuthCard>
-        <h2 className="text-xl font-semibold mb-2">Create Your Account</h2>
-        <p className="text-sm text-gray-500 mb-4">Step 1: Enter your details</p>
+      {/* FLIP CARD */}
+      <div className="relative z-10 w-full max-w-md mt-4 card-scene">
+        <div className={`card ${isFlipped ? 'is-flipped' : ''}`}>
+          {/* FRONT */}
+          <div className="card-face card-front">
+            <div className="min-h-[420px] flex flex-col justify-start pt-6">
+              <h2 className="text-xl font-semibold mb-2">
+                Create Your Account
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Step 1: Enter your details
+              </p>
 
-        <div className="space-y-4">
-          <InputField
-            label="Full Name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="John Doe"
-          />
-          <InputField
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="john@example.com"
-          />
+              <div className="space-y-4">
+                <InputField
+                  label="Full Name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="John Doe"
+                />
+                <InputField
+                  label="Email Address"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="john@example.com"
+                />
 
-          {formError && (
-            <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm font-medium">
-              {formError}
+                {formError && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm font-medium">
+                    {formError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSendOTP}
+                  disabled={isSending}
+                  className="w-full bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition disabled:opacity-60"
+                >
+                  {isSending ? 'Sending OTP...' : 'Send Email OTP'}
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4 text-center">
+                Already have an account?{' '}
+                <a
+                  href="/landing/auth/user_login/login"
+                  className="text-blue-600 font-semibold"
+                >
+                  Login here
+                </a>
+              </p>
             </div>
-          )}
+          </div>
 
-          <button
-            onClick={handleSendOTP}
-            className="w-full bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
-          >
-            Send Email OTP
-          </button>
+          {/* BACK */}
+          <div className="card-face card-back">
+            <DotLottieReact
+              src="/OTP%20Verification.json"
+              loop
+              autoplay
+              style={{ width: 160, height: 160 }}
+            />
+            <p className="mt-4 text-lg font-semibold text-indigo-700">
+              Sending Otp...
+            </p>
+          </div>
         </div>
-
-        <p className="text-sm text-gray-500 mt-4 text-center">
-          Already have an account?{' '}
-          <a href="/landing/auth/user_login/login" className="text-blue-600 font-semibold">
-            Login here
-          </a>
-        </p>
-      </AuthCard>
+      </div>
 
       {/* Back to Home */}
       <p className="text-sm text-gray-500 mt-4 text-center">

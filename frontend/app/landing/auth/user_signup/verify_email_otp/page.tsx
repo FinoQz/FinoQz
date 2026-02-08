@@ -6,6 +6,7 @@ import Image from 'next/image';
 import apiUser from '@/lib/apiUser';
 import InputField from './components/OtpInputField';
 import ProgressBar from './components/ProgressBar';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function VerifyEmailOtpPage() {
   const [otp, setOtp] = useState('');
@@ -214,7 +215,6 @@ export default function VerifyEmailOtpPage() {
               </p>
             </div>
           </div>
-
         </div>
       </div>
 

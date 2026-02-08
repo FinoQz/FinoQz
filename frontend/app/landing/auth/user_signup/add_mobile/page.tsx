@@ -8,12 +8,15 @@ import PasswordInput from './components/PasswordInput';
 import ProgressBar from './components/ProgressBar';
 import apiUser from '@/lib/apiUser';
 import axios from 'axios';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function AddMobilePage() {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [formError, setFormError] = useState('');
   const [email, setEmail] = useState('');
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const router = useRouter();
 
   // Read email from cookie
@@ -41,6 +44,9 @@ export default function AddMobilePage() {
     }
 
     try {
+      setIsSending(true);
+      setIsFlipped(true);
+
       const res = await apiUser.post('api/user/signup/mobile-password', {
         email,
         mobile,
@@ -70,6 +76,9 @@ export default function AddMobilePage() {
           router.push('/landing');
       }
     } catch (err: unknown) {
+      setIsSending(false);
+      setIsFlipped(false);
+
       let message = 'Failed to send OTP';
 
       if (axios.isAxiosError(err)) {
@@ -104,45 +113,60 @@ export default function AddMobilePage() {
 
       <ProgressBar step={3} total={4} />
 
-      {/* Card */}
-      <div className="relative z-10 w-full max-w-md mt-4">
-        <div className="bg-white rounded-xl shadow-md px-6 py-8">
+      {/* FLIP CARD */}
+      <div className="relative z-10 w-full max-w-md mt-4 card-scene">
+        <div className={`card ${isFlipped ? 'is-flipped' : ''}`}>
+          {/* FRONT */}
+          <div className="card-face card-front">
+            <div className="min-h-[420px] flex flex-col justify-start pt-6">
+              <h2 className="text-xl font-semibold mb-1">Mobile & Password</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Step 3: Secure your account
+              </p>
 
-          <h2 className="text-xl font-semibold mb-1">
-            Mobile & Password
-          </h2>
-          <p className="text-sm text-gray-500 mb-6">
-            Step 3: Secure your account
-          </p>
+              <div className="space-y-4">
+                <MobileInput value={mobile} onChange={setMobile} />
+                <PasswordInput value={password} onChange={setPassword} />
 
-          <div className="space-y-4">
-            <MobileInput value={mobile} onChange={setMobile} />
-            <PasswordInput value={password} onChange={setPassword} />
+                {formError && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm font-medium">
+                    {formError}
+                  </div>
+                )}
 
-            {formError && (
-              <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm font-medium">
-                {formError}
+                <button
+                  onClick={handleSendOTP}
+                  disabled={isSending}
+                  className="w-full bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition disabled:opacity-60"
+                >
+                  {isSending ? 'Sending OTP...' : 'Send Mobile OTP'}
+                </button>
               </div>
-            )}
 
-            <button
-              onClick={handleSendOTP}
-              className="w-full bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
-            >
-              Send Mobile OTP
-            </button>
+              <p className="text-sm text-gray-500 mt-6 text-center">
+                Already have an account?{' '}
+                <a
+                  href="/landing/auth/user_login/login"
+                  className="text-indigo-600 font-semibold hover:underline"
+                >
+                  Login here
+                </a>
+              </p>
+            </div>
           </div>
 
-          <p className="text-sm text-gray-500 mt-6 text-center">
-            Already have an account?{' '}
-            <a
-              href="/landing/auth/user_login/login"
-              className="text-indigo-600 font-semibold hover:underline"
-            >
-              Login here
-            </a>
-          </p>
-
+          {/* BACK */}
+          <div className="card-face card-back flex flex-col items-center justify-center">
+            <DotLottieReact
+              src="/adminash.json"
+              autoplay
+              loop
+              style={{ width: 180, height: 180 }}
+            />
+            <p className="mt-4 text-lg font-semibold text-indigo-700">
+              Verifying OTP…
+            </p>
+          </div>
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import InputField from './components/InputField';
 import ProgressBar from './components/ProgressBar';
 import axios from 'axios';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function VerifyMobileOtpPage() {
   const [otp, setOtp] = useState('');
@@ -249,16 +250,16 @@ export default function VerifyMobileOtpPage() {
           </div>
 
           {/* BACK */}
-          <div className="card-face card-back">
-            <div className="text-center">
-              <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-green-600 text-2xl">✓</span>
-              </div>
-              <h3 className="text-lg font-semibold">Mobile Verified</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Taking you to the next step...
-              </p>
-            </div>
+          <div className="card-face card-back flex flex-col items-center justify-center">
+            <DotLottieReact
+              src="/OTP%20Verification.json"
+              autoplay
+              loop
+              style={{ width: 180, height: 180 }}
+            />
+            <p className="mt-4 text-lg font-semibold text-indigo-700">
+             Verifying OTP…
+            </p>
           </div>
         </div>
       </div>
