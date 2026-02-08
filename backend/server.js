@@ -10,7 +10,7 @@ const morgan = require('morgan');
 const http = require('http');
 const path = require('path');
 const { errors } = require('celebrate');
-const connectDB = require('./config/db');
+const { connectDB, dbHealth, logger } = require('./config/db');
 const seedSuperAdmin = require('./utils/seedSuperAdmin');
 const { initSocket } = require('./utils/socket'); // destructured for clarity
 
@@ -26,9 +26,9 @@ app.set('io', io);
   try {
     await connectDB();
     await seedSuperAdmin();
-    console.log('✅ MongoDB connected & Superadmin seeded');
+    logger.info('✅ MongoDB connected & Superadmin seeded');
   } catch (err) {
-    console.error('❌ DB connection or seeding failed:', err);
+    logger.error('❌ DB connection or seeding failed:', { error: err.message });
     process.exit(1);
   }
 })();
@@ -81,18 +81,13 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ✅ Health Check Endpoint
 app.get('/health', (req, res) => {
-  const mongoose = require('mongoose');
-  const dbState = mongoose.connection.readyState;
-  // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  const health = dbHealth();
   
   res.json({
-    status: dbState === 1 ? 'healthy' : 'unhealthy',
+    status: health.status === 'UP' ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    database: {
-      status: dbState === 1 ? 'connected' : 'disconnected',
-      state: dbState
-    }
+    database: health
   });
 });
 
@@ -131,12 +126,22 @@ app.use((req, res) => {
 
 // ✅ Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('❌ Unhandled error:', err.stack || err);
-  res.status(500).json({ message: 'Internal server error' });
+  logger.error('Unhandled error', { 
+    error: err.message, 
+    stack: err.stack,
+    url: req.url,
+    method: req.method
+  });
+  
+  res.status(err.statusCode || 500).json({
+    message: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 // ✅ Start Server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 FinoQz backend running on http://localhost:${PORT}`);
+  logger.info(`🚀 FinoQz backend running on http://localhost:${PORT}`);
+  logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
 });
