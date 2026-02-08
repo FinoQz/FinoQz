@@ -17,14 +17,17 @@ export default function InputField({
   placeholder,
 }: InputFieldProps) {
   return (
-    <div>
-      <label className="block text-sm text-gray-600">{label}</label>
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <input
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full border border-gray-300 rounded px-3 py-2 mt-1"
+        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition
+                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
       />
     </div>
   );

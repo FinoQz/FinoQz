@@ -1,165 +1,183 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 import apiAdmin from '@/lib/apiAdmin';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function VerifyOtpForm() {
-  const [otp, setOtp] = useState('');
+  const router = useRouter();
+
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [email, setEmail] = useState('');
   const [formError, setFormError] = useState('');
   const [resendMessage, setResendMessage] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
-  const router = useRouter();
 
+  const [verifying, setVerifying] = useState(false);
+  const [showBack, setShowBack] = useState(false);
+
+  const inputsRef = useRef<HTMLInputElement[]>([]);
 
   useEffect(() => {
-    const fetchEmail = async () => {
-      try {
-        const res = await apiAdmin.get('api/admin/pending-email', { withCredentials: true });
-        setEmail(res.data.email);
-      } catch {
-        console.error('❌ Failed to fetch pending email from cookie');
-        router.push('/landing/auth/user_login/login');
-      }
-    };
-    fetchEmail();
+    apiAdmin
+      .get('api/admin/pending-email', { withCredentials: true })
+      .then(res => setEmail(res.data.email))
+      .catch(() => router.push('/landing/auth/user_login/login'));
   }, [router]);
 
-  const handleVerify = async () => {
-  if (!otp || !email) {
-    setFormError("Missing OTP or email/username");
-    return;
-  }
+  const handleChange = (value: string, index: number) => {
+    if (!/^\d?$/.test(value)) return;
 
-  if (!/^\d{6}$/.test(otp)) {
-    setFormError("OTP must be a 6-digit number");
-    return;
-  }
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
 
-  setFormError("");
-  setResendMessage("");
-
-  try {
-    const payload = { identifier: email, otp };
-
-    await apiAdmin.post('api/admin/verify-otp', payload);
-
-    router.push('/admin_dash');
-  } catch (err: unknown) {
-    let errMsg = 'OTP verification failed';
-
-    if (axios.isAxiosError(err)) {
-      console.log("Full error:", err.response?.data); // 👈 helpful for debugging
-      const maybeMessage = err.response?.data?.message;
-      if (typeof maybeMessage === 'string') {
-        errMsg = maybeMessage;
-      } else if (err.response?.status === 403) {
-        errMsg = "Wrong OTP, kindly enter correct OTP";
-      }
+    if (value && index < 5) {
+      inputsRef.current[index + 1]?.focus();
     }
+  };
 
-    setFormError(errMsg);
-  }
-};
+  const handleVerify = async () => {
+    const finalOtp = otp.join('');
 
-
-  const handleResendOtp = async () => {
-    if (!email) {
-      setFormError('Email/username missing');
+    if (finalOtp.length !== 6) {
+      setFormError('Enter 6-digit OTP');
       return;
     }
 
     setFormError('');
-    setResendMessage('');
-    setResendLoading(true);
+    setVerifying(true);
+    setShowBack(true); // 🔥 FLIP START
 
     try {
-      const payload = email.includes('@') ? { email } : { identifier: email };
-      await apiAdmin.post('api/admin/resend-otp', payload);
-      setResendMessage('✅ OTP resent successfully!');
+      await apiAdmin.post('api/admin/verify-otp', {
+        identifier: email,
+        otp: finalOtp,
+      });
+
+      // 🔥 Minimum loader duration (UX)
+      setTimeout(() => {
+        router.push('/admin_dash');
+      }, 1500);
+
     } catch (err) {
-      console.error('Resend OTP error:', err);
+      setVerifying(false);
+      setShowBack(false);
+
+      const error = err as { response?: { data?: { message?: string } } };
+      setFormError(error?.response?.data?.message || 'Invalid OTP');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setResendLoading(true);
+    setResendMessage('');
+
+    try {
+      await apiAdmin.post('api/admin/resend-otp', { identifier: email });
+      setResendMessage('✅ OTP resent successfully');
+    } catch {
       setResendMessage('❌ Failed to resend OTP');
     } finally {
       setResendLoading(false);
     }
   };
-  
-  useEffect(() => {
-  if (resendMessage) {
-    const timer = setTimeout(() => {
-      setResendMessage('');
-    }, 4000); // 4 seconds
-
-    return () => clearTimeout(timer);
-  }
-}, [resendMessage]);
-
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-md">
-      <h2 className="text-xl font-semibold mb-2">Admin Login</h2>
-      <p className="text-sm text-gray-500 mb-4">
-        Enter the OTP sent to your email to complete login.
-      </p>
+    <div className="card-scene">
+      <div className={`card ${showBack ? 'is-flipped' : ''}`}>
 
-      <label htmlFor="otp" className="block text-sm text-gray-700 mb-1">
-        Enter OTP
-      </label>
-      <input
-        id="otp"
-        type="text"
-        value={otp}
-        onChange={(e) => setOtp(e.target.value)}
-        placeholder="123456"
-        className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
-      />
+        {/* FRONT */}
+        <div className="card-face card-front flex flex-col justify-center items-center">
 
-      {formError && (
-        <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded mb-4 text-sm font-medium">
-          {formError}
+          <div className="w-full max-w-xs text-center">
+
+            <h2 className="text-xl font-semibold mb-3">
+              Admin OTP Verification
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-8">
+              Enter the 6-digit code sent to your email
+            </p>
+
+            {/* OTP BLOCK */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-4 py-6 shadow-md border border-gray-200 mb-6">
+              <div className="flex justify-center gap-3">
+                {otp.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(el) => {
+                      if (el) inputsRef.current[index] = el;
+                    }}
+                    type="text"
+                    value={digit}
+                    onChange={(e) => handleChange(e.target.value, index)}
+                    maxLength={1}
+                    className="
+                      w-12 h-16
+                      text-center text-lg font-semibold
+                      rounded-xl
+                      bg-gray-50
+                      border border-gray-300
+                      shadow-inner
+                      focus:outline-none
+                      focus:ring-2 focus:ring-indigo-500
+                      focus:bg-white
+                      transition
+                    "
+                  />
+                ))}
+              </div>
+            </div>
+
+            {formError && (
+              <div className="bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded text-sm mb-5">
+                {formError}
+              </div>
+            )}
+
+            <button
+              onClick={handleVerify}
+              disabled={verifying}
+              className="w-full bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
+            >
+              Verify & Login
+            </button>
+
+            <p className="text-xs text-gray-500 mt-5">
+              Didn’t get OTP?{' '}
+              <button
+                onClick={handleResendOtp}
+                disabled={resendLoading}
+                className="text-indigo-600 font-medium"
+              >
+                {resendLoading ? 'Resending…' : 'Resend'}
+              </button>
+            </p>
+
+            {resendMessage && (
+              <p className="mt-2 text-sm font-medium">
+                {resendMessage}
+              </p>
+            )}
+          </div>
         </div>
-      )}
 
-      <div className="flex justify-between gap-4">
-        <button
-          onClick={() => router.back()}
-          className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-100 transition"
-        >
-          Back
-        </button>
-        <button
-          onClick={handleVerify}
-          className="w-1/2 bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
-        >
-          Verify & Login
-        </button>
+        {/* BACK */}
+        <div className="card-face card-back flex flex-col items-center justify-center">
+          <DotLottieReact
+            src="/adminash.json"
+            autoplay
+            loop
+            style={{ width: 180, height: 180 }}
+          />
+          <p className="mt-4 text-lg font-semibold text-indigo-700">
+            Verifying OTP…
+          </p>
+        </div>
+
       </div>
-
-      <p className="text-xs text-gray-500 text-center mt-2">
-        Didn’t get the OTP?{' '}
-        <button
-          onClick={handleResendOtp}
-          disabled={resendLoading}
-          className="text-indigo-600 font-medium hover:underline disabled:opacity-50"
-        >
-          {resendLoading ? 'Resending...' : 'Resend'}
-        </button>
-      </p>
-
-      {resendMessage && (
-        <div
-          className={`mt-3 text-sm px-4 py-2 rounded font-medium text-center ${
-            resendMessage.startsWith('✅')
-              ? 'bg-green-50 border border-green-300 text-green-700'
-              : 'bg-red-50 border border-red-300 text-red-700'
-          }`}
-        >
-          {resendMessage}
-        </div>
-      )}
     </div>
   );
 }

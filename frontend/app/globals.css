@@ -130,3 +130,51 @@
 .animate-fade-in-out {
   animation: fadeInOut 3s ease-in-out forwards;
 }
+
+
+.card-scene {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 -1px 0 #e5e7eb;
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  padding: 24px;
+  border-radius: 14px;
+  background: white;
+  overflow: hidden;
+}
+
+.card-front {
+  transform: rotateY(0deg);
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.card.is-flipped {
+  transform: rotateY(180deg);
+}
+

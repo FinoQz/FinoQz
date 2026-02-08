@@ -19,7 +19,13 @@ const TABS = [
   { key: 'ai', label: 'Finoqz.AI', icon: <Brain className="w-5 h-5" /> },
 ];
 
-export default function UploadImport() {
+
+interface UploadImportProps {
+  quizId: string;
+  numberOfQuestions?: string;
+}
+
+export default function UploadImport({ quizId, numberOfQuestions }: UploadImportProps) {
   const [tab, setTab] = useState('manual');
 
   return (
@@ -41,22 +47,27 @@ export default function UploadImport() {
         ))}
       </div>
       <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 border w-full">
-        {/* TODO: Replace 'your-quiz-id' with the actual quizId from your parent or context */}
-        {tab === 'manual' && <ManualQuizSetup quizId="your-quiz-id" />}
-        {tab === 'upload' && <UploadQuizFile quizId="your-quiz-id" />}
-        {tab === 'ai' && <AIQuizGenerator quizId="your-quiz-id" />}
+        {tab === 'manual' && <ManualQuizSetup quizId={quizId} numberOfQuestions={numberOfQuestions} />}
+        {tab === 'upload' && <UploadQuizFile quizId={quizId} />}
+        {tab === 'ai' && <AIQuizGenerator quizId={quizId} />}
       </div>
     </div>
   );
 }
 
 // 1. Manual Quiz Setup
-function ManualQuizSetup({ quizId }: { quizId: string }) {
+import { useRef } from 'react';
+
+function ManualQuizSetup({ quizId, numberOfQuestions }: { quizId: string; numberOfQuestions?: string }) {
   const [questions, setQuestions] = useState<Question[]>([
     { text: '', options: ['', '', '', ''], correct: 0, explanation: '' }
   ]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMsg, setPopupMsg] = useState('');
 
   // Add or update question
   const handleSaveQuestion = (idx: number, q: Question) => {
@@ -82,9 +93,16 @@ function ManualQuizSetup({ quizId }: { quizId: string }) {
   // Edit question
   const handleEditQuestion = (idx: number) => setEditingIdx(idx);
 
+
   // Backend se save
   const handleSaveQuiz = async () => {
+    const totalQ = parseInt(numberOfQuestions || '0', 10);
     if (!quizId) return alert('Quiz not created yet!');
+    if (totalQ > 0 && questions.length < totalQ) {
+      setPopupMsg(`You have added only ${questions.length} out of ${totalQ} questions. Please add all questions before saving.`);
+      setShowPopup(true);
+      return;
+    }
     setSaving(true);
     try {
       await apiAdmin.post('/api/upload/manual', {
@@ -155,17 +173,34 @@ function ManualQuizSetup({ quizId }: { quizId: string }) {
         <button
           className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 justify-center"
           onClick={handleAddQuestion}
+          disabled={numberOfQuestions ? questions.length >= parseInt(numberOfQuestions, 10) : false}
         >
           <PlusCircle className="w-4 h-4" /> Add Question
         </button>
         <button
           className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold"
           onClick={handleSaveQuiz}
-          disabled={saving}
+          disabled={saving || !!(numberOfQuestions && questions.length < parseInt(numberOfQuestions, 10))}
         >
-          {saving ? <Loader2 className="animate-spin w-5 h-5" /> : 'Save Quiz'}
+          {saving ? <Loader2 className="animate-spin w-5 h-5" /> : `Save Quiz${numberOfQuestions ? ` (${questions.length}/${numberOfQuestions})` : ''}`}
         </button>
       </div>
+
+      {/* Popup for incomplete questions */}
+      {showPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm w-full text-center">
+            <div className="mb-4 text-red-600 font-semibold">Incomplete Questions</div>
+            <div className="mb-6">{popupMsg}</div>
+            <button
+              className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold"
+              onClick={() => setShowPopup(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

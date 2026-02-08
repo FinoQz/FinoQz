@@ -92,6 +92,11 @@ exports.uploadManual = async (req, res) => {
     if (!quizId) {
       return res.status(400).json({ message: 'quizId required' });
     }
+    // Validate quizId as a valid ObjectId
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ message: 'Invalid quizId. Please create/save the quiz first.' });
+    }
 
     if (!Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ message: 'questions array required' });

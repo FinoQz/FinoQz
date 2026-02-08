@@ -18,6 +18,7 @@ interface CreateQuizFormProps {
 export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
+  const [quizId, setQuizId] = useState<string>('');
 
   // Step 1: Category
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -226,7 +227,10 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
 
         );
       case 4:
-        return <UploadImport />;
+        if (!quizId) {
+          setQuizId(Date.now().toString());
+        }
+        return <UploadImport quizId={quizId || Date.now().toString()} numberOfQuestions={numberOfQuestions} />;
       case 5:
         return (
           <ScheduleVisibility

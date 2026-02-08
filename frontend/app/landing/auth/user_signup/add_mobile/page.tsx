@@ -16,14 +16,14 @@ export default function AddMobilePage() {
   const [email, setEmail] = useState('');
   const router = useRouter();
 
-  // ✅ Read email from cookie
+  // Read email from cookie
   useEffect(() => {
     const match = document.cookie.match(/(?:^|; )userEmail=([^;]+)/);
     if (match) {
       setEmail(decodeURIComponent(match[1]));
     } else {
       setFormError('Email not found. Please restart signup.');
-      router.push('/landing/auth/user_signup');
+      router.push('/landing/auth/user_signup/signup');
     }
   }, [router]);
 
@@ -31,7 +31,7 @@ export default function AddMobilePage() {
     setFormError('');
 
     if (!mobile || !password) {
-      setFormError('Please enter both mobile and password.');
+      setFormError('Please enter both mobile number and password.');
       return;
     }
 
@@ -47,11 +47,12 @@ export default function AddMobilePage() {
         password,
       });
 
-      // ✅ Store mobile in cookie (valid for 5 minutes)
-      document.cookie = `userMobile=${encodeURIComponent(mobile)}; path=/; max-age=300; SameSite=Lax`;
+      document.cookie = `userMobile=${encodeURIComponent(
+        mobile
+      )}; path=/; max-age=300; SameSite=Lax`;
 
-      // ✅ Use backend nextStep for resumable flow
       const nextStep = res.data?.nextStep || 'verify_mobile_otp';
+
       switch (nextStep) {
         case 'verify_mobile_otp':
           router.push('/landing/auth/user_signup/verify_mobile_otp');
@@ -70,77 +71,89 @@ export default function AddMobilePage() {
       }
     } catch (err: unknown) {
       let message = 'Failed to send OTP';
+
       if (axios.isAxiosError(err)) {
         message = err.response?.data?.message || message;
       } else if (err instanceof Error) {
         message = err.message;
       }
+
       setFormError(message);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-100 to-white px-4">
-      <div className="text-center mb-6 flex flex-col items-center justify-center gap-2">
-        <div className="flex items-center gap-2">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white px-4">
+
+      {/* Header */}
+      <div className="text-center mb-6">
+        <div className="flex items-center justify-center gap-2">
           <Image
             src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg"
             alt="FinoQz Logo"
             width={40}
             height={40}
+            priority
           />
           <h1 className="text-2xl font-bold">FinoQz</h1>
         </div>
-        <p className="text-sm text-gray-500">Welcome! Let’s get you started.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Welcome! Let’s get you started.
+        </p>
       </div>
 
       <ProgressBar step={3} total={4} />
 
-      <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-md">
-        <h2 className="text-xl font-semibold mt-2">Mobile & Password</h2>
-        <p className="text-sm text-gray-500">Step 3: Enter mobile number and create password</p>
-        <br />
-        <div className="space-y-4">
-          <MobileInput value={mobile} onChange={setMobile} />
-          <PasswordInput value={password} onChange={setPassword} />
+      {/* Card */}
+      <div className="relative z-10 w-full max-w-md mt-4">
+        <div className="bg-white rounded-xl shadow-md px-6 py-8">
 
-          {formError && (
-            <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm font-medium">
-              {formError}
-            </div>
-          )}
+          <h2 className="text-xl font-semibold mb-1">
+            Mobile & Password
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Step 3: Secure your account
+          </p>
 
-          <div className="flex justify-between gap-4">
-            <div id="recaptcha-container"></div>
+          <div className="space-y-4">
+            <MobileInput value={mobile} onChange={setMobile} />
+            <PasswordInput value={password} onChange={setPassword} />
 
-            <button
-              onClick={() => router.back()}
-              className="w-1/2 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-100 transition"
-            >
-              Back
-            </button>
+            {formError && (
+              <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm font-medium">
+                {formError}
+              </div>
+            )}
+
             <button
               onClick={handleSendOTP}
-              className="w-1/2 bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
+              className="w-full bg-black text-white py-2 rounded font-semibold hover:bg-gray-900 transition"
             >
               Send Mobile OTP
             </button>
           </div>
-        </div>
 
-        <p className="text-sm text-gray-500 mt-4 text-center">
-          Already have an account?{' '}
-          <a href="/landing/auth/user_login/login" className="text-blue-600 font-semibold">
-            Login here
-          </a>
-        </p>
+          <p className="text-sm text-gray-500 mt-6 text-center">
+            Already have an account?{' '}
+            <a
+              href="/landing/auth/user_login/login"
+              className="text-indigo-600 font-semibold hover:underline"
+            >
+              Login here
+            </a>
+          </p>
+
+        </div>
       </div>
 
-      <p className="text-sm text-gray-500 mt-4 text-center">
-        <a href="/landing" className="text-gray-500 hover:text-indigo-600 text-sm">
-          ← Back to Home
-        </a>
-      </p>
+      {/* Back to Home */}
+      <a
+        href="/landing"
+        className="mt-6 text-sm text-gray-500 hover:text-indigo-600 relative z-20"
+      >
+        ← Back to Home
+      </a>
+
     </div>
   );
 }
