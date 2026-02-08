@@ -1,24 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, TrendingUp, MessageSquare, Eye, ThumbsUp, FileText, Edit2, Trash2, Pin } from 'lucide-react';
 import StatusMessage from '../components/community/StatusMessage'
+import apiAdmin from '@/lib/apiAdmin';
 
 interface Post {
   _id: string;
   title: string;
   content: string;
   author: {
-    name: string;
-    role: 'Admin' | 'Moderator' | 'User';
+    _id?: string;
+    fullName?: string;
+    name?: string;
+    email?: string;
+    role?: 'Admin' | 'Moderator' | 'User';
   };
-  category: 'Announcements' | 'Discussions' | 'Q&A' | 'Tips';
-  status: 'published' | 'draft' | 'flagged';
+  category: 'Announcements' | 'Tips' | 'Updates' | 'General' | 'Discussions' | 'Q&A';
+  status: 'published' | 'draft' | 'archived' | 'flagged';
   isPinned: boolean;
   likes: number;
-  comments: number;
+  comments?: number;
   views: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 type TabType = 'all' | 'published' | 'draft' | 'flagged' | 'create-new';
@@ -29,154 +34,148 @@ export default function CommunityPosts() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [actionStatus, setActionStatus] = useState('');
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  // Dummy posts data
-  const dummyPosts: Post[] = [
-    {
-      _id: '1',
-      title: 'New Financial Literacy Quiz Launched',
-      content: 'We are excited to announce the launch of our comprehensive Financial Literacy Quiz covering topics from basic budgeting to advanced investment strategies...',
-      author: { name: 'Admin Team', role: 'Admin' },
-      category: 'Announcements',
-      status: 'published',
-      isPinned: true,
-      likes: 142,
-      comments: 28,
-      views: 1543,
-      createdAt: '2024-11-28'
-    },
-    {
-      _id: '2',
-      title: 'Best Practices for Portfolio Diversification',
-      content: 'Learn essential strategies for spreading your investments across different asset classes to minimize risk and maximize returns...',
-      author: { name: 'Michael Chen', role: 'Moderator' },
-      category: 'Tips',
-      status: 'published',
-      isPinned: false,
-      likes: 89,
-      comments: 15,
-      views: 876,
-      createdAt: '2024-11-27'
-    },
-    {
-      _id: '3',
-      title: 'How to Calculate Compound Interest?',
-      content: 'Understanding compound interest is crucial for long-term financial planning. Here\'s a step-by-step guide...',
-      author: { name: 'Priya Sharma', role: 'User' },
-      category: 'Q&A',
-      status: 'published',
-      isPinned: false,
-      likes: 56,
-      comments: 23,
-      views: 654,
-      createdAt: '2024-11-26'
-    },
-    {
-      _id: '4',
-      title: 'Stock Market Trends Discussion',
-      content: 'Let\'s discuss the current market trends and what they mean for retail investors...',
-      author: { name: 'Vikram Singh', role: 'User' },
-      category: 'Discussions',
-      status: 'published',
-      isPinned: false,
-      likes: 34,
-      comments: 45,
-      views: 432,
-      createdAt: '2024-11-25'
-    },
-    {
-      _id: '5',
-      title: 'Suspicious Investment Scheme Alert',
-      content: 'Warning: This post contains potentially misleading information about guaranteed returns...',
-      author: { name: 'Unknown User', role: 'User' },
-      category: 'Discussions',
-      status: 'flagged',
-      isPinned: false,
-      likes: 2,
-      comments: 8,
-      views: 234,
-      createdAt: '2024-11-24'
-    },
-    {
-      _id: '6',
-      title: 'Upcoming Platform Features',
-      content: 'Draft announcement about new features including real-time market analytics and personalized learning paths...',
-      author: { name: 'Admin Team', role: 'Admin' },
-      category: 'Announcements',
-      status: 'draft',
-      isPinned: false,
-      likes: 0,
-      comments: 0,
-      views: 12,
-      createdAt: '2024-11-29'
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, selectedCategory, searchQuery]);
+
+  // Fetch posts from backend API
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setLoading(true);
+      setError('');
+      
+      try {
+        const params: any = {
+          page: currentPage,
+          limit: 10
+        };
+        
+        if (activeTab !== 'all' && activeTab !== 'create-new') {
+          params.status = activeTab;
+        }
+        
+        if (selectedCategory !== 'all') {
+          params.category = selectedCategory;
+        }
+        
+        if (searchQuery.trim()) {
+          params.search = searchQuery.trim();
+        }
+        
+        const response = await apiAdmin.get('/api/community/posts', { params });
+        
+        setPosts(response.data.posts);
+        setTotalPages(response.data.totalPages);
+        setTotal(response.data.total);
+      } catch (err: any) {
+        console.error('Failed to fetch posts:', err);
+        setError(err.response?.data?.message || 'Failed to load posts');
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (activeTab !== 'create-new') {
+      fetchPosts();
     }
-  ];
-
-  const [posts, setPosts] = useState<Post[]>(dummyPosts);
-
-  // Filter posts based on active tab and search
-  const getFilteredPosts = () => {
-    let filtered = posts;
-
-    // Filter by tab
-    if (activeTab !== 'all' && activeTab !== 'create-new') {
-      filtered = filtered.filter(post => post.status === activeTab);
-    }
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(post => post.category === selectedCategory);
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(post =>
-        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.content.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    return filtered;
-  };
-
-  const filteredPosts = getFilteredPosts();
+  }, [activeTab, selectedCategory, searchQuery, currentPage]);
 
   // Stats calculation
   const stats = {
-    total: posts.length,
+    total: total,
     published: posts.filter(p => p.status === 'published').length,
     draft: posts.filter(p => p.status === 'draft').length,
-    flagged: posts.filter(p => p.status === 'flagged').length,
-    totalEngagement: posts.reduce((sum, p) => sum + p.likes + p.comments, 0),
+    flagged: posts.filter(p => p.status === 'flagged' || p.status === 'archived').length,
+    totalEngagement: posts.reduce((sum, p) => sum + p.likes + (p.comments || 0), 0),
     totalViews: posts.reduce((sum, p) => sum + p.views, 0)
   };
 
-  const handleDeletePost = (postId: string) => {
-    setPosts(prev => prev.filter(p => p._id !== postId));
-    setActionStatus('Post deleted successfully');
-    setTimeout(() => setActionStatus(''), 3000);
+  const refetchPosts = async () => {
+    setLoading(true);
+    try {
+      const params: any = {
+        page: currentPage,
+        limit: 10
+      };
+      
+      if (activeTab !== 'all' && activeTab !== 'create-new') {
+        params.status = activeTab;
+      }
+      
+      if (selectedCategory !== 'all') {
+        params.category = selectedCategory;
+      }
+      
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+      
+      const response = await apiAdmin.get('/api/community/posts', { params });
+      setPosts(response.data.posts);
+      setTotalPages(response.data.totalPages);
+      setTotal(response.data.total);
+    } catch (err) {
+      console.error('Failed to refetch posts:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleTogglePin = (postId: string) => {
-    setPosts(prev => prev.map(p =>
-      p._id === postId ? { ...p, isPinned: !p.isPinned } : p
-    ));
-    setActionStatus('Post pin status updated');
-    setTimeout(() => setActionStatus(''), 3000);
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await apiAdmin.delete(`/api/community/posts/${postId}`);
+      setActionStatus('Post deleted successfully');
+      setTimeout(() => setActionStatus(''), 3000);
+      refetchPosts();
+    } catch (err: any) {
+      setActionStatus(err.response?.data?.message || 'Failed to delete post');
+      setTimeout(() => setActionStatus(''), 3000);
+    }
   };
 
-  const handleApprovePost = (postId: string) => {
-    setPosts(prev => prev.map(p =>
-      p._id === postId ? { ...p, status: 'published' as const } : p
-    ));
-    setActionStatus('Post approved and published');
-    setTimeout(() => setActionStatus(''), 3000);
+  const handleTogglePin = async (postId: string) => {
+    try {
+      await apiAdmin.patch(`/api/community/posts/${postId}/pin`);
+      setActionStatus('Post pin status updated');
+      setTimeout(() => setActionStatus(''), 3000);
+      refetchPosts();
+    } catch (err: any) {
+      setActionStatus(err.response?.data?.message || 'Failed to update pin status');
+      setTimeout(() => setActionStatus(''), 3000);
+    }
   };
 
-  const handleRejectPost = (postId: string) => {
-    setPosts(prev => prev.filter(p => p._id !== postId));
-    setActionStatus('Post rejected and removed');
-    setTimeout(() => setActionStatus(''), 3000);
+  const handleApprovePost = async (postId: string) => {
+    try {
+      await apiAdmin.put(`/api/community/posts/${postId}`, { status: 'published' });
+      setActionStatus('Post approved and published');
+      setTimeout(() => setActionStatus(''), 3000);
+      refetchPosts();
+    } catch (err: any) {
+      setActionStatus(err.response?.data?.message || 'Failed to approve post');
+      setTimeout(() => setActionStatus(''), 3000);
+    }
+  };
+
+  const handleRejectPost = async (postId: string) => {
+    try {
+      await apiAdmin.delete(`/api/community/posts/${postId}`);
+      setActionStatus('Post rejected and removed');
+      setTimeout(() => setActionStatus(''), 3000);
+      refetchPosts();
+    } catch (err: any) {
+      setActionStatus(err.response?.data?.message || 'Failed to reject post');
+      setTimeout(() => setActionStatus(''), 3000);
+    }
   };
 
   // Render create new post form
@@ -209,9 +208,9 @@ export default function CommunityPosts() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
                 <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]">
                   <option value="Announcements">Announcements</option>
-                  <option value="Discussions">Discussions</option>
-                  <option value="Q&A">Q&A</option>
                   <option value="Tips">Tips</option>
+                  <option value="Updates">Updates</option>
+                  <option value="General">General</option>
                 </select>
               </div>
 
@@ -365,9 +364,9 @@ export default function CommunityPosts() {
           >
             <option value="all">All Categories</option>
             <option value="Announcements">Announcements</option>
-            <option value="Discussions">Discussions</option>
-            <option value="Q&A">Q&A</option>
             <option value="Tips">Tips</option>
+            <option value="Updates">Updates</option>
+            <option value="General">General</option>
           </select>
           <button
             onClick={() => setActiveTab('create-new')}
@@ -380,13 +379,29 @@ export default function CommunityPosts() {
 
         {/* Posts List */}
         <div className="divide-y divide-gray-200">
-          {filteredPosts.length === 0 ? (
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-3"></div>
+              <p className="text-gray-600">Loading posts...</p>
+            </div>
+          ) : error ? (
+            <div className="p-12 text-center">
+              <FileText className="w-12 h-12 text-red-400 mx-auto mb-3" />
+              <p className="text-red-600 mb-2">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-sm text-[#253A7B] hover:underline"
+              >
+                Try again
+              </button>
+            </div>
+          ) : posts.length === 0 ? (
             <div className="p-12 text-center">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600">No posts found matching your criteria</p>
             </div>
           ) : (
-            filteredPosts.map(post => (
+            posts.map(post => (
               <div key={post._id} className="p-4 hover:bg-gray-50 transition">
                 <div className="flex items-start gap-4">
                   {/* Post Content */}
@@ -404,18 +419,22 @@ export default function CommunityPosts() {
                         <p className="text-sm text-gray-600 line-clamp-2 mb-2">{post.content}</p>
                         
                         <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span className="font-medium text-gray-700">{post.author.name}</span>
-                          <span className={`px-2 py-1 rounded-full font-semibold ${
-                            post.author.role === 'Admin' ? 'bg-purple-100 text-purple-700' :
-                            post.author.role === 'Moderator' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {post.author.role}
+                          <span className="font-medium text-gray-700">
+                            {post.author.fullName || post.author.name || post.author.email || 'Unknown'}
                           </span>
+                          {post.author.role && (
+                            <span className={`px-2 py-1 rounded-full font-semibold ${
+                              post.author.role === 'Admin' ? 'bg-purple-100 text-purple-700' :
+                              post.author.role === 'Moderator' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {post.author.role}
+                            </span>
+                          )}
                           <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-semibold">
                             {post.category}
                           </span>
-                          <span>{post.createdAt}</span>
+                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
 
@@ -435,10 +454,12 @@ export default function CommunityPosts() {
                         <ThumbsUp className="w-4 h-4" />
                         <span>{post.likes}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="w-4 h-4" />
-                        <span>{post.comments}</span>
-                      </div>
+                      {post.comments !== undefined && (
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="w-4 h-4" />
+                          <span>{post.comments}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <Eye className="w-4 h-4" />
                         <span>{post.views}</span>
@@ -490,6 +511,29 @@ export default function CommunityPosts() {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
+          <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
