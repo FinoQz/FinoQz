@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FileText, CheckCircle, File } from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin';
 import CreateQuizButton from '../components/quiz_management/CreateQuizButton';
 import QuizFilters from '../components/quiz_management/QuizFilters';
 import QuizCard from '../components/quiz_management/QuizCard';
@@ -25,7 +26,7 @@ interface ApiResponse {
   message?: string;
 }
 
-const QUIZZES_API = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/quizzes/quizzes`;
+const QUIZZES_API = '/api/quizzes/admin/quizzes';
 
 export default function QuizManagement() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -43,9 +44,8 @@ export default function QuizManagement() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(QUIZZES_API);
-      if (!res.ok) throw new Error('Failed to fetch quizzes');
-      const result: ApiResponse = await res.json();
+      const res = await apiAdmin.get(QUIZZES_API);
+      const result: ApiResponse = res.data;
       const quizzesArray = Array.isArray(result.data) ? result.data : [];
       setQuizzes(quizzesArray);
       setFilteredQuizzes(quizzesArray);
@@ -99,12 +99,9 @@ export default function QuizManagement() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/quizzes/${quizId}/enroll`,
-        { method: 'POST' }
-      );
-      const data = await res.json();
-      if (res.ok) {
+      const res = await apiAdmin.post(`/api/quizzes/${quizId}/enroll`);
+      const data = res.data;
+      if (res.status >= 200 && res.status < 300) {
         setActionStatus('Enrolled successfully!');
         setTimeout(() => setActionStatus(''), 3000);
         setQuizzes(prev =>

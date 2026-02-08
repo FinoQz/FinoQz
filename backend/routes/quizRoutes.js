@@ -3,6 +3,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { celebrate, Joi, errors } = require('celebrate');
 const adminAuth = require('../middlewares/adminAuth');
+const authMiddleware = require('../middlewares/authMiddleware');
 const c = require('../controllers/quizController');
 
 const router = express.Router();
@@ -29,13 +30,34 @@ const createSchema = celebrate({
     negativeMarking: Joi.boolean(),
     negativePerWrong: Joi.number().min(0),
 
-    startDate: Joi.string().required(),
-    startTime: Joi.string().required(),
-    endDate: Joi.string().required(),
-    endTime: Joi.string().required(),
+    postType: Joi.string().valid('live','scheduled').default('live'),
+    startDate: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+    startTime: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+    endDate: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+    endTime: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
 
     visibility: Joi.string().valid('public','unlisted','private').required(),
-    assignedGroups: Joi.array().items(Joi.string()).default([]),
+    assignedGroups: Joi.when('visibility', {
+      is: 'private',
+      then: Joi.array().items(Joi.string()).min(1).required(),
+      otherwise: Joi.array().items(Joi.string()).default([])
+    }),
 
     coverImage: Joi.string().allow(''),
     tags: Joi.array().items(Joi.string()).default([]),
@@ -108,7 +130,7 @@ const writeLimiter = rateLimit({
 // Admin routes
 router.post('/admin/quizzes', adminAuth, writeLimiter, createSchema, c.createQuiz);
 router.get('/admin/quizzes', adminAuth, listLimiter, c.listAdmin);
-router.get('/admin/quizzes/:id', adminAuth, c.getById);
+router.get('/admin/quizzes/:id', adminAuth, c.getAdminById);
 router.put('/admin/quizzes/:id', adminAuth, writeLimiter, updateSchema, c.updateQuiz);
 router.post('/admin/quizzes/:id/status', adminAuth, writeLimiter, statusSchema, c.setStatus);
 router.delete('/admin/quizzes/:id', adminAuth, writeLimiter, c.deleteQuiz);
@@ -122,9 +144,9 @@ router.post('/admin/generate-description', adminAuth, celebrate({
 router.post('/admin/generate-questions', adminAuth, c.generateQuestions);
 
 // Public routes (user panel)
-router.get('/quizzes', listLimiter, c.listPublic);
-router.get('/quizzes/:id', c.getById);
-router.post('/quizzes/:id/enroll', writeLimiter, c.enroll);
+router.get('/quizzes', authMiddleware(), listLimiter, c.listPublic);
+router.get('/quizzes/:id', authMiddleware(), c.getById);
+router.post('/quizzes/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
 
 // Celebrate error handler
 router.use(errors());

@@ -13,6 +13,8 @@ type Question = {
   explanation: string;
 };
 
+const isValidObjectId = (id?: string) => /^[a-fA-F0-9]{24}$/.test(id || '');
+
 const TABS = [
   { key: 'manual', label: 'Manual Setup', icon: <PlusCircle className="w-5 h-5" /> },
   { key: 'upload', label: 'Upload File', icon: <FileUp className="w-5 h-5" /> },
@@ -23,9 +25,10 @@ const TABS = [
 interface UploadImportProps {
   quizId: string;
   numberOfQuestions?: string;
+  onCacheQuestions?: (questions: Question[]) => void;
 }
 
-export default function UploadImport({ quizId, numberOfQuestions }: UploadImportProps) {
+export default function UploadImport({ quizId, numberOfQuestions, onCacheQuestions }: UploadImportProps) {
   const [tab, setTab] = useState('manual');
 
   return (
@@ -47,18 +50,36 @@ export default function UploadImport({ quizId, numberOfQuestions }: UploadImport
         ))}
       </div>
       <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 border w-full">
-        {tab === 'manual' && <ManualQuizSetup quizId={quizId} numberOfQuestions={numberOfQuestions} />}
-        {tab === 'upload' && <UploadQuizFile quizId={quizId} />}
-        {tab === 'ai' && <AIQuizGenerator quizId={quizId} />}
+        {tab === 'manual' && (
+          <ManualQuizSetup
+            quizId={quizId}
+            numberOfQuestions={numberOfQuestions}
+            onCacheQuestions={onCacheQuestions}
+          />
+        )}
+        {tab === 'upload' && (
+          <UploadQuizFile
+            quizId={quizId}
+            numberOfQuestions={numberOfQuestions}
+            onCacheQuestions={onCacheQuestions}
+          />
+        )}
+        {tab === 'ai' && <AIQuizGenerator quizId={quizId} onCacheQuestions={onCacheQuestions} />}
       </div>
     </div>
   );
 }
 
 // 1. Manual Quiz Setup
-import { useRef } from 'react';
-
-function ManualQuizSetup({ quizId, numberOfQuestions }: { quizId: string; numberOfQuestions?: string }) {
+function ManualQuizSetup({
+  quizId,
+  numberOfQuestions,
+  onCacheQuestions
+}: {
+  quizId: string;
+  numberOfQuestions?: string;
+  onCacheQuestions?: (questions: Question[]) => void;
+}) {
   const [questions, setQuestions] = useState<Question[]>([
     { text: '', options: ['', '', '', ''], correct: 0, explanation: '' }
   ]);
@@ -97,9 +118,14 @@ function ManualQuizSetup({ quizId, numberOfQuestions }: { quizId: string; number
   // Backend se save
   const handleSaveQuiz = async () => {
     const totalQ = parseInt(numberOfQuestions || '0', 10);
-    if (!quizId) return alert('Quiz not created yet!');
     if (totalQ > 0 && questions.length < totalQ) {
       setPopupMsg(`You have added only ${questions.length} out of ${totalQ} questions. Please add all questions before saving.`);
+      setShowPopup(true);
+      return;
+    }
+    if (!isValidObjectId(quizId)) {
+      onCacheQuestions?.(questions);
+      setPopupMsg('Questions saved locally. They will be imported after the quiz is created.');
       setShowPopup(true);
       return;
     }
@@ -268,13 +294,33 @@ function ManualQuestionEditor({ question, onSave, onCancel }: ManualQuestionEdit
   );
 }
 
-// 2. Upload File (PDF/JSON)
-function UploadQuizFile({ quizId }: { quizId: string }) {
+// 2. Upload File (PDF/JSON/CSV/XLSX)
+function UploadQuizFile({
+  quizId,
+  numberOfQuestions,
+  onCacheQuestions
+}: {
+  quizId: string;
+  numberOfQuestions?: string;
+  onCacheQuestions?: (questions: Question[]) => void;
+}) {
   const [fileType, setFileType] = useState('pdf');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [importing, setImporting] = useState(false);
+
+  const pickRandom = (items: Question[], limit?: string) => {
+    const n = parseInt(limit || '0', 10);
+    if (!n || n <= 0 || items.length <= n) return items;
+
+    const arr = [...items];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, n);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
@@ -285,6 +331,7 @@ function UploadQuizFile({ quizId }: { quizId: string }) {
     setLoading(true);
     try {
       let res;
+
       if (fileType === 'pdf') {
         const formData = new FormData();
         formData.append('pdf', file!);
@@ -295,12 +342,21 @@ function UploadQuizFile({ quizId }: { quizId: string }) {
         const text = await file!.text();
         const json = JSON.parse(text);
         res = await apiAdmin.post('/api/upload/json', { questions: json.questions || json });
+      } else if (fileType === 'csv' || fileType === 'xlsx') {
+        const formData = new FormData();
+        formData.append('file', file!);
+        res = await apiAdmin.post('/api/upload/excel', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
       } else {
-        alert('Only PDF/JSON supported for now.');
+        alert('Only PDF/JSON/CSV/XLSX supported for now.');
         setLoading(false);
         return;
       }
-      setQuestions(res.data.data || []);
+
+      const payload = res.data?.data || res.data?.questions || res.data;
+      const list = Array.isArray(payload) ? payload : [];
+      setQuestions(pickRandom(list, numberOfQuestions));
     } catch (err) {
       console.error(err);
       alert('Failed to parse file');
@@ -310,17 +366,21 @@ function UploadQuizFile({ quizId }: { quizId: string }) {
 
   // Backend pe import
   const handleImport = async () => {
-    if (!quizId) return alert('Quiz not created yet!');
+    if (!questions.length) return alert('No questions to import.');
+    if (!isValidObjectId(quizId)) {
+      onCacheQuestions?.(questions);
+      alert('Questions saved locally. They will be imported after the quiz is created.');
+      return;
+    }
+
     setImporting(true);
     try {
-      await apiAdmin.post('/api/upload/manual', {
-        quizId,
-        questions,
-      });
+      await apiAdmin.post('/api/upload/manual', { quizId, questions });
       alert('Questions imported!');
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to import questions';
       console.error(err);
-      alert('Failed to import questions');
+      alert(msg);
     }
     setImporting(false);
   };
@@ -421,12 +481,18 @@ function UploadQuizFile({ quizId }: { quizId: string }) {
             </div>
           ))}
           <button
-            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto disabled:opacity-60 disabled:cursor-not-allowed"
             onClick={handleImport}
             disabled={importing}
+            title={!isValidObjectId(quizId) ? 'Will save locally until the quiz is created.' : undefined}
           >
             {importing ? <Loader2 className="animate-spin w-5 h-5" /> : 'Import to Quiz'}
           </button>
+          {!isValidObjectId(quizId) && (
+            <p className="text-xs text-amber-600 mt-2">
+              Questions will be cached and imported after quiz creation.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -434,7 +500,13 @@ function UploadQuizFile({ quizId }: { quizId: string }) {
 }
 
 // 3. Generate with Finoqz.AI
-function AIQuizGenerator({ quizId }: { quizId: string }) {
+function AIQuizGenerator({
+  quizId,
+  onCacheQuestions
+}: {
+  quizId: string;
+  onCacheQuestions?: (questions: Question[]) => void;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
@@ -463,7 +535,10 @@ function AIQuizGenerator({ quizId }: { quizId: string }) {
         numQuestions: 10, // ya jitne user ne set kiye hain
         topic: '',
       });
-      setQuestions(res.data.data || res.data.questions || []);
+      console.log('Excel res.data:', res.data);
+
+      const payload = res.data?.data || res.data?.questions || res.data;
+      setQuestions(Array.isArray(payload) ? payload : []);
     } catch (err: unknown) {
       console.error(err);
       if (
@@ -483,16 +558,21 @@ function AIQuizGenerator({ quizId }: { quizId: string }) {
 
   // Backend pe import
   const handleImport = async () => {
-    if (!quizId) return alert('Quiz not created yet!');
+    if (!questions.length) return alert('No questions to import.');
+    if (!isValidObjectId(quizId)) {
+      onCacheQuestions?.(questions);
+      alert('Questions saved locally. They will be imported after the quiz is created.');
+      return;
+    }
+
     setImporting(true);
     try {
-      await apiAdmin.post('/api/upload/manual', {
-        quizId,
-        questions,
-      });
+      await apiAdmin.post('/api/upload/manual', { quizId, questions });
       alert('AI Quiz imported!');
-    } catch {
-      alert('Failed to import AI questions');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to import questions';
+      console.error(err);
+      alert(msg);
     }
     setImporting(false);
   };
@@ -586,13 +666,21 @@ function AIQuizGenerator({ quizId }: { quizId: string }) {
             className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
             onClick={handleImport}
             disabled={importing}
+            title={!isValidObjectId(quizId) ? 'Will save locally until the quiz is created.' : undefined}
           >
             {importing ? <Loader2 className="animate-spin w-5 h-5" /> : 'Import to Quiz'}
           </button>
+          {!isValidObjectId(quizId) && (
+            <p className="text-xs text-amber-600 mt-2">
+              Questions will be cached and imported after quiz creation.
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 }
+
+
 
 // Parent component me <ManualQuizSetup quizId={quizId} />, <UploadQuizFile quizId={quizId} />, <AIQuizGenerator quizId={quizId} /> pass karo.

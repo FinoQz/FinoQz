@@ -11,6 +11,36 @@ const Quiz = require('../models/Quiz');
 const cloudinary = require('../utils/cloudinary');
 const mongoose = require('mongoose');
 const generatorService = require('../services/generatorService');
+const User = require('../models/User');
+const Group = require('../models/Group');
+
+const ACTIVE_USER_STATUSES = new Set(['approved', 'active']);
+const DEFAULT_LIVE_END_DAYS = 3650; // 10 years
+
+const ensureActiveUser = async (req, res) => {
+  if (!req.userId) {
+    res.status(401).json({ message: 'Authentication required' });
+    return null;
+  }
+  const user = await User.findById(req.userId).select('status').lean();
+  if (!user) {
+    res.status(401).json({ message: 'User not found' });
+    return null;
+  }
+  const status = String(user.status || '').toLowerCase();
+  if (!ACTIVE_USER_STATUSES.has(status)) {
+    res.status(403).json({ message: 'User is not active' });
+    return null;
+  }
+  return user;
+};
+
+const getUserGroupTokens = async (userId) => {
+  const groups = await Group.find({ members: userId }).select('_id name').lean();
+  const ids = groups.map(g => String(g._id));
+  const names = groups.map(g => String(g.name || '')).filter(Boolean);
+  return Array.from(new Set([...ids, ...names]));
+};
 
 // Helpers
 const parseDateTime = (dateStr, timeStr) => {
@@ -60,7 +90,8 @@ exports.createQuiz = async (req, res) => {
       tags, difficultyLevel, coverImage,
       saveAsDraft,
       numberOfQuestions,
-      coupon // { discountType, discountValue, visibility }
+      coupon, // { discountType, discountValue, visibility }
+      postType
     } = req.body;
 
     if (!quizTitle || !description) {
@@ -88,13 +119,23 @@ exports.createQuiz = async (req, res) => {
     }
 
     // Dates
-    const startAt = startDate && startTime ? parseDateTime(startDate, startTime) : undefined;
-    const endAt = endDate && endTime ? parseDateTime(endDate, endTime) : undefined;
+    const now = new Date();
+    const isScheduled = postType === 'scheduled';
+    const startAt = isScheduled
+      ? parseDateTime(startDate, startTime)
+      : now;
+    const endAt = isScheduled
+      ? parseDateTime(endDate, endTime)
+      : (endDate && endTime ? parseDateTime(endDate, endTime) : new Date(now.getTime() + DEFAULT_LIVE_END_DAYS * 24 * 60 * 60 * 1000));
+
+    if (!startAt || !endAt) {
+      return res.status(400).json({ message: 'Invalid start or end date/time' });
+    }
 
     // Groups logic
     let groups = [];
     if (visibility === 'private' && Array.isArray(assignedGroups)) {
-      groups = assignedGroups;
+      groups = assignedGroups.map(String);
     }
 
     const quiz = new Quiz({
@@ -248,17 +289,25 @@ exports.listAdmin = async (req, res) => {
 // Public list (user panel)
 exports.listPublic = async (req, res) => {
   try {
+    const user = await ensureActiveUser(req, res);
+    if (!user) return;
+
     const { category, search, page = 1, limit = 20, upcoming } = req.query;
     const now = new Date();
+    const userGroupTokens = await getUserGroupTokens(req.userId);
+    const visibilityFilter = [{ visibility: 'public' }];
+    if (userGroupTokens.length > 0) {
+      visibilityFilter.push({ visibility: 'private', assignedGroups: { $in: userGroupTokens } });
+    }
+
     const filter = {
       status: 'published',
-      visibility: 'public',
+      $or: visibilityFilter,
       startAt: { $lte: now },
       endAt: { $gte: now },
     };
 
     if (upcoming === 'true') {
-      delete filter.startAt;
       filter.startAt = { $gt: now };
     }
     if (category) filter.category = category;
@@ -288,14 +337,45 @@ exports.listPublic = async (req, res) => {
 // Get by id (user or admin) - consistent response shape
 exports.getById = async (req, res) => {
   try {
+    const user = await ensureActiveUser(req, res);
+    if (!user) return;
+
     const id = req.params.id || req.params.quizId;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
     const quiz = await Quiz.findById(id);
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+    if (quiz.status !== 'published') return res.status(404).json({ message: 'Quiz not found' });
+
+    const now = new Date();
+    if (quiz.startAt && quiz.startAt > now) return res.status(404).json({ message: 'Quiz not found' });
+    if (quiz.endAt && quiz.endAt < now) return res.status(404).json({ message: 'Quiz not found' });
+
+    if (quiz.visibility === 'private') {
+      const userGroupTokens = await getUserGroupTokens(req.userId);
+      const assigned = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
+      const canAccess = assigned.some(g => userGroupTokens.includes(String(g)));
+      if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+    }
     return res.json({ data: quiz });
   } catch (err) {
     console.error("❌ getById error:", err);
     return res.status(500).json({ message: "Server error fetching quiz" });
+  }
+};
+
+// Admin get by id (no visibility/time restrictions)
+exports.getAdminById = async (req, res) => {
+  try {
+    const id = req.params.id || req.params.quizId;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid quiz id' });
+    }
+    const quiz = await Quiz.findById(id);
+    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+    return res.json({ data: quiz });
+  } catch (err) {
+    console.error('❌ getAdminById error:', err);
+    return res.status(500).json({ message: 'Server error fetching quiz' });
   }
 };
 
@@ -316,17 +396,35 @@ exports.deleteQuiz = async (req, res) => {
 // Enroll (increment participantCount) — user panel action
 exports.enroll = async (req, res) => {
   try {
+    const user = await ensureActiveUser(req, res);
+    if (!user) return;
+
     // support both :id and :quizId route param names
     const id = req.params.id || req.params.quizId;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
 
-    const quiz = await Quiz.findByIdAndUpdate(
+    const quiz = await Quiz.findById(id);
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+
+    if (quiz.status !== 'published') return res.status(404).json({ message: 'Quiz not found' });
+    const now = new Date();
+    if (quiz.startAt && quiz.startAt > now) return res.status(400).json({ message: 'Quiz is not active yet' });
+    if (quiz.endAt && quiz.endAt < now) return res.status(400).json({ message: 'Quiz has ended' });
+
+    if (quiz.visibility === 'private') {
+      const userGroupTokens = await getUserGroupTokens(req.userId);
+      const assigned = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
+      const canAccess = assigned.some(g => userGroupTokens.includes(String(g)));
+      if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const updated = await Quiz.findByIdAndUpdate(
       id,
       { $inc: { participantCount: 1 } },
       { new: true }
     );
-    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
-    return res.json({ message: "Enrolled", participantCount: quiz.participantCount });
+    if (!updated) return res.status(404).json({ message: "Quiz not found" });
+    return res.json({ message: "Enrolled", participantCount: updated.participantCount });
   } catch (err) {
     console.error("❌ enroll error:", err);
     return res.status(500).json({ message: "Server error enrolling" });

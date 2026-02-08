@@ -7,6 +7,7 @@ const pdfParse = pdfParseLib.default || pdfParseLib; // ✅ This handles both ca
 const { extractQuestionsFromText } = require('../services/llmService');
 const Question = require('../models/Question');
 const Quiz = require('../models/Quiz');
+const XLSX = require('xlsx');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB
@@ -129,3 +130,39 @@ exports.uploadManual = async (req, res) => {
 // Prompt: ${prompt}
 // Return ONLY valid JSON array, no markdown, no extra text. Each item must have: text, options (array), correct (index), explanation (string).
 // Format: [{"text": "...", "options": ["..."], "correct": 0, "explanation": "..."}]
+
+// POST /api/upload/excel (multipart/form-data, field name "file")
+exports.uploadExcel = [
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      const pick = (r, keys) =>
+        keys.map((k) => r[k]).find((v) => v !== undefined && v !== null && String(v).trim() !== '') ?? '';
+
+      const normalized = rows
+        .map((r) => ({
+          text: String(pick(r, ['text', 'question', 'q'])).trim(),
+          options: [
+            String(pick(r, ['optionA', 'option1', 'a', 'A'])).trim(),
+            String(pick(r, ['optionB', 'option2', 'b', 'B'])).trim(),
+            String(pick(r, ['optionC', 'option3', 'c', 'C'])).trim(),
+            String(pick(r, ['optionD', 'option4', 'd', 'D'])).trim(),
+          ],
+          correct: Number(pick(r, ['correct', 'answer', 'ans', 'index'])) || 0,
+          explanation: String(pick(r, ['explanation', 'explain', 'note'])).trim(),
+        }))
+        .filter((q) => q.text);
+
+      return res.json({ data: normalized });
+    } catch (err) {
+      console.error('❌ Excel upload error:', err);
+      return res.status(500).json({ message: 'Excel upload failed', error: err.message });
+    }
+  },
+];

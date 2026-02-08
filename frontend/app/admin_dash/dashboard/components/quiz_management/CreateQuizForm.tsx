@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Eye, Brain, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Eye } from 'lucide-react';
 import CategorySelection from './CategorySelection';
 import PricingAccess from './PricingAccess';
 import BasicSettings from './BasicSettings';
@@ -9,6 +9,14 @@ import UploadImport from './UploadImport';
 import ScheduleVisibility from './ScheduleVisibility';
 import MediaAdvanced from './MediaAdvanced';
 import QuizPreview from './QuizPreview';
+import apiAdmin from '@/lib/apiAdmin';
+
+type Question = {
+  text: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+};
 
 interface CreateQuizFormProps {
   onClose: () => void;
@@ -18,7 +26,8 @@ interface CreateQuizFormProps {
 export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
-  const [quizId, setQuizId] = useState<string>('');
+  const quizId = '';
+  const [cachedQuestions, setCachedQuestions] = useState<Question[]>([]);
 
   // Step 1: Category
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -148,6 +157,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       startTime,
       endDate,
       endTime,
+      postType,
       visibility,
       assignedGroups,
       tags,
@@ -157,24 +167,26 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
     };
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/quizzes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Agar JWT auth use kar rahe ho:
-          // 'Authorization': `Bearer ${adminToken}`
-        },
-        body: JSON.stringify(quizData),
-        credentials: 'include' // agar cookie-based auth hai
-      });
-
-      const data = await res.json();
-      if (res.ok) {
+      const res = await apiAdmin.post('/api/quizzes/admin/quizzes', quizData);
+      const data = res.data;
+      if (res.status >= 200 && res.status < 300) {
+        const createdQuizId = data?.data?._id as string | undefined;
+        if (createdQuizId && cachedQuestions.length > 0) {
+          try {
+            await apiAdmin.post('/api/upload/manual', {
+              quizId: createdQuizId,
+              questions: cachedQuestions
+            });
+          } catch (err) {
+            console.error('❌ Error importing cached questions:', err);
+            alert('Quiz created, but failed to import cached questions. You can retry from Upload/AI tab.');
+          }
+        }
         alert(`Quiz "${quizTitle}" ${saveAsDraft ? 'saved as draft' : 'created'} successfully!`);
         onSuccess?.(); // parent ko notify karega (QuizManagement me re-fetch)
         onClose();
       } else {
-        alert(`Error: ${data.message}`);
+        alert(`Error: ${data?.message || 'Failed to create quiz'}`);
       }
     } catch (err) {
       console.error('❌ Error creating quiz:', err);
@@ -227,10 +239,13 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
 
         );
       case 4:
-        if (!quizId) {
-          setQuizId(Date.now().toString());
-        }
-        return <UploadImport quizId={quizId || Date.now().toString()} numberOfQuestions={numberOfQuestions} />;
+        return (
+          <UploadImport
+            quizId={quizId}
+            numberOfQuestions={numberOfQuestions}
+            onCacheQuestions={setCachedQuestions}
+          />
+        );
       case 5:
         return (
           <ScheduleVisibility

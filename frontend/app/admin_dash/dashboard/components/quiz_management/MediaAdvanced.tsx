@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Upload, X, Tag, Award, CheckSquare, Square } from 'lucide-react';
 
 interface MediaAdvancedProps {
