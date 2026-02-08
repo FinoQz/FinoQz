@@ -24,6 +24,7 @@ interface QuizAttempt {
     _id: string;
     title: string;
     type?: string;
+    totalMarks?: number;
   };
   attemptNumber: number;
   startedAt: string;
@@ -41,6 +42,8 @@ interface AttemptStats {
   maxScore: number;
   minScore: number;
   totalAttempts: number;
+  passedAttempts?: number;
+  avgTimeTaken?: number;
 }
 
 interface AttemptsResponse {
@@ -139,7 +142,7 @@ export default function QuizReports() {
           quizTitle: attempt.quizId?.title || 'Unknown Quiz',
           attemptDate: formatDateTime(attempt.submittedAt || attempt.startedAt),
           score: attempt.totalScore,
-          totalScore: attempt.quizId ? 100 : 50, // Default or calculate from quiz
+          totalScore: attempt.quizId?.totalMarks || 50,
           percentage: Math.round(attempt.percentage),
           timeTaken: formatTimeTaken(attempt.timeTaken),
           status: getStatusLabel(attempt.status, attempt.percentage),
@@ -190,11 +193,11 @@ export default function QuizReports() {
 
   const kpiData = {
     averageScore: stats ? `${stats.avgPercentage.toFixed(1)}%` : '0%',
-    passRate: stats && stats.totalAttempts > 0 
-      ? `${((stats.totalAttempts - (stats.minScore < 60 ? 1 : 0)) / stats.totalAttempts * 100).toFixed(0)}%` 
+    passRate: stats && stats.totalAttempts > 0 && stats.passedAttempts !== undefined
+      ? `${((stats.passedAttempts / stats.totalAttempts) * 100).toFixed(0)}%` 
       : '0%',
     totalAttempts: stats?.totalAttempts || 0,
-    avgTimeTaken: '21m 30s' // This would need to be calculated from backend if available
+    avgTimeTaken: stats?.avgTimeTaken ? formatTimeTaken(Math.round(stats.avgTimeTaken)) : 'N/A'
   };
 
   const scoreDistribution = [
