@@ -33,7 +33,11 @@ interface QuizAttempt {
   percentage: number;
   timeTaken: number;
   status: 'submitted' | 'in_progress' | 'abandoned';
-  answers?: any[];
+  answers?: Array<{
+    questionId: string;
+    answer: string | string[];
+    isCorrect?: boolean;
+  }>;
 }
 
 interface AttemptStats {
@@ -91,12 +95,23 @@ export default function QuizReports() {
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
 
   // API state
-  const [attempts, setAttempts] = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<Array<{
+    id: string;
+    userName: string;
+    email: string;
+    quizTitle: string;
+    attemptDate: string;
+    score: number;
+    totalScore: number;
+    percentage: number;
+    timeTaken: string;
+    status: string;
+    type: string;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<AttemptStats | null>(null);
   const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
 
   // Fetch quiz attempts from backend
   useEffect(() => {
@@ -152,7 +167,6 @@ export default function QuizReports() {
         setAttempts(transformedAttempts);
         setStats(data.stats);
         setTotalPages(data.totalPages);
-        setTotal(data.total);
       } catch (err) {
         console.error('Error fetching attempts:', err);
         setError(err instanceof Error ? err.message : 'Failed to load attempts');
@@ -284,7 +298,7 @@ export default function QuizReports() {
     );
   };
 
-  const handleViewAttempt = (id: string) => {
+  const handleViewAttempt = (_id: string) => {
     setSelectedAttemptData({
       userName: 'Rahul Sharma',
       email: 'rahul.sharma@example.com',
