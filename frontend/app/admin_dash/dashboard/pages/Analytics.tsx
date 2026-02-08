@@ -30,6 +30,13 @@ interface UserGrowthData {
   users: number;
 }
 
+interface TransformedUserGrowthData {
+  date: string;
+  users: number;
+  attempts: number;
+  revenue: number;
+}
+
 export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -41,7 +48,7 @@ export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
-  const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
+  const [userGrowthData, setUserGrowthData] = useState<TransformedUserGrowthData[]>([]);
 
   // Placeholder data for components not yet connected to backend
   const attemptsData = [
