@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Search, TrendingUp, MessageSquare, Eye, ThumbsUp, FileText, Edit2, Trash2, Pin } from 'lucide-react';
 import StatusMessage from '../components/community/StatusMessage'
 import apiAdmin from '@/lib/apiAdmin';
@@ -47,60 +47,10 @@ export default function CommunityPosts() {
   }, [activeTab, selectedCategory, searchQuery]);
 
   // Fetch posts from backend API
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      setError('');
-      
-      try {
-        const params: any = {
-          page: currentPage,
-          limit: 10
-        };
-        
-        if (activeTab !== 'all' && activeTab !== 'create-new') {
-          params.status = activeTab;
-        }
-        
-        if (selectedCategory !== 'all') {
-          params.category = selectedCategory;
-        }
-        
-        if (searchQuery.trim()) {
-          params.search = searchQuery.trim();
-        }
-        
-        const response = await apiAdmin.get('/api/community/posts', { params });
-        
-        setPosts(response.data.posts);
-        setTotalPages(response.data.totalPages);
-        setTotal(response.data.total);
-      } catch (err: any) {
-        console.error('Failed to fetch posts:', err);
-        setError(err.response?.data?.message || 'Failed to load posts');
-        setPosts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (activeTab !== 'create-new') {
-      fetchPosts();
-    }
-  }, [activeTab, selectedCategory, searchQuery, currentPage]);
-
-  // Stats calculation
-  const stats = {
-    total: total,
-    published: posts.filter(p => p.status === 'published').length,
-    draft: posts.filter(p => p.status === 'draft').length,
-    flagged: posts.filter(p => p.status === 'flagged' || p.status === 'archived').length,
-    totalEngagement: posts.reduce((sum, p) => sum + p.likes + (p.comments || 0), 0),
-    totalViews: posts.reduce((sum, p) => sum + p.views, 0)
-  };
-
-  const refetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setLoading(true);
+    setError('');
+    
     try {
       const params: any = {
         page: currentPage,
@@ -120,14 +70,33 @@ export default function CommunityPosts() {
       }
       
       const response = await apiAdmin.get('/api/community/posts', { params });
+      
       setPosts(response.data.posts);
       setTotalPages(response.data.totalPages);
       setTotal(response.data.total);
-    } catch (err) {
-      console.error('Failed to refetch posts:', err);
+    } catch (err: any) {
+      console.error('Failed to fetch posts:', err);
+      setError(err.response?.data?.message || 'Failed to load posts');
+      setPosts([]);
     } finally {
       setLoading(false);
     }
+  }, [activeTab, selectedCategory, searchQuery, currentPage]);
+
+  useEffect(() => {
+    if (activeTab !== 'create-new') {
+      fetchPosts();
+    }
+  }, [activeTab, fetchPosts]);
+
+  // Stats calculation
+  const stats = {
+    total: total,
+    published: posts.filter(p => p.status === 'published').length,
+    draft: posts.filter(p => p.status === 'draft').length,
+    flagged: posts.filter(p => p.status === 'flagged' || p.status === 'archived').length,
+    totalEngagement: posts.reduce((sum, p) => sum + p.likes + (p.comments || 0), 0),
+    totalViews: posts.reduce((sum, p) => sum + p.views, 0)
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -135,7 +104,7 @@ export default function CommunityPosts() {
       await apiAdmin.delete(`/api/community/posts/${postId}`);
       setActionStatus('Post deleted successfully');
       setTimeout(() => setActionStatus(''), 3000);
-      refetchPosts();
+      fetchPosts();
     } catch (err: any) {
       setActionStatus(err.response?.data?.message || 'Failed to delete post');
       setTimeout(() => setActionStatus(''), 3000);
@@ -147,7 +116,7 @@ export default function CommunityPosts() {
       await apiAdmin.patch(`/api/community/posts/${postId}/pin`);
       setActionStatus('Post pin status updated');
       setTimeout(() => setActionStatus(''), 3000);
-      refetchPosts();
+      fetchPosts();
     } catch (err: any) {
       setActionStatus(err.response?.data?.message || 'Failed to update pin status');
       setTimeout(() => setActionStatus(''), 3000);
@@ -159,7 +128,7 @@ export default function CommunityPosts() {
       await apiAdmin.put(`/api/community/posts/${postId}`, { status: 'published' });
       setActionStatus('Post approved and published');
       setTimeout(() => setActionStatus(''), 3000);
-      refetchPosts();
+      fetchPosts();
     } catch (err: any) {
       setActionStatus(err.response?.data?.message || 'Failed to approve post');
       setTimeout(() => setActionStatus(''), 3000);
@@ -171,7 +140,7 @@ export default function CommunityPosts() {
       await apiAdmin.delete(`/api/community/posts/${postId}`);
       setActionStatus('Post rejected and removed');
       setTimeout(() => setActionStatus(''), 3000);
-      refetchPosts();
+      fetchPosts();
     } catch (err: any) {
       setActionStatus(err.response?.data?.message || 'Failed to reject post');
       setTimeout(() => setActionStatus(''), 3000);
