@@ -79,6 +79,23 @@ app.use(rateLimit({
 // ✅ Static Files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// ✅ Health Check Endpoint
+app.get('/health', (req, res) => {
+  const mongoose = require('mongoose');
+  const dbState = mongoose.connection.readyState;
+  // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  
+  res.json({
+    status: dbState === 1 ? 'healthy' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: {
+      status: dbState === 1 ? 'connected' : 'disconnected',
+      state: dbState
+    }
+  });
+});
+
 // ✅ Routes
 app.use('/api/admin', require('./routes/adminAuthRoutes'));
 app.use('/api/user/signup', require('./routes/userSignupRoute'));
@@ -93,6 +110,16 @@ app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/questions', require('./routes/questionRoutes'));
 app.use('/api/admin/landing', require('./routes/adminLanding'));
 app.use('/api/admin/demo-quiz', require('./routes/demoQuiz'));
+
+// ✅ New Production Routes
+app.use('/api/quiz-attempts', require('./routes/quizAttemptRoutes'));
+app.use('/api/transactions', require('./routes/transactionRoutes'));
+app.use('/api/community', require('./routes/communityRoutes'));
+app.use('/api/comments', require('./routes/commentRoutes'));
+app.use('/api/certificates', require('./routes/certificateRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // ✅ Celebrate validation errors
 app.use(errors());
