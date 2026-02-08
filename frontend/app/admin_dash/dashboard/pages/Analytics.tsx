@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, FileText, DollarSign, UserCheck, Calendar, Download } from 'lucide-react';
 import KpiCard from '../components/analytics/KpiCard';
 import FiltersBar from '../components/analytics/FiltersBar';
@@ -12,6 +12,23 @@ import TopQuizzes from '../components/analytics/TopQuizzes';
 import EngagementHours from '../components/analytics/EngagementHours';
 import RecentEvents from '../components/analytics/RecentEvents';
 import Toast from '../components/analytics/Toast';
+import api from '@/lib/api';
+
+// TypeScript interfaces for API responses
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalQuizzes: number;
+  activeQuizzes: number;
+  totalAttempts: number;
+  totalRevenue: number;
+  certificatesIssued: number;
+}
+
+interface UserGrowthData {
+  date: string;
+  users: number;
+}
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');
@@ -20,24 +37,13 @@ export default function Analytics() {
   const [selectedUserType, setSelectedUserType] = useState('all');
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
 
-  // Dummy data
-  const kpiData = {
-    totalUsers: 12543,
-    totalQuizzes: 245,
-    totalPurchases: '₹8,45,230',
-    dailyActiveUsers: 3421
-  };
+  // State for API data
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
 
-  const userGrowthData = [
-    { date: 'Week 1', users: 8500, attempts: 15200, revenue: 125000 },
-    { date: 'Week 2', users: 9200, attempts: 17800, revenue: 168000 },
-    { date: 'Week 3', users: 9800, attempts: 19500, revenue: 198000 },
-    { date: 'Week 4', users: 10500, attempts: 21200, revenue: 235000 },
-    { date: 'Week 5', users: 11200, attempts: 23400, revenue: 287000 },
-    { date: 'Week 6', users: 11800, attempts: 25100, revenue: 342000 },
-    { date: 'Week 7', users: 12543, attempts: 27300, revenue: 410000 }
-  ];
-
+  // Placeholder data for components not yet connected to backend
   const attemptsData = [
     { day: 'Mon', attempts: 420 },
     { day: 'Tue', attempts: 385 },
@@ -121,6 +127,55 @@ export default function Analytics() {
     }
   ];
 
+  // Fetch analytics data from backend
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch dashboard stats and user growth data in parallel
+        const [statsResponse, growthResponse] = await Promise.all([
+          api.get<DashboardStats>('/analytics/dashboard-stats'),
+          api.get<UserGrowthData[]>(`/analytics/user-growth?dateRange=${dateRange}`)
+        ]);
+
+        setDashboardStats(statsResponse.data);
+        
+        // Transform user growth data to match chart format
+        const transformedGrowthData = growthResponse.data.map((item, index) => ({
+          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          users: item.users,
+          attempts: 0, // Placeholder
+          revenue: 0 // Placeholder
+        }));
+        
+        setUserGrowthData(transformedGrowthData);
+      } catch (err: any) {
+        console.error('Failed to fetch analytics data:', err);
+        setError(err.response?.data?.message || 'Failed to load analytics data');
+        setToast({ type: 'error', message: 'Failed to load analytics data' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalyticsData();
+  }, [dateRange]);
+
+  // Compute KPI data from dashboard stats
+  const kpiData = dashboardStats ? {
+    totalUsers: dashboardStats.totalUsers,
+    totalQuizzes: dashboardStats.totalQuizzes,
+    totalPurchases: `₹${dashboardStats.totalRevenue.toLocaleString()}`,
+    dailyActiveUsers: dashboardStats.activeUsers
+  } : {
+    totalUsers: 0,
+    totalQuizzes: 0,
+    totalPurchases: '₹0',
+    dailyActiveUsers: 0
+  };
+
   const handleResetFilters = () => {
     setSelectedCategory('all');
     setSelectedQuiz('all');
@@ -131,6 +186,37 @@ export default function Analytics() {
   const handleExport = (format: string) => {
     setToast({ type: 'success', message: `Exporting analytics as ${format}...` });
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Failed to Load Analytics</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
