@@ -10,7 +10,7 @@ const morgan = require('morgan');
 const http = require('http');
 const path = require('path');
 const { errors } = require('celebrate');
-const connectDB = require('./config/db');
+const { connectDB, dbHealth, logger } = require('./config/db');
 const seedSuperAdmin = require('./utils/seedSuperAdmin');
 const { initSocket } = require('./utils/socket'); // destructured for clarity
 
@@ -26,9 +26,9 @@ app.set('io', io);
   try {
     await connectDB();
     await seedSuperAdmin();
-    console.log('✅ MongoDB connected & Superadmin seeded');
+    logger.info('✅ MongoDB connected & Superadmin seeded');
   } catch (err) {
-    console.error('❌ DB connection or seeding failed:', err);
+    logger.error('❌ DB connection or seeding failed:', { error: err.message });
     process.exit(1);
   }
 })();
@@ -79,6 +79,18 @@ app.use(rateLimit({
 // ✅ Static Files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// ✅ Health Check Endpoint
+app.get('/health', (req, res) => {
+  const health = dbHealth();
+  
+  res.json({
+    status: health.status === 'UP' ? 'healthy' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: health
+  });
+});
+
 // ✅ Routes
 app.use('/api/admin', require('./routes/adminAuthRoutes'));
 app.use('/api/user/signup', require('./routes/userSignupRoute'));
@@ -94,6 +106,16 @@ app.use('/api/questions', require('./routes/questionRoutes'));
 app.use('/api/admin/landing', require('./routes/adminLanding'));
 app.use('/api/admin/demo-quiz', require('./routes/demoQuiz'));
 
+// ✅ New Production Routes
+app.use('/api/quiz-attempts', require('./routes/quizAttemptRoutes'));
+app.use('/api/transactions', require('./routes/transactionRoutes'));
+app.use('/api/community', require('./routes/communityRoutes'));
+app.use('/api/comments', require('./routes/commentRoutes'));
+app.use('/api/certificates', require('./routes/certificateRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
 // ✅ Celebrate validation errors
 app.use(errors());
 
@@ -104,12 +126,22 @@ app.use((req, res) => {
 
 // ✅ Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('❌ Unhandled error:', err.stack || err);
-  res.status(500).json({ message: 'Internal server error' });
+  logger.error('Unhandled error', { 
+    error: err.message, 
+    stack: err.stack,
+    url: req.url,
+    method: req.method
+  });
+  
+  res.status(err.statusCode || 500).json({
+    message: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
 // ✅ Start Server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 FinoQz backend running on http://localhost:${PORT}`);
+  logger.info(`🚀 FinoQz backend running on http://localhost:${PORT}`);
+  logger.info(`📊 Health check available at http://localhost:${PORT}/health`);
 });

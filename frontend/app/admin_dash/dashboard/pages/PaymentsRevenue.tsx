@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -15,32 +15,54 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import TransactionDetailModal from '../components/payments/TransactionDetailModal';
 import ManualRefundModal from '../components/payments/ManualRefundModal';
 import GenerateReportModal, { ReportConfig } from '../components/payments/GenerateReportModal';
 import RequestPayoutModal from '../components/payments/RequestPayoutModal';
 import Toast from '../components/payments/Toast';
+import apiAdmin from '@/lib/apiAdmin';
 
 type Transaction = {
   id: string;
-  userId: string;
-  userName: string;
-  email: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  quizId: {
+    _id: string;
+    title: string;
+  };
   amount: number;
+  currency: string;
   status: 'success' | 'pending' | 'failed' | 'refunded';
-  method: string;
-  date: string;
-  quizId: string;
-  quizTitle: string;
-  gatewayTxnId: string;
-  gatewayResponse: string;
+  paymentMethod: string;
+  gatewayTransactionId: string;
+  createdAt: string;
+  completedAt?: string;
   refundHistory?: {
     date: string;
     amount: number;
     reason: string;
     adminUser: string;
   }[];
+};
+
+type TransactionStats = {
+  totalRevenue: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  pendingTransactions: number;
+};
+
+type ApiResponse = {
+  transactions: Transaction[];
+  totalPages: number;
+  currentPage: number;
+  total: number;
+  stats: TransactionStats;
 };
 
 export default function PaymentsRevenue() {
@@ -57,92 +79,80 @@ export default function PaymentsRevenue() {
   const [selectedTxns, setSelectedTxns] = useState<string[]>([]);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
 
-  // Dummy data
-  const kpiData = {
-    totalRevenue: 2847650,
-    totalTransactions: 1243,
-    successfulPayments: 1156,
-    pendingFailedPayments: 87
+  // API state
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<TransactionStats>({
+    totalRevenue: 0,
+    successfulTransactions: 0,
+    failedTransactions: 0,
+    pendingTransactions: 0,
+  });
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const limit = 10;
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [currentPage, dateRange, statusFilter, methodFilter]);
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params: any = {
+        page: currentPage,
+        limit,
+      };
+
+      if (dateRange !== 'all') {
+        params.dateRange = dateRange;
+      }
+
+      if (statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+
+      if (methodFilter !== 'all') {
+        params.method = methodFilter;
+      }
+
+      const response = await apiAdmin.get<ApiResponse>('/api/transactions/all', { params });
+      
+      setTransactions(response.data.transactions);
+      setStats(response.data.stats);
+      setTotalPages(response.data.totalPages);
+      setTotalTransactions(response.data.total);
+    } catch (err: any) {
+      console.error('Error fetching transactions:', err);
+      setError(err.response?.data?.message || 'Failed to fetch transactions');
+      setToast({ type: 'error', message: 'Failed to load transactions. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const transactions = [
-    {
-      id: 'TXN001234567',
-      userId: 'USR001',
-      userName: 'Rahul Sharma',
-      email: 'rahul.sharma@example.com',
-      amount: 2499,
-      status: 'success' as const,
-      method: 'Razorpay - UPI',
-      date: '2024-11-28 14:32',
-      quizId: 'QZ001',
-      quizTitle: 'Financial Management Basics',
-      gatewayTxnId: 'pay_MNoPqRsT123456',
-      gatewayResponse: '{"status": "captured", "method": "upi"}',
-    },
-    {
-      id: 'TXN001234566',
-      userId: 'USR002',
-      userName: 'Priya Patel',
-      email: 'priya.patel@example.com',
-      amount: 1999,
-      status: 'pending' as const,
-      method: 'Stripe - Card',
-      date: '2024-11-28 13:15',
-      quizId: 'QZ002',
-      quizTitle: 'Advanced Accounting Quiz',
-      gatewayTxnId: 'pi_3AbCdEfGh123456',
-      gatewayResponse: '{"status": "processing"}',
-    },
-    {
-      id: 'TXN001234565',
-      userId: 'USR003',
-      userName: 'Amit Kumar',
-      email: 'amit.k@example.com',
-      amount: 3499,
-      status: 'failed' as const,
-      method: 'Razorpay - Card',
-      date: '2024-11-28 12:45',
-      quizId: 'QZ003',
-      quizTitle: 'Stock Market Analysis',
-      gatewayTxnId: 'pay_XyZaBcDeF789012',
-      gatewayResponse: '{"error": "card_declined", "message": "Insufficient funds"}',
-    },
-    {
-      id: 'TXN001234564',
-      userId: 'USR004',
-      userName: 'Sneha Reddy',
-      email: 'sneha.reddy@example.com',
-      amount: 1499,
-      status: 'refunded' as const,
-      method: 'Razorpay - UPI',
-      date: '2024-11-27 18:20',
-      quizId: 'QZ001',
-      quizTitle: 'Financial Management Basics',
-      gatewayTxnId: 'pay_QwErTyUiOp12345',
-      gatewayResponse: '{"status": "refunded"}',
-      refundHistory: [{
-        date: '2024-11-28 10:00',
-        amount: 1499,
-        reason: 'Customer requested refund - duplicate purchase',
-        adminUser: 'Admin User'
-      }]
-    },
-    {
-      id: 'TXN001234563',
-      userId: 'USR005',
-      userName: 'Vikram Singh',
-      email: 'vikram.singh@example.com',
-      amount: 2999,
-      status: 'success' as const,
-      method: 'PhonePe - UPI',
-      date: '2024-11-27 16:30',
-      quizId: 'QZ004',
-      quizTitle: 'Taxation Essentials',
-      gatewayTxnId: 'pay_AsD fGhJkL67890',
-      gatewayResponse: '{"status": "captured", "method": "upi"}',
-    },
-  ];
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getTransactionUser = (txn: Transaction) => ({
+    name: txn.userId?.name || 'N/A',
+    email: txn.userId?.email || 'N/A',
+  });
+
+  const getTransactionQuiz = (txn: Transaction) => ({
+    title: txn.quizId?.title || 'N/A',
+  });
 
   const revenueBreakdown = [
     { method: 'Razorpay - UPI', percentage: 45, amount: 1281442 },
@@ -151,8 +161,29 @@ export default function PaymentsRevenue() {
     { method: 'PhonePe', percentage: 5, amount: 142383 },
   ];
 
+  const transformTransactionForModal = (txn: Transaction) => {
+    const user = getTransactionUser(txn);
+    const quiz = getTransactionQuiz(txn);
+    return {
+      id: txn.id,
+      userId: txn.userId?._id || '',
+      userName: user.name,
+      email: user.email,
+      amount: txn.amount,
+      status: txn.status,
+      method: txn.paymentMethod,
+      date: formatDate(txn.createdAt),
+      quizId: txn.quizId?._id || '',
+      quizTitle: quiz.title,
+      gatewayTxnId: txn.gatewayTransactionId,
+      gatewayResponse: JSON.stringify({ status: txn.status }),
+      refundHistory: txn.refundHistory,
+    };
+  };
+
   const handleViewDetails = (txn: Transaction) => {
-    setSelectedTransaction(txn);
+    const transformedTxn = transformTransactionForModal(txn) as any;
+    setSelectedTransaction(transformedTxn);
     setShowDetailModal(true);
   };
 
@@ -220,10 +251,10 @@ export default function PaymentsRevenue() {
       csv += `Generated: ${new Date().toLocaleString()}\n`;
       csv += `Period: ${config.dateFrom} to ${config.dateTo}\n\n`;
       csv += 'Metric,Value\n';
-      csv += `Total Revenue,₹${kpiData.totalRevenue.toLocaleString()}\n`;
-      csv += `Total Transactions,${kpiData.totalTransactions}\n`;
-      csv += `Successful Payments,${kpiData.successfulPayments}\n`;
-      csv += `Failed Payments,${kpiData.pendingFailedPayments}\n\n`;
+      csv += `Total Revenue,₹${stats.totalRevenue.toLocaleString()}\n`;
+      csv += `Total Transactions,${totalTransactions}\n`;
+      csv += `Successful Payments,${stats.successfulTransactions}\n`;
+      csv += `Failed Payments,${stats.failedTransactions + stats.pendingTransactions}\n\n`;
       csv += 'Payment Method,Percentage,Amount\n';
       revenueBreakdown.forEach(item => {
         csv += `${item.method},${item.percentage}%,₹${item.amount.toLocaleString()}\n`;
@@ -233,14 +264,17 @@ export default function PaymentsRevenue() {
       transactions.forEach(txn => {
         if (!config.includeFailedTxns && txn.status === 'failed') return;
         if (!config.includeRefunds && txn.status === 'refunded') return;
-        csv += `${txn.id},"${txn.userName}",${txn.email},₹${txn.amount},${txn.status},${txn.method},${txn.date},"${txn.quizTitle}"\n`;
+        const user = getTransactionUser(txn);
+        const quiz = getTransactionQuiz(txn);
+        csv += `${txn.id},"${user.name}",${user.email},₹${txn.amount},${txn.status},${txn.paymentMethod},${formatDate(txn.createdAt)},"${quiz.title}"\n`;
       });
     } else if (config.reportType === 'refunds') {
       csv = 'Transaction ID,User,Amount,Refund Date,Reason,Processed By\n';
       transactions.filter(t => t.status === 'refunded').forEach(txn => {
         const refund = txn.refundHistory?.[0];
         if (refund) {
-          csv += `${txn.id},"${txn.userName}",₹${refund.amount},${refund.date},"${refund.reason}",${refund.adminUser}\n`;
+          const user = getTransactionUser(txn);
+          csv += `${txn.id},"${user.name}",₹${refund.amount},${refund.date},"${refund.reason}",${refund.adminUser}\n`;
         }
       });
     } else if (config.reportType === 'gateway') {
@@ -252,7 +286,8 @@ export default function PaymentsRevenue() {
     } else {
       csv = 'User ID,User Name,Email,Total Spent,Transaction Count,Last Payment\n';
       transactions.slice(0, 5).forEach(txn => {
-        csv += `${txn.userId},"${txn.userName}",${txn.email},₹${txn.amount},1,${txn.date}\n`;
+        const user = getTransactionUser(txn);
+        csv += `${txn.userId?._id || 'N/A'},"${user.name}",${user.email},₹${txn.amount},1,${formatDate(txn.createdAt)}\n`;
       });
     }
     
@@ -297,19 +332,19 @@ export default function PaymentsRevenue() {
   <div class="section">
     <h2>Revenue Overview</h2>
     <div class="summary-card">
-      <h3>₹${kpiData.totalRevenue.toLocaleString()}</h3>
+      <h3>₹${stats.totalRevenue.toLocaleString()}</h3>
       <p>Total Revenue</p>
     </div>
     <div class="summary-card">
-      <h3>${kpiData.totalTransactions}</h3>
+      <h3>${totalTransactions}</h3>
       <p>Total Transactions</p>
     </div>
     <div class="summary-card">
-      <h3>${kpiData.successfulPayments}</h3>
+      <h3>${stats.successfulTransactions}</h3>
       <p>Successful Payments</p>
     </div>
     <div class="summary-card">
-      <h3>${kpiData.pendingFailedPayments}</h3>
+      <h3>${stats.failedTransactions + stats.pendingTransactions}</h3>
       <p>Failed/Pending</p>
     </div>
   </div>
@@ -354,10 +389,12 @@ export default function PaymentsRevenue() {
           if (!config.includeFailedTxns && txn.status === 'failed') return false;
           if (!config.includeRefunds && txn.status === 'refunded') return false;
           return true;
-        }).map(txn => `
+        }).map(txn => {
+          const user = getTransactionUser(txn);
+          return `
         <tr>
           <td>${txn.id}</td>
-          <td>${txn.userName}<br><small style="color: #666;">${txn.email}</small></td>
+          <td>${user.name}<br><small style="color: #666;">${user.email}</small></td>
           <td>₹${txn.amount.toLocaleString()}</td>
           <td><span style="padding: 4px 8px; border-radius: 4px; background: ${
             txn.status === 'success' ? '#dcfce7; color: #166534' :
@@ -365,9 +402,10 @@ export default function PaymentsRevenue() {
             txn.status === 'failed' ? '#fee2e2; color: #991b1b' :
             '#f3f4f6; color: #374151'
           };">${txn.status}</span></td>
-          <td>${txn.method}</td>
-          <td>${txn.date}</td>
-        </tr>`).join('')}
+          <td>${txn.paymentMethod}</td>
+          <td>${formatDate(txn.createdAt)}</td>
+        </tr>`;
+        }).join('')}
       </tbody>
     </table>
   </div>`;
@@ -423,7 +461,9 @@ export default function PaymentsRevenue() {
       : transactions;
     
     txnsToExport.forEach(txn => {
-      csv += `${txn.id},"${txn.userName}",${txn.email},₹${txn.amount},${txn.status},"${txn.method}",${txn.date},"${txn.quizTitle}",${txn.gatewayTxnId}\n`;
+      const user = getTransactionUser(txn);
+      const quiz = getTransactionQuiz(txn);
+      csv += `${txn.id},"${user.name}",${user.email},₹${txn.amount},${txn.status},"${txn.paymentMethod}",${formatDate(txn.createdAt)},"${quiz.title}",${txn.gatewayTransactionId}\n`;
     });
     
     return csv;
@@ -481,7 +521,7 @@ export default function PaymentsRevenue() {
               </div>
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">₹{kpiData.totalRevenue.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue.toLocaleString()}</h3>
             <p className="text-sm text-gray-600 mt-1">Total Revenue</p>
           </div>
 
@@ -491,7 +531,7 @@ export default function PaymentsRevenue() {
                 <FileText className="w-5 h-5 text-purple-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{kpiData.totalTransactions.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{totalTransactions.toLocaleString()}</h3>
             <p className="text-sm text-gray-600 mt-1">Total Transactions</p>
           </div>
 
@@ -501,7 +541,7 @@ export default function PaymentsRevenue() {
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{kpiData.successfulPayments.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{stats.successfulTransactions.toLocaleString()}</h3>
             <p className="text-sm text-gray-600 mt-1">Successful Payments</p>
           </div>
 
@@ -511,7 +551,7 @@ export default function PaymentsRevenue() {
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{kpiData.pendingFailedPayments.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{(stats.pendingTransactions + stats.failedTransactions).toLocaleString()}</h3>
             <p className="text-sm text-gray-600 mt-1">Pending / Failed</p>
           </div>
         </div>
@@ -577,6 +617,19 @@ export default function PaymentsRevenue() {
                   />
                 </div>
               </div>
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  onClick={fetchTransactions}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                {error && (
+                  <p className="text-sm text-red-600">{error}</p>
+                )}
+              </div>
 
               {selectedTxns.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-3">
@@ -600,9 +653,10 @@ export default function PaymentsRevenue() {
                       <th className="px-4 py-3 text-left">
                         <input
                           type="checkbox"
-                          checked={selectedTxns.length === transactions.length}
+                          checked={transactions.length > 0 && selectedTxns.length === transactions.length}
                           onChange={toggleSelectAll}
                           className="w-4 h-4 rounded border-gray-300"
+                          disabled={loading || transactions.length === 0}
                         />
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Txn ID</th>
@@ -615,70 +669,130 @@ export default function PaymentsRevenue() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {transactions.map((txn) => (
-                      <tr key={txn.id} className="hover:bg-gray-50 transition">
-                        <td className="px-4 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedTxns.includes(txn.id)}
-                            onChange={() => toggleSelectTxn(txn.id)}
-                            className="w-4 h-4 rounded border-gray-300"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-mono text-gray-900">{txn.id}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{txn.userName}</p>
-                            <p className="text-xs text-gray-600">{txn.email}</p>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <Loader2 className="w-8 h-8 text-[#253A7B] animate-spin" />
+                            <p className="text-gray-600">Loading transactions...</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-semibold text-gray-900">₹{txn.amount.toLocaleString()}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                            txn.status === 'success' ? 'bg-green-100 text-green-700' :
-                            txn.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            txn.status === 'failed' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {txn.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-gray-700">{txn.method}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-gray-600">{txn.date}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleViewDetails(txn)}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4 text-gray-600" />
-                          </button>
+                      </tr>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <XCircle className="w-8 h-8 text-red-500" />
+                            <p className="text-red-600">{error}</p>
+                            <button
+                              onClick={fetchTransactions}
+                              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+                            >
+                              Retry
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : transactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                          No transactions found
+                        </td>
+                      </tr>
+                    ) : (
+                      transactions.map((txn) => {
+                        const user = getTransactionUser(txn);
+                        return (
+                          <tr key={txn.id} className="hover:bg-gray-50 transition">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedTxns.includes(txn.id)}
+                                onChange={() => toggleSelectTxn(txn.id)}
+                                className="w-4 h-4 rounded border-gray-300"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-mono text-gray-900">{txn.id}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                <p className="text-xs text-gray-600">{user.email}</p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-semibold text-gray-900">₹{txn.amount.toLocaleString()}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                                txn.status === 'success' ? 'bg-green-100 text-green-700' :
+                                txn.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                txn.status === 'failed' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {txn.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-700">{txn.paymentMethod}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-gray-600">{formatDate(txn.createdAt)}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => handleViewDetails(txn)}
+                                className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4 text-gray-600" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
 
               {/* Pagination */}
               <div className="border-t-2 border-gray-200 px-4 py-3 flex items-center justify-between">
-                <p className="text-sm text-gray-600">Showing 1-5 of 1,243 transactions</p>
+                <p className="text-sm text-gray-600">
+                  Showing {transactions.length > 0 ? ((currentPage - 1) * limit + 1) : 0}-{Math.min(currentPage * limit, totalTransactions)} of {totalTransactions.toLocaleString()} transactions
+                </p>
                 <div className="flex items-center gap-2">
-                  <button className="p-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className="p-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <button className="px-3 py-1.5 bg-[#253A7B] text-white rounded-lg font-medium text-sm">1</button>
-                  <button className="px-3 py-1.5 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition font-medium text-sm">2</button>
-                  <button className="px-3 py-1.5 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition font-medium text-sm">3</button>
-                  <button className="p-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button 
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={loading}
+                        className={`px-3 py-1.5 rounded-lg font-medium text-sm transition ${
+                          currentPage === pageNum 
+                            ? 'bg-[#253A7B] text-white' 
+                            : 'border-2 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  {totalPages > 5 && <span className="text-gray-500">...</span>}
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || loading}
+                    className="p-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
