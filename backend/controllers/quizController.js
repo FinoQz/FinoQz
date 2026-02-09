@@ -450,3 +450,144 @@ exports.generateQuestions = async (req, res) => {
     return res.status(500).json({ message: 'AI question generation failed' });
   }
 };
+
+// Get quiz preview (2-3 sample questions for paid quizzes)
+exports.getQuizPreview = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ message: 'Invalid quiz ID' });
+    }
+
+    const quiz = await Quiz.findById(quizId)
+      .select('quizTitle description duration totalMarks pricingType price difficultyLevel category')
+      .lean();
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    // Get first 3 questions for preview (without correct answers)
+    const Question = require('../models/Question');
+    const questions = await Question.find({ quizId })
+      .select('questionText options questionType marks')
+      .limit(3)
+      .lean();
+
+    // Remove correct answer information
+    const previewQuestions = questions.map(q => ({
+      text: q.questionText,
+      options: q.options || [],
+      type: q.questionType || 'mcq',
+      marks: q.marks
+    }));
+
+    return res.json({
+      data: {
+        quizId: quiz._id,
+        title: quiz.quizTitle,
+        description: quiz.description,
+        duration: quiz.duration,
+        totalMarks: quiz.totalMarks,
+        pricingType: quiz.pricingType,
+        price: quiz.price,
+        difficultyLevel: quiz.difficultyLevel,
+        category: quiz.category,
+        previewQuestions,
+        totalQuestions: await Question.countDocuments({ quizId }),
+        isPreview: true
+      }
+    });
+  } catch (err) {
+    console.error('Preview error:', err);
+    return res.status(500).json({ message: 'Failed to fetch quiz preview' });
+  }
+};
+
+// Get user's purchased/enrolled quizzes
+exports.getMyQuizzes = async (req, res) => {
+  try {
+    const userId = req.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Get purchased quizzes from transactions
+    const Transaction = require('../models/Transaction');
+    const purchasedTransactions = await Transaction.find({
+      userId,
+      status: 'success',
+      quizId: { $exists: true, $ne: null }
+    }).select('quizId').lean();
+
+    const purchasedQuizIds = purchasedTransactions
+      .map(t => t.quizId)
+      .filter(Boolean)
+      .map(id => String(id));
+
+    // Get quiz attempts to find enrolled/attempted quizzes
+    const QuizAttempt = require('../models/QuizAttempt');
+    const attempts = await QuizAttempt.find({ userId })
+      .select('quizId status totalScore percentage submittedAt attemptNumber')
+      .sort({ submittedAt: -1 })
+      .lean();
+
+    const attemptedQuizIds = [...new Set(attempts.map(a => String(a.quizId)))];
+    
+    // Combine all quiz IDs
+    const allQuizIds = [...new Set([...purchasedQuizIds, ...attemptedQuizIds])];
+
+    // Get quiz details
+    const quizzes = await Quiz.find({ _id: { $in: allQuizIds } })
+      .select('quizTitle description duration totalMarks pricingType price category difficultyLevel coverImage status')
+      .lean();
+
+    // Enrich with attempt information
+    const enrichedQuizzes = quizzes.map(quiz => {
+      const quizAttempts = attempts.filter(a => String(a.quizId) === String(quiz._id));
+      const isPurchased = purchasedQuizIds.includes(String(quiz._id));
+      
+      let attemptStatus = 'not-started';
+      let bestScore = null;
+      let latestAttempt = null;
+      
+      if (quizAttempts.length > 0) {
+        const completedAttempts = quizAttempts.filter(a => a.status === 'submitted');
+        if (completedAttempts.length > 0) {
+          attemptStatus = 'completed';
+          bestScore = Math.max(...completedAttempts.map(a => a.percentage || 0));
+          latestAttempt = completedAttempts[0];
+        } else {
+          const inProgressAttempt = quizAttempts.find(a => a.status === 'in_progress');
+          if (inProgressAttempt) {
+            attemptStatus = 'in-progress';
+          }
+        }
+      }
+
+      return {
+        ...quiz,
+        isPurchased,
+        attemptStatus,
+        bestScore,
+        totalAttempts: quizAttempts.length,
+        latestAttempt: latestAttempt ? {
+          score: latestAttempt.totalScore,
+          percentage: latestAttempt.percentage,
+          submittedAt: latestAttempt.submittedAt,
+          attemptNumber: latestAttempt.attemptNumber
+        } : null
+      };
+    });
+
+    return res.json({
+      data: enrichedQuizzes,
+      message: 'My quizzes fetched successfully'
+    });
+  } catch (err) {
+    console.error('Get my quizzes error:', err);
+    return res.status(500).json({ message: 'Failed to fetch your quizzes' });
+  }
+};
