@@ -334,8 +334,14 @@ module.exports = function (requiredRole = null) {
       const authHeader = req.headers.authorization || req.headers.Authorization;
       let token =
         (authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1]) ||
-        req.cookies?.adminToken ||
-        req.cookies?.userToken;
+        null;
+
+      if (!token) {
+        const wantsAdmin = requiredRole && requiredRole.toLowerCase() === 'admin';
+        token = wantsAdmin
+          ? (req.cookies?.adminToken || req.cookies?.userToken)
+          : (req.cookies?.userToken || req.cookies?.adminToken);
+      }
 
       if (!token) return res.status(401).json({ message: 'No token provided' });
 
@@ -349,7 +355,7 @@ module.exports = function (requiredRole = null) {
         return res.status(401).json({ message: err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token' });
       }
 
-      const userId = decoded._id || decoded.id;
+      const userId = decoded._id || decoded.id || decoded.userId;
       const redisKey = `session:${userId}`;
 
       // ✅ Check in-memory cache first

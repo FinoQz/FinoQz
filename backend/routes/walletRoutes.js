@@ -14,7 +14,7 @@ router.get('/balance', verifyToken(), getWalletBalance);
 
 // Add funds to wallet
 router.post('/add-funds',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.BODY]: Joi.object({
       amount: Joi.number().positive().required(),
@@ -27,7 +27,7 @@ router.post('/add-funds',
 
 // Deduct funds from wallet
 router.post('/deduct-funds',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.BODY]: Joi.object({
       amount: Joi.number().positive().required(),

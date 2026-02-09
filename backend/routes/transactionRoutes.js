@@ -1,5 +1,4 @@
 const express = require('express');
-const router = express.Router();
 const {
   initiatePayment,
   verifyPayment,
@@ -12,9 +11,11 @@ const { celebrate, Joi, Segments } = require('celebrate');
 const verifyToken = require('../middlewares/verifyToken');
 const requireAdmin = require('../middlewares/requireAdmin');
 
+const router = express.Router();
+
 // Initiate payment
 router.post('/initiate',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.BODY]: Joi.object({
       quizId: Joi.string().required(),
@@ -27,7 +28,7 @@ router.post('/initiate',
 
 // Verify payment
 router.post('/verify',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.BODY]: Joi.object({
       transactionId: Joi.string().required(),
@@ -46,8 +47,8 @@ router.get('/all', verifyToken(), requireAdmin, getAllTransactions);
 
 // Process refund (Admin only)
 router.post('/:transactionId/refund',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.PARAMS]: Joi.object({
       transactionId: Joi.string().required()

@@ -7,7 +7,10 @@ const Transaction = require('../models/Transaction');
  */
 const getWalletBalance = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'No user context found' });
+    }
 
     let wallet = await Wallet.findOne({ userId });
     
@@ -33,7 +36,10 @@ const getWalletBalance = async (req, res) => {
 const addFunds = async (req, res) => {
   try {
     const { amount, reason, referenceId } = req.body;
-    const userId = req.user._id;
+    const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'No user context found' });
+    }
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Invalid amount' });
@@ -75,7 +81,10 @@ const addFunds = async (req, res) => {
 const deductFunds = async (req, res) => {
   try {
     const { amount, reason, referenceId } = req.body;
-    const userId = req.user._id;
+    const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'No user context found' });
+    }
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Invalid amount' });
@@ -120,7 +129,10 @@ const deductFunds = async (req, res) => {
  */
 const getWalletTransactions = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'No user context found' });
+    }
     const { page = 1, limit = 20, type } = req.query;
 
     const wallet = await Wallet.findOne({ userId });

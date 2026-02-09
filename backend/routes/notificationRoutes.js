@@ -16,7 +16,7 @@ router.get('/', verifyToken(), getUserNotifications);
 
 // Mark notification as read
 router.patch('/:notificationId/read',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       notificationId: Joi.string().required()
@@ -30,8 +30,8 @@ router.patch('/read-all', verifyToken(), markAllAsRead);
 
 // Create notification (Admin only)
 router.post('/',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.BODY]: Joi.object({
       userId: Joi.string().required(),
@@ -46,7 +46,7 @@ router.post('/',
 
 // Delete notification
 router.delete('/:notificationId',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       notificationId: Joi.string().required()

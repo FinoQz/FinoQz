@@ -18,7 +18,7 @@ router.get('/posts', verifyToken(), getPosts);
 
 // Get single post by ID
 router.get('/posts/:postId',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       postId: Joi.string().required()
@@ -29,8 +29,8 @@ router.get('/posts/:postId',
 
 // Create new post (Admin only)
 router.post('/posts',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.BODY]: Joi.object({
       title: Joi.string().required().max(200),
@@ -46,8 +46,8 @@ router.post('/posts',
 
 // Update post (Admin only)
 router.put('/posts/:postId',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.PARAMS]: Joi.object({
       postId: Joi.string().required()
@@ -66,8 +66,8 @@ router.put('/posts/:postId',
 
 // Delete post (Admin only)
 router.delete('/posts/:postId',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.PARAMS]: Joi.object({
       postId: Joi.string().required()
@@ -78,8 +78,8 @@ router.delete('/posts/:postId',
 
 // Toggle pin status (Admin only)
 router.patch('/posts/:postId/pin',
-  verifyToken,
-  verifyAdmin,
+  verifyToken(),
+  requireAdmin,
   celebrate({
     [Segments.PARAMS]: Joi.object({
       postId: Joi.string().required()
@@ -90,7 +90,7 @@ router.patch('/posts/:postId/pin',
 
 // Like a post
 router.post('/posts/:postId/like',
-  verifyToken,
+  verifyToken(),
   celebrate({
     [Segments.PARAMS]: Joi.object({
       postId: Joi.string().required()

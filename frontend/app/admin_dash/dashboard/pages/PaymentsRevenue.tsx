@@ -57,6 +57,27 @@ type TransactionStats = {
   pendingTransactions: number;
 };
 
+type TransformedTransaction = {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string;
+  amount: number;
+  status: 'success' | 'pending' | 'failed' | 'refunded';
+  method: string;
+  date: string;
+  quizId: string;
+  quizTitle: string;
+  gatewayTxnId: string;
+  gatewayResponse: string;
+  refundHistory?: {
+    date: string;
+    amount: number;
+    reason: string;
+    adminUser: string;
+  }[];
+};
+
 type ApiResponse = {
   transactions: Transaction[];
   totalPages: number;
@@ -66,7 +87,9 @@ type ApiResponse = {
 };
 
 export default function PaymentsRevenue() {
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const formatNumber = (value?: number) => Number(value || 0).toLocaleString();
+  const formatCurrency = (value?: number) => `₹${formatNumber(value)}`;
+  const [selectedTransaction, setSelectedTransaction] = useState<TransformedTransaction | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -102,7 +125,7 @@ export default function PaymentsRevenue() {
       setLoading(true);
       setError(null);
 
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit,
       };
@@ -125,9 +148,12 @@ export default function PaymentsRevenue() {
       setStats(response.data.stats);
       setTotalPages(response.data.totalPages);
       setTotalTransactions(response.data.total);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching transactions:', err);
-      setError(err.response?.data?.message || 'Failed to fetch transactions');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to fetch transactions';
+      setError(errorMessage);
       setToast({ type: 'error', message: 'Failed to load transactions. Please try again.' });
     } finally {
       setLoading(false);
@@ -182,7 +208,7 @@ export default function PaymentsRevenue() {
   };
 
   const handleViewDetails = (txn: Transaction) => {
-    const transformedTxn = transformTransactionForModal(txn) as any;
+    const transformedTxn = transformTransactionForModal(txn);
     setSelectedTransaction(transformedTxn);
     setShowDetailModal(true);
   };
@@ -199,7 +225,7 @@ export default function PaymentsRevenue() {
     // In production, make API call here
     setToast({ 
       type: 'success', 
-      message: `Manual refund of ₹${amount.toLocaleString()} processed for ${txnId}` 
+      message: `Manual refund of ${formatCurrency(amount)} processed for ${txnId}` 
     });
   };
 
@@ -251,13 +277,13 @@ export default function PaymentsRevenue() {
       csv += `Generated: ${new Date().toLocaleString()}\n`;
       csv += `Period: ${config.dateFrom} to ${config.dateTo}\n\n`;
       csv += 'Metric,Value\n';
-      csv += `Total Revenue,₹${stats.totalRevenue.toLocaleString()}\n`;
+      csv += `Total Revenue,${formatCurrency(stats.totalRevenue)}\n`;
       csv += `Total Transactions,${totalTransactions}\n`;
       csv += `Successful Payments,${stats.successfulTransactions}\n`;
       csv += `Failed Payments,${stats.failedTransactions + stats.pendingTransactions}\n\n`;
       csv += 'Payment Method,Percentage,Amount\n';
       revenueBreakdown.forEach(item => {
-        csv += `${item.method},${item.percentage}%,₹${item.amount.toLocaleString()}\n`;
+        csv += `${item.method},${item.percentage}%,${formatCurrency(item.amount)}\n`;
       });
     } else if (config.reportType === 'detailed') {
       csv = 'Transaction ID,User,Email,Amount,Status,Method,Date,Quiz\n';
@@ -266,7 +292,7 @@ export default function PaymentsRevenue() {
         if (!config.includeRefunds && txn.status === 'refunded') return;
         const user = getTransactionUser(txn);
         const quiz = getTransactionQuiz(txn);
-        csv += `${txn.id},"${user.name}",${user.email},₹${txn.amount},${txn.status},${txn.paymentMethod},${formatDate(txn.createdAt)},"${quiz.title}"\n`;
+        csv += `${txn.id},"${user.name}",${user.email},${formatCurrency(txn.amount)},${txn.status},${txn.paymentMethod},${formatDate(txn.createdAt)},"${quiz.title}"\n`;
       });
     } else if (config.reportType === 'refunds') {
       csv = 'Transaction ID,User,Amount,Refund Date,Reason,Processed By\n';
@@ -274,20 +300,20 @@ export default function PaymentsRevenue() {
         const refund = txn.refundHistory?.[0];
         if (refund) {
           const user = getTransactionUser(txn);
-          csv += `${txn.id},"${user.name}",₹${refund.amount},${refund.date},"${refund.reason}",${refund.adminUser}\n`;
+          csv += `${txn.id},"${user.name}",${formatCurrency(refund.amount)},${refund.date},"${refund.reason}",${refund.adminUser}\n`;
         }
       });
     } else if (config.reportType === 'gateway') {
       csv = 'Payment Method,Transaction Count,Total Amount,Success Rate\n';
       revenueBreakdown.forEach(item => {
         const txnCount = Math.floor(item.percentage * 12);
-        csv += `${item.method},${txnCount},₹${item.amount.toLocaleString()},${Math.floor(90 + Math.random() * 10)}%\n`;
+        csv += `${item.method},${txnCount},${formatCurrency(item.amount)},${Math.floor(90 + Math.random() * 10)}%\n`;
       });
     } else {
       csv = 'User ID,User Name,Email,Total Spent,Transaction Count,Last Payment\n';
       transactions.slice(0, 5).forEach(txn => {
         const user = getTransactionUser(txn);
-        csv += `${txn.userId?._id || 'N/A'},"${user.name}",${user.email},₹${txn.amount},1,${formatDate(txn.createdAt)}\n`;
+        csv += `${txn.userId?._id || 'N/A'},"${user.name}",${user.email},${formatCurrency(txn.amount)},1,${formatDate(txn.createdAt)}\n`;
       });
     }
     
@@ -332,7 +358,7 @@ export default function PaymentsRevenue() {
   <div class="section">
     <h2>Revenue Overview</h2>
     <div class="summary-card">
-      <h3>₹${stats.totalRevenue.toLocaleString()}</h3>
+      <h3>${formatCurrency(stats.totalRevenue)}</h3>
       <p>Total Revenue</p>
     </div>
     <div class="summary-card">
@@ -364,7 +390,7 @@ export default function PaymentsRevenue() {
         <tr>
           <td>${item.method}</td>
           <td>${item.percentage}%</td>
-          <td>₹${item.amount.toLocaleString()}</td>
+          <td>${formatCurrency(item.amount)}</td>
         </tr>`).join('')}
       </tbody>
     </table>
@@ -395,7 +421,7 @@ export default function PaymentsRevenue() {
         <tr>
           <td>${txn.id}</td>
           <td>${user.name}<br><small style="color: #666;">${user.email}</small></td>
-          <td>₹${txn.amount.toLocaleString()}</td>
+          <td>${formatCurrency(txn.amount)}</td>
           <td><span style="padding: 4px 8px; border-radius: 4px; background: ${
             txn.status === 'success' ? '#dcfce7; color: #166534' :
             txn.status === 'pending' ? '#fef3c7; color: #854d0e' :
@@ -474,7 +500,7 @@ export default function PaymentsRevenue() {
     console.log('Payout request:', { amount, accountDetails });
     setToast({ 
       type: 'success', 
-      message: `Payout request of ₹${amount.toLocaleString()} submitted successfully! You'll receive confirmation within 2-3 business days.` 
+      message: `Payout request of ${formatCurrency(amount)} submitted successfully! You'll receive confirmation within 2-3 business days.` 
     });
   };
 
@@ -521,7 +547,7 @@ export default function PaymentsRevenue() {
               </div>
               <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">₹{stats.totalRevenue.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</h3>
             <p className="text-sm text-gray-600 mt-1">Total Revenue</p>
           </div>
 
@@ -531,7 +557,7 @@ export default function PaymentsRevenue() {
                 <FileText className="w-5 h-5 text-purple-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{totalTransactions.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totalTransactions)}</h3>
             <p className="text-sm text-gray-600 mt-1">Total Transactions</p>
           </div>
 
@@ -541,7 +567,7 @@ export default function PaymentsRevenue() {
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{stats.successfulTransactions.toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(stats.successfulTransactions)}</h3>
             <p className="text-sm text-gray-600 mt-1">Successful Payments</p>
           </div>
 
@@ -551,7 +577,7 @@ export default function PaymentsRevenue() {
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{(stats.pendingTransactions + stats.failedTransactions).toLocaleString()}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(stats.pendingTransactions + stats.failedTransactions)}</h3>
             <p className="text-sm text-gray-600 mt-1">Pending / Failed</p>
           </div>
         </div>
@@ -722,7 +748,7 @@ export default function PaymentsRevenue() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="text-sm font-semibold text-gray-900">₹{txn.amount.toLocaleString()}</span>
+                              <span className="text-sm font-semibold text-gray-900">{formatCurrency(txn.amount)}</span>
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
@@ -760,7 +786,7 @@ export default function PaymentsRevenue() {
               {/* Pagination */}
               <div className="border-t-2 border-gray-200 px-4 py-3 flex items-center justify-between">
                 <p className="text-sm text-gray-600">
-                  Showing {transactions.length > 0 ? ((currentPage - 1) * limit + 1) : 0}-{Math.min(currentPage * limit, totalTransactions)} of {totalTransactions.toLocaleString()} transactions
+                  Showing {transactions.length > 0 ? ((currentPage - 1) * limit + 1) : 0}-{Math.min(currentPage * limit, totalTransactions)} of {formatNumber(totalTransactions)} transactions
                 </p>
                 <div className="flex items-center gap-2">
                   <button 
@@ -835,7 +861,7 @@ export default function PaymentsRevenue() {
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full bg-[#253A7B]" style={{ width: `${item.percentage}%` }} />
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">₹{item.amount.toLocaleString()}</p>
+                    <p className="text-xs text-gray-600 mt-1">{formatCurrency(item.amount)}</p>
                   </div>
                 ))}
               </div>

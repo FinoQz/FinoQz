@@ -1,7 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
-const { logger } = require('./logger');
+const logger = require('./logger');
 const redis = require('./redis');
 const { emitLiveUserStats } = require('./emmiters');
 

@@ -171,11 +171,27 @@ const getAllTransactions = async (req, res) => {
 
     // Add date range filter
     if (dateRange) {
-      const [startDate, endDate] = dateRange.split(',');
-      query.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
+      const trimmedRange = String(dateRange).trim();
+      let startDate;
+      let endDate;
+
+      if (/^\d+$/.test(trimmedRange)) {
+        const days = Number(trimmedRange);
+        endDate = new Date();
+        startDate = new Date();
+        startDate.setDate(endDate.getDate() - days);
+      } else {
+        const [startRaw, endRaw] = trimmedRange.split(',');
+        startDate = new Date(startRaw);
+        endDate = new Date(endRaw);
+      }
+
+      if (!Number.isNaN(startDate?.valueOf()) && !Number.isNaN(endDate?.valueOf())) {
+        query.createdAt = {
+          $gte: startDate,
+          $lte: endDate
+        };
+      }
     }
 
     const transactions = await Transaction.find(query)
