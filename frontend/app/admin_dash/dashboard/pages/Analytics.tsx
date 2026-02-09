@@ -49,33 +49,11 @@ export default function Analytics() {
   const [error, setError] = useState<string | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [userGrowthData, setUserGrowthData] = useState<TransformedUserGrowthData[]>([]);
+  const [attemptsData, setAttemptsData] = useState<Array<{ day: string; attempts: number }>>([]);
+  const [topCategories, setTopCategories] = useState<Array<{ name: string; count: number }>>([]);
+  const [topQuizzes, setTopQuizzes] = useState<Array<{ id: string; title: string; attempts: number }>>([]);
 
-  // Placeholder data for components not yet connected to backend
-  const attemptsData = [
-    { day: 'Mon', attempts: 420 },
-    { day: 'Tue', attempts: 385 },
-    { day: 'Wed', attempts: 510 },
-    { day: 'Thu', attempts: 475 },
-    { day: 'Fri', attempts: 560 },
-    { day: 'Sat', attempts: 680 },
-    { day: 'Sun', attempts: 590 }
-  ];
-
-  const topCategories = [
-    { name: 'Personal Finance', count: 3542 },
-    { name: 'Accounting', count: 2876 },
-    { name: 'Stock Market', count: 2341 },
-    { name: 'Taxation', count: 1987 }
-  ];
-
-  const topQuizzes = [
-    { id: '1', title: 'Financial Management Basics', attempts: 1543 },
-    { id: '2', title: 'Stock Market Analysis', attempts: 1287 },
-    { id: '3', title: 'Advanced Accounting Principles', attempts: 1098 },
-    { id: '4', title: 'Taxation Fundamentals', attempts: 945 },
-    { id: '5', title: 'Investment Strategies', attempts: 823 }
-  ];
-
+  // Keep hourly engagement and recent events as placeholder for now
   const hourlyEngagement = [
     { hour: '12A', engagement: 45 },
     { hour: '1A', engagement: 32 },
@@ -141,10 +119,12 @@ export default function Analytics() {
         setLoading(true);
         setError(null);
 
-        // Fetch dashboard stats and user growth data in parallel
-        const [statsResponse, growthResponse] = await Promise.all([
+        // Fetch all analytics data in parallel
+        const [statsResponse, growthResponse, quizStatsResponse, categoryResponse] = await Promise.all([
           api.get<DashboardStats>('/analytics/dashboard-stats'),
-          api.get<UserGrowthData[]>(`/analytics/user-growth?dateRange=${dateRange}`)
+          api.get<UserGrowthData[]>(`/analytics/user-growth?dateRange=${dateRange}`),
+          api.get('/analytics/quiz-stats'),
+          api.get('/analytics/category-performance')
         ]);
 
         setDashboardStats(statsResponse.data);
@@ -158,6 +138,28 @@ export default function Analytics() {
         }));
         
         setUserGrowthData(transformedGrowthData);
+
+        // Transform quiz stats for top quizzes
+        const quizStats = quizStatsResponse.data || [];
+        const transformedQuizzes = quizStats.slice(0, 5).map((quiz: any) => ({
+          id: quiz.quizId,
+          title: quiz.quizTitle,
+          attempts: quiz.totalAttempts
+        }));
+        setTopQuizzes(transformedQuizzes);
+
+        // TODO: Create dedicated backend endpoint for daily attempts breakdown
+        // For now, using empty array until real endpoint is available
+        setAttemptsData([]);
+
+        // Transform category performance
+        const categoryStats = categoryResponse.data || [];
+        const transformedCategories = categoryStats.map((cat: any) => ({
+          name: cat.category || 'Uncategorized',
+          count: cat.totalAttempts
+        }));
+        setTopCategories(transformedCategories);
+
       } catch (err: unknown) {
         console.error('Failed to fetch analytics data:', err);
         const errorMessage = (err instanceof Error && 'response' in err 

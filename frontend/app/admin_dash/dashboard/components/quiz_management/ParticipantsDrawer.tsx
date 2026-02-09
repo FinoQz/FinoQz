@@ -190,6 +190,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                   selectedParticipants={selectedParticipants}
                   onSelectionChange={setSelectedParticipants}
                   onViewAttempt={handleViewAttempt}
+                  quizId={quizData._id}
                 />
               </>
             ) : (

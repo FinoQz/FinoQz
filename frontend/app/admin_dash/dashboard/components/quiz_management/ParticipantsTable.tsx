@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Mail, CreditCard, RefreshCw, Award, ArrowUpDown } from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface Participant {
   id: string;
@@ -10,7 +11,7 @@ interface Participant {
   phone: string;
   registrationDate: string;
   paymentStatus: 'paid' | 'unpaid' | 'pending';
-  attemptStatus: 'submitted' | 'in-progress' | 'not-attempted';
+  attemptStatus: 'submitted' | 'in_progress' | 'not-attempted';
   score: number | null;
   timeTaken: string | null;
 }
@@ -19,84 +20,98 @@ interface ParticipantsTableProps {
   selectedParticipants: string[];
   onSelectionChange: (selected: string[]) => void;
   onViewAttempt: (attemptData: Participant) => void;
+  quizId?: string; // Add quizId prop to fetch data
 }
 
 export default function ParticipantsTable({
   selectedParticipants,
   onSelectionChange,
-  onViewAttempt
+  onViewAttempt,
+  quizId
 }: ParticipantsTableProps) {
   const [sortField, setSortField] = useState<keyof Participant>('registrationDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const participants: Participant[] = [
-    {
-      id: '1',
-      name: 'Rahul Sharma',
-      email: 'rahul.sharma@email.com',
-      phone: '+91 98765 43210',
-      registrationDate: '2025-01-15',
-      paymentStatus: 'paid',
-      attemptStatus: 'submitted',
-      score: 85,
-      timeTaken: '42 min'
-    },
-    {
-      id: '2',
-      name: 'Priya Patel',
-      email: 'priya.patel@email.com',
-      phone: '+91 87654 32109',
-      registrationDate: '2025-01-14',
-      paymentStatus: 'paid',
-      attemptStatus: 'submitted',
-      score: 92,
-      timeTaken: '38 min'
-    },
-    {
-      id: '3',
-      name: 'Amit Kumar',
-      email: 'amit.kumar@email.com',
-      phone: '+91 76543 21098',
-      registrationDate: '2025-01-14',
-      paymentStatus: 'pending',
-      attemptStatus: 'in-progress',
-      score: null,
-      timeTaken: null
-    },
-    {
-      id: '4',
-      name: 'Sneha Singh',
-      email: 'sneha.singh@email.com',
-      phone: '+91 65432 10987',
-      registrationDate: '2025-01-13',
-      paymentStatus: 'paid',
-      attemptStatus: 'submitted',
-      score: 78,
-      timeTaken: '45 min'
-    },
-    {
-      id: '5',
-      name: 'Vikram Reddy',
-      email: 'vikram.reddy@email.com',
-      phone: '+91 54321 09876',
-      registrationDate: '2025-01-13',
-      paymentStatus: 'unpaid',
-      attemptStatus: 'not-attempted',
-      score: null,
-      timeTaken: null
-    },
-    {
-      id: '6',
-      name: 'Anjali Verma',
-      email: 'anjali.verma@email.com',
-      phone: '+91 43210 98765',
-      registrationDate: '2025-01-12',
-      paymentStatus: 'paid',
-      attemptStatus: 'submitted',
-      score: 88,
-      timeTaken: '40 min'
+  // Fetch participants when quizId is provided
+  useEffect(() => {
+    if (!quizId) {
+      // Use dummy data if no quizId provided (for backward compatibility)
+      setParticipants([
+        {
+          id: '1',
+          name: 'Rahul Sharma',
+          email: 'rahul.sharma@email.com',
+          phone: '+91 98765 43210',
+          registrationDate: '2025-01-15',
+          paymentStatus: 'paid',
+          attemptStatus: 'submitted',
+          score: 85,
+          timeTaken: '42 min'
+        },
+        {
+          id: '2',
+          name: 'Priya Patel',
+          email: 'priya.patel@email.com',
+          phone: '+91 87654 32109',
+          registrationDate: '2025-01-14',
+          paymentStatus: 'paid',
+          attemptStatus: 'submitted',
+          score: 92,
+          timeTaken: '38 min'
+        },
+        {
+          id: '3',
+          name: 'Amit Kumar',
+          email: 'amit.kumar@email.com',
+          phone: '+91 76543 21098',
+          registrationDate: '2025-01-14',
+          paymentStatus: 'pending',
+          attemptStatus: 'in-progress',
+          score: null,
+          timeTaken: null
+        }
+      ]);
+      return;
     }
-  ];
+
+    const fetchParticipants = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        
+        const response = await apiAdmin.get(`/api/quiz-attempts/quiz/${quizId}`);
+        const attempts = response.data.attempts || [];
+        
+        // Transform backend data to match Participant interface
+        const transformedParticipants: Participant[] = attempts.map((attempt: any) => ({
+          id: attempt._id,
+          name: attempt.userId?.fullName || 'Unknown User',
+          email: attempt.userId?.email || 'N/A',
+          phone: attempt.userId?.phone || 'N/A',
+          registrationDate: new Date(attempt.startedAt).toLocaleDateString('en-US'),
+          // TODO: Fetch actual payment status from transactions API
+          // For now defaulting to 'paid' - should be fetched from Transaction model
+          paymentStatus: 'paid' as const,
+          attemptStatus: attempt.status || 'not-attempted',
+          score: attempt.totalScore,
+          timeTaken: attempt.timeTaken ? `${Math.floor(attempt.timeTaken / 60)} min` : null
+        }));
+        
+        setParticipants(transformedParticipants);
+      } catch (err: any) {
+        console.error('Error fetching participants:', err);
+        setError(err.response?.data?.message || 'Failed to load participants');
+        setParticipants([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchParticipants();
+  }, [quizId]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -156,7 +171,28 @@ export default function ParticipantsTable({
         <p className="text-sm text-gray-600 mt-1">{participants.length} total registrations</p>
       </div>
 
-      <div className="overflow-x-auto">
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading participants...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-red-600">{error}</p>
+          </div>
+        </div>
+      ) : participants.length === 0 ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-gray-600 mb-2">No participants found</p>
+            <p className="text-sm text-gray-500">Participants will appear here once users enroll</p>
+          </div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -291,6 +327,7 @@ export default function ParticipantsTable({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }
