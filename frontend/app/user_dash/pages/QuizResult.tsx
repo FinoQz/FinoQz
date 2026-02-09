@@ -51,13 +51,9 @@ export default function QuizResult() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'summary' | 'detailed'>('summary');
 
-  useEffect(() => {
-    if (attemptId) {
-      fetchResult();
-    }
-  }, [attemptId]);
-
-  const fetchResult = async () => {
+  const fetchResult = React.useCallback(async () => {
+    if (!attemptId) return;
+    
     setLoading(true);
     setError('');
     try {
@@ -68,7 +64,11 @@ export default function QuizResult() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [attemptId]);
+
+  useEffect(() => {
+    fetchResult();
+  }, [fetchResult]);
 
   const handleRetake = () => {
     // Navigate to quiz attempt page
