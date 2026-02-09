@@ -6,7 +6,8 @@ const {
   submitAttempt,
   getAttemptDetails,
   getUserAttempts,
-  getAttemptsByQuiz
+  getAttemptsByQuiz,
+  getAttemptResult
 } = require('../controllers/quizAttemptController');
 const { celebrate, Joi, Segments } = require('celebrate');
 
@@ -61,6 +62,17 @@ router.get('/:attemptId',
     })
   }),
   getAttemptDetails
+);
+
+// Get detailed result for an attempt
+router.get('/:attemptId/result',
+  verifyToken(),
+  celebrate({
+    [Segments.PARAMS]: Joi.object({
+      attemptId: Joi.string().required()
+    })
+  }),
+  getAttemptResult
 );
 
 // Get user's all attempts

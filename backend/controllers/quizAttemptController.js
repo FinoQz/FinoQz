@@ -359,5 +359,112 @@ module.exports = {
   submitAttempt,
   getAttemptDetails,
   getUserAttempts,
-  getAttemptsByQuiz
+  getAttemptsByQuiz,
+  getAttemptResult
+};
+
+/**
+ * Get detailed result for a quiz attempt
+ * @route GET /api/quiz-attempts/:attemptId/result
+ */
+const getAttemptResult = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user._id;
+
+    const attempt = await QuizAttempt.findById(attemptId)
+      .populate('quizId', 'quizTitle attemptLimit')
+      .lean();
+
+    if (!attempt) {
+      return res.status(404).json({ message: 'Attempt not found' });
+    }
+
+    // Verify user owns this attempt
+    if (attempt.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Get questions with correct answers and explanations
+    const questionIds = attempt.answers.map(a => a.questionId);
+    const questions = await Question.find({ _id: { $in: questionIds } })
+      .select('questionText options correctAnswer explanation marks')
+      .lean();
+
+    // Create a map for quick lookup
+    const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+
+    // Enrich answers with question details
+    const enrichedAnswers = attempt.answers.map(answer => {
+      const question = questionMap.get(answer.questionId.toString());
+      if (!question) return null;
+
+      return {
+        questionId: answer.questionId,
+        questionText: question.questionText,
+        selectedAnswer: answer.selectedAnswer,
+        correctAnswer: question.correctAnswer,
+        isCorrect: answer.isCorrect,
+        marksAwarded: answer.marksAwarded,
+        marksAllocated: question.marks,
+        timeSpent: answer.timeSpent || 0,
+        options: question.options,
+        explanation: question.explanation
+      };
+    }).filter(Boolean);
+
+    // Calculate pass percentage (default 50%)
+    const passPercentage = 50;
+    const passed = attempt.percentage >= passPercentage;
+
+    // Check for certificate
+    let certificateId = null;
+    if (passed && attempt.certificateIssued) {
+      const certificate = await Certificate.findOne({
+        attemptId: attempt._id
+      }).select('_id').lean();
+      if (certificate) {
+        certificateId = certificate._id;
+      }
+    }
+
+    // Count correct and incorrect
+    const correctAnswers = enrichedAnswers.filter(a => a.isCorrect).length;
+    const incorrectAnswers = enrichedAnswers.filter(a => !a.isCorrect).length;
+    const totalQuestions = enrichedAnswers.length;
+
+    // Check if retake is allowed
+    const quiz = attempt.quizId;
+    const allowRetake = quiz.attemptLimit === 'unlimited' || 
+                        attempt.attemptNumber < parseInt(quiz.attemptLimit || '1');
+
+    const result = {
+      attemptId: attempt._id,
+      quizTitle: quiz.quizTitle,
+      totalScore: attempt.totalScore,
+      totalMarks: quiz.totalMarks || enrichedAnswers.reduce((sum, a) => sum + a.marksAllocated, 0),
+      percentage: attempt.percentage,
+      timeTaken: attempt.timeTaken,
+      totalQuestions,
+      correctAnswers,
+      incorrectAnswers,
+      unanswered: 0, // All questions are answered in submit
+      passed,
+      passPercentage,
+      attemptNumber: attempt.attemptNumber,
+      submittedAt: attempt.submittedAt,
+      answers: enrichedAnswers,
+      allowRetake,
+      certificateEligible: passed,
+      certificateId
+    };
+
+    res.json({
+      data: result,
+      message: 'Result fetched successfully'
+    });
+  } catch (error) {
+    console.error('Get attempt result error:', error);
+    res.status(500).json({ message: 'Failed to fetch result' });
+  }
 };
