@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, IndianRupee, Users } from 'lucide-react';
+import { Clock, IndianRupee, Users, Edit2, Trash2, Copy } from 'lucide-react';
 
 interface Quiz {
   _id: string;
@@ -17,10 +17,20 @@ interface Quiz {
 interface QuizCardProps {
   quiz: Quiz;
   onViewParticipants?: (quizId: string) => void;
-  onEnroll?: (quizId: string) => void; // ✅ new prop
+  onEnroll?: (quizId: string) => void;
+  onEdit?: (quiz: Quiz) => void;
+  onDelete?: (quiz: Quiz) => void;
+  onDuplicate?: (quizId: string) => void;
 }
 
-export default function QuizCard({ quiz, onViewParticipants, onEnroll }: QuizCardProps) {
+export default function QuizCard({ 
+  quiz, 
+  onViewParticipants, 
+  onEnroll,
+  onEdit,
+  onDelete,
+  onDuplicate
+}: QuizCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', { 
@@ -75,21 +85,50 @@ export default function QuizCard({ quiz, onViewParticipants, onEnroll }: QuizCar
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => onViewParticipants?.(quiz._id)}
-            className="flex items-center gap-2 text-[#253A7B] hover:text-[#1a2a5e] transition text-sm font-medium"
-          >
-            <Users className="w-4 h-4" />
-            Participants
-          </button>
+        <div className="flex flex-wrap gap-2">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(quiz)}
+              className="flex items-center gap-1 px-3 py-1.5 text-[#253A7B] hover:bg-[#253A7B]/10 rounded-lg transition text-sm font-medium"
+              title="Edit quiz"
+            >
+              <Edit2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => onEnroll?.(quiz._id)}
-            className="text-sm text-green-600 hover:text-green-800 font-medium"
-          >
-            Enroll
-          </button>
+          {onDuplicate && (
+            <button
+              onClick={() => onDuplicate(quiz._id)}
+              className="flex items-center gap-1 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm font-medium"
+              title="Duplicate quiz"
+            >
+              <Copy className="w-4 h-4" />
+              <span className="hidden sm:inline">Duplicate</span>
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              onClick={() => onDelete(quiz)}
+              className="flex items-center gap-1 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition text-sm font-medium"
+              title="Delete quiz"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </button>
+          )}
+
+          {onViewParticipants && (
+            <button
+              onClick={() => onViewParticipants(quiz._id)}
+              className="flex items-center gap-1 px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition text-sm font-medium"
+              title="View participants"
+            >
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Participants</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
