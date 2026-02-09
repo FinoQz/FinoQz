@@ -160,9 +160,9 @@ export default function Analytics() {
         setUserGrowthData(transformedGrowthData);
       } catch (err: unknown) {
         console.error('Failed to fetch analytics data:', err);
-        const errorMessage = err instanceof Error && 'response' in err 
-          ? (err as any).response?.data?.message 
-          : 'Failed to load analytics data';
+        const errorMessage = (err instanceof Error && 'response' in err 
+          ? (err as Error & { response?: { data?: { message?: string } } }).response?.data?.message 
+          : undefined) || 'Failed to load analytics data';
         setError(errorMessage);
         setToast({ type: 'error', message: 'Failed to load analytics data' });
       } finally {

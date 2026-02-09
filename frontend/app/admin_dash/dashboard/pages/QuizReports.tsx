@@ -105,8 +105,8 @@ export default function QuizReports() {
     totalScore: number;
     percentage: number;
     timeTaken: string;
-    status: string;
-    type: string;
+    status: 'Passed' | 'Failed';
+    type: 'Free' | 'Paid';
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,19 +150,22 @@ export default function QuizReports() {
         const data: AttemptsResponse = await response.json();
         
         // Transform backend data to match UI format
-        const transformedAttempts = data.attempts.map((attempt: QuizAttempt) => ({
-          id: attempt._id,
-          userName: attempt.userId?.name || 'Unknown User',
-          email: attempt.userId?.email || '',
-          quizTitle: attempt.quizId?.title || 'Unknown Quiz',
-          attemptDate: formatDateTime(attempt.submittedAt || attempt.startedAt),
-          score: attempt.totalScore,
-          totalScore: attempt.quizId?.totalMarks || 50,
-          percentage: Math.round(attempt.percentage),
-          timeTaken: formatTimeTaken(attempt.timeTaken),
-          status: getStatusLabel(attempt.status, attempt.percentage),
-          type: attempt.quizId?.type || 'Free'
-        }));
+        const transformedAttempts = data.attempts.map((attempt: QuizAttempt) => {
+          const statusLabel = getStatusLabel(attempt.status, attempt.percentage);
+          return {
+            id: attempt._id,
+            userName: attempt.userId?.name || 'Unknown User',
+            email: attempt.userId?.email || '',
+            quizTitle: attempt.quizId?.title || 'Unknown Quiz',
+            attemptDate: formatDateTime(attempt.submittedAt || attempt.startedAt),
+            score: attempt.totalScore,
+            totalScore: attempt.quizId?.totalMarks || 50,
+            percentage: Math.round(attempt.percentage),
+            timeTaken: formatTimeTaken(attempt.timeTaken),
+            status: (statusLabel === 'Passed' || statusLabel === 'Failed') ? statusLabel : 'Failed' as 'Passed' | 'Failed',
+            type: (attempt.quizId?.type || 'Free') as 'Free' | 'Paid'
+          };
+        });
         
         setAttempts(transformedAttempts);
         setStats(data.stats);

@@ -52,7 +52,7 @@ export default function CommunityPosts() {
     setError('');
     
     try {
-      const params: any = {
+      const params: Record<string, string | number> = {
         page: currentPage,
         limit: 10
       };
@@ -74,9 +74,10 @@ export default function CommunityPosts() {
       setPosts(response.data.posts);
       setTotalPages(response.data.totalPages);
       setTotal(response.data.total);
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
       console.error('Failed to fetch posts:', err);
-      setError(err.response?.data?.message || 'Failed to load posts');
+      setError(error.response?.data?.message || 'Failed to load posts');
       setPosts([]);
     } finally {
       setLoading(false);
@@ -105,8 +106,9 @@ export default function CommunityPosts() {
       setActionStatus('Post deleted successfully');
       setTimeout(() => setActionStatus(''), 3000);
       fetchPosts();
-    } catch (err: any) {
-      setActionStatus(err.response?.data?.message || 'Failed to delete post');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setActionStatus(error.response?.data?.message || 'Failed to delete post');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
@@ -117,8 +119,9 @@ export default function CommunityPosts() {
       setActionStatus('Post pin status updated');
       setTimeout(() => setActionStatus(''), 3000);
       fetchPosts();
-    } catch (err: any) {
-      setActionStatus(err.response?.data?.message || 'Failed to update pin status');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setActionStatus(error.response?.data?.message || 'Failed to update pin status');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
@@ -129,8 +132,9 @@ export default function CommunityPosts() {
       setActionStatus('Post approved and published');
       setTimeout(() => setActionStatus(''), 3000);
       fetchPosts();
-    } catch (err: any) {
-      setActionStatus(err.response?.data?.message || 'Failed to approve post');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setActionStatus(error.response?.data?.message || 'Failed to approve post');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
@@ -141,8 +145,9 @@ export default function CommunityPosts() {
       setActionStatus('Post rejected and removed');
       setTimeout(() => setActionStatus(''), 3000);
       fetchPosts();
-    } catch (err: any) {
-      setActionStatus(err.response?.data?.message || 'Failed to reject post');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setActionStatus(error.response?.data?.message || 'Failed to reject post');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
