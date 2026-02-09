@@ -40,9 +40,11 @@ export default function Dashboard() {
           walletBalance: walletRes.data?.balance || 0,
           certificates: certificatesRes.data?.length || 0,
         });
-      } catch (err: any) {
-        console.error('Error fetching dashboard data:', err);
-        setError(err.response?.data?.message || 'Failed to load dashboard data. Please try again.');
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error('Error fetching dashboard data:', error);
+        const message = err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data ? String(err.response.data.message) : 'Failed to load dashboard data. Please try again.';
+        setError(message);
       } finally {
         setLoading(false);
       }
