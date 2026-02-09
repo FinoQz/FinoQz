@@ -9,6 +9,8 @@ import QuizCard from '../components/quiz_management/QuizCard';
 import StatusMessage from '../components/quiz_management/StatusMessage';
 import CreateQuizForm from '../components/quiz_management/CreateQuizForm';
 import ParticipantsDrawer from '../components/quiz_management/ParticipantsDrawer';
+import EditQuizModal from '../components/quiz_management/EditQuizModal';
+import DeleteConfirmDialog from '../components/quiz_management/DeleteConfirmDialog';
 
 interface Quiz {
   _id: string;
@@ -17,8 +19,14 @@ interface Quiz {
   createdAt: string;
   duration: number;
   price: number;
+  pricingType: 'free' | 'paid';
   status: 'published' | 'draft';
   participantCount?: number;
+  totalMarks?: number;
+  attemptLimit?: string;
+  difficultyLevel?: string;
+  category?: string;
+  visibility?: string;
 }
 
 interface ApiResponse {
@@ -39,6 +47,10 @@ export default function QuizManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showParticipantsDrawer, setShowParticipantsDrawer] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [quizToEdit, setQuizToEdit] = useState<Quiz | null>(null);
+  const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -93,6 +105,69 @@ export default function QuizManagement() {
       setSelectedQuiz(quiz);
       setShowParticipantsDrawer(true);
     }
+  };
+
+  const handleEdit = (quiz: Quiz) => {
+    setQuizToEdit(quiz);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = (quiz: Quiz) => {
+    setQuizToDelete(quiz);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDuplicate = async (quizId: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      // First, get the quiz details
+      const getRes = await apiAdmin.get(`${QUIZZES_API}/${quizId}`);
+      const originalQuiz = getRes.data.data;
+      
+      // Create a copy with modified title
+      const duplicateData = {
+        ...originalQuiz,
+        quizTitle: `${originalQuiz.quizTitle} (Copy)`,
+        status: 'draft',
+        saveAsDraft: true
+      };
+      
+      // Remove fields that shouldn't be duplicated
+      delete duplicateData._id;
+      delete duplicateData.createdAt;
+      delete duplicateData.updatedAt;
+      delete duplicateData.participantCount;
+      
+      const res = await apiAdmin.post(QUIZZES_API, duplicateData);
+      if (res.status >= 200 && res.status < 300) {
+        setActionStatus('Quiz duplicated successfully!');
+        setTimeout(() => setActionStatus(''), 3000);
+        await fetchQuizzes();
+      } else {
+        setError(res.data?.message || 'Failed to duplicate quiz');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to duplicate quiz');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSuccess = async () => {
+    setActionStatus('Quiz updated successfully!');
+    setTimeout(() => setActionStatus(''), 3000);
+    setShowEditModal(false);
+    setQuizToEdit(null);
+    await fetchQuizzes();
+  };
+
+  const handleDeleteSuccess = async () => {
+    setActionStatus('Quiz deleted successfully!');
+    setTimeout(() => setActionStatus(''), 3000);
+    setShowDeleteDialog(false);
+    setQuizToDelete(null);
+    await fetchQuizzes();
   };
 
   const handleEnroll = async (quizId: string) => {
@@ -173,7 +248,9 @@ export default function QuizManagement() {
                 key={quiz._id}
                 quiz={quiz}
                 onViewParticipants={handleViewParticipants}
-                onEnroll={() => handleEnroll(quiz._id)}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
               />
             ))}
           </div>
@@ -227,6 +304,28 @@ export default function QuizManagement() {
           isOpen={showParticipantsDrawer}
           onClose={() => setShowParticipantsDrawer(false)}
           quizData={selectedQuiz}
+        />
+      )}
+
+      {showEditModal && quizToEdit && (
+        <EditQuizModal
+          quiz={quizToEdit}
+          onClose={() => {
+            setShowEditModal(false);
+            setQuizToEdit(null);
+          }}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {showDeleteDialog && quizToDelete && (
+        <DeleteConfirmDialog
+          quiz={quizToDelete}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setQuizToDelete(null);
+          }}
+          onSuccess={handleDeleteSuccess}
         />
       )}
     </div>
