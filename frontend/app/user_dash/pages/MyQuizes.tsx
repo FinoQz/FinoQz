@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
 import FilterTabs from '../components/myquizes/FilterTabs';
 import QuizCard, { QuizData } from '../components/myquizes/QuizCard';
@@ -9,6 +9,7 @@ import ResultModal from '../components/myquizes/ResultModal';
 import RetakeConfirmationModal from '../components/myquizes/RetakeConfirmationModal';
 import StartQuizConfirmationModal from '../components/myquizes/StartQuizConfirmationModal';
 import UserQuizAttempt from '../components/UserQuizAttempt';
+import apiUser from '@/lib/apiUser';
 
 export default function MyQuizes() {
   const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'free' | 'attempted'>('all');
@@ -28,83 +29,54 @@ export default function MyQuizes() {
     flaggedQuestions: string[];
   }>>({});
 
-  // Sample quiz data
-  const allQuizzes: QuizData[] = [
-    {
-      id: 1,
-      title: 'Personal Finance Mastery',
-      category: 'Personal Finance',
-      price: 0,
-      duration: 45,
-      questions: 30,
-      isPaid: false,
-      isAttempted: true,
-      score: 25,
-      totalQuestions: 30,
-      lastAttempted: 'Jan 20, 2025',
-      progress: 100,
-    },
-    {
-      id: 2,
-      title: 'Accounting Fundamentals',
-      category: 'Accounting Basics',
-      price: 149,
-      duration: 60,
-      questions: 40,
-      isPaid: true,
-      isAttempted: true,
-      score: 32,
-      totalQuestions: 40,
-      lastAttempted: 'Jan 18, 2025',
-      progress: 100,
-    },
-    {
-      id: 3,
-      title: 'Stock Market Analysis',
-      category: 'Stock Market',
-      price: 199,
-      duration: 90,
-      questions: 50,
-      isPaid: true,
-      isAttempted: true,
-      progress: 45,
-      lastAttempted: 'Jan 22, 2025',
-    },
-    {
-      id: 4,
-      title: 'Tax Planning Basics',
-      category: 'Taxation',
-      price: 0,
-      duration: 30,
-      questions: 25,
-      isPaid: false,
-      isAttempted: false,
-    },
-    {
-      id: 5,
-      title: 'Corporate Finance Essentials',
-      category: 'Corporate Finance',
-      price: 249,
-      duration: 75,
-      questions: 45,
-      isPaid: true,
-      isAttempted: false,
-    },
-    {
-      id: 6,
-      title: 'Investment Strategies',
-      category: 'Stock Market',
-      price: 0,
-      duration: 40,
-      questions: 35,
-      isPaid: false,
-      isAttempted: true,
-      score: 28,
-      totalQuestions: 35,
-      lastAttempted: 'Jan 15, 2025',
-      progress: 100,
-    },
-  ];
+  // Real API data
+  const [allQuizzes, setAllQuizzes] = useState<QuizData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch user's quizzes from API
+  useEffect(() => {
+    const fetchMyQuizzes = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        
+        const response = await apiUser.get('/api/my-quizzes');
+        const quizzesData = response.data.data || [];
+        
+        // Transform backend data to match frontend QuizData interface
+        const transformedQuizzes: QuizData[] = quizzesData.map((quiz: any) => ({
+          id: quiz._id,
+          title: quiz.quizTitle,
+          category: quiz.category,
+          price: quiz.price || 0,
+          duration: quiz.duration,
+          questions: quiz.totalMarks || 0, // Using totalMarks as proxy for question count
+          isPaid: quiz.pricingType === 'paid' && quiz.price > 0,
+          isAttempted: quiz.attemptStatus !== 'not-started',
+          score: quiz.latestAttempt?.score,
+          totalQuestions: quiz.totalMarks || 0,
+          lastAttempted: quiz.latestAttempt?.submittedAt 
+            ? new Date(quiz.latestAttempt.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : undefined,
+          progress: quiz.attemptStatus === 'completed' ? 100 : 
+                   quiz.attemptStatus === 'in-progress' ? 50 : 0,
+          bestScore: quiz.bestScore,
+          totalAttempts: quiz.totalAttempts || 0
+        }));
+        
+        setAllQuizzes(transformedQuizzes);
+      } catch (err: any) {
+        console.error('Error fetching my quizzes:', err);
+        setError(err.response?.data?.message || 'Failed to load your quizzes');
+        setAllQuizzes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyQuizzes();
+  }, []);
 
   // Filter quizzes based on active tab and search
   const filteredQuizzes = useMemo(() => {
@@ -244,6 +216,47 @@ export default function MyQuizes() {
     // Navigate to explore quizes page
     console.log('Navigate to explore');
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">My Quizes</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">View and manage your quizzes</p>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your quizzes...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">My Quizes</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">View and manage your quizzes</p>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
