@@ -124,8 +124,9 @@ export default function Quizes() {
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     } else if (sortBy === 'popular') {
-      // Sort by participant count or total marks as a proxy for popularity
-      filtered = [...filtered].sort((a, b) => (b.totalMarks || 0) - (a.totalMarks || 0));
+      // TODO: Add participantCount field from backend to properly sort by popularity
+      // For now, just keep the original order (which is already sorted by latest from backend)
+      filtered = [...filtered];
     }
 
     return filtered;
@@ -178,24 +179,18 @@ export default function Quizes() {
       
       const transaction = response.data;
       
-      // For now, we'll simulate successful payment
-      // In production, this would integrate with Razorpay/payment gateway
-      const verifyResponse = await apiUser.post('/api/transactions/verify', {
-        transactionId: transaction._id,
-        gatewayTransactionId: 'simulated_' + Date.now(),
-        gatewayResponse: { status: 'success' }
-      });
+      // TODO: Integrate with actual payment gateway (Razorpay/Stripe)
+      // For now, show message that payment integration is pending
+      handleClosePaymentModal();
+      alert(`Payment gateway integration pending. Transaction ID: ${transaction._id || 'N/A'}`);
       
-      if (verifyResponse.data.status === 'success') {
-        // Update local state to mark quiz as purchased
-        setPurchasedQuizIds(prev => new Set([...prev, selectedQuizToBuy._id]));
-        setQuizzes(prev => prev.map(q => 
-          q._id === selectedQuizToBuy._id ? { ...q, isPurchased: true } : q
-        ));
-        
-        handleClosePaymentModal();
-        alert(`Payment successful! You can now access ${selectedQuizToBuy.quizTitle}`);
-      }
+      // Note: Once payment gateway is integrated, verify payment here
+      // const verifyResponse = await apiUser.post('/api/transactions/verify', {
+      //   transactionId: transaction._id,
+      //   gatewayTransactionId: gatewayResponse.razorpay_payment_id,
+      //   gatewayResponse: gatewayResponse
+      // });
+      
     } catch (err: any) {
       console.error('Payment error:', err);
       alert(err.response?.data?.message || 'Payment failed. Please try again.');

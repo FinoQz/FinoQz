@@ -92,7 +92,9 @@ export default function ParticipantsTable({
           email: attempt.userId?.email || 'N/A',
           phone: attempt.userId?.phone || 'N/A',
           registrationDate: new Date(attempt.startedAt).toLocaleDateString('en-US'),
-          paymentStatus: 'paid' as const, // Would need to check transactions for actual status
+          // TODO: Fetch actual payment status from transactions API
+          // For now defaulting to 'paid' - should be fetched from Transaction model
+          paymentStatus: 'paid' as const,
           attemptStatus: attempt.status || 'not-attempted',
           score: attempt.totalScore,
           timeTaken: attempt.timeTaken ? `${Math.floor(attempt.timeTaken / 60)} min` : null

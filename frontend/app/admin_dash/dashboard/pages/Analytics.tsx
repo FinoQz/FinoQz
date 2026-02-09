@@ -148,24 +148,9 @@ export default function Analytics() {
         }));
         setTopQuizzes(transformedQuizzes);
 
-        // Get attempts data for last 7 days from quiz stats
-        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const today = new Date();
-        const attemptsPerDay = Array(7).fill(0);
-        
-        // Sum up total attempts - this is a simplified version
-        // In production, you'd want a dedicated endpoint for daily attempts
-        const totalAttempts = quizStats.reduce((sum: number, quiz: any) => sum + (quiz.totalAttempts || 0), 0);
-        const avgPerDay = Math.floor(totalAttempts / 30); // Rough estimate
-        
-        const transformedAttempts = Array(7).fill(0).map((_, i) => {
-          const dayIndex = (today.getDay() - 6 + i + 7) % 7;
-          return {
-            day: daysOfWeek[dayIndex],
-            attempts: Math.floor(avgPerDay * (0.8 + Math.random() * 0.4)) // Add some variation
-          };
-        });
-        setAttemptsData(transformedAttempts);
+        // TODO: Create dedicated backend endpoint for daily attempts breakdown
+        // For now, using empty array until real endpoint is available
+        setAttemptsData([]);
 
         // Transform category performance
         const categoryStats = categoryResponse.data || [];
