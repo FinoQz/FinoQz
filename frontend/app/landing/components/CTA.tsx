@@ -48,7 +48,7 @@ export default function CTA() {
           <Button
             size="lg"
             className="bg-[#253A7B] text-white hover:bg-[#1e2a78] transition duration-300 font-semibold"
-            onClick={() => router.push("/user_dash")}
+            onClick={() => router.push("/landing/auth/user_signup/signup")}
           >
             Start Free Today
           </Button>
@@ -56,7 +56,7 @@ export default function CTA() {
             size="lg"
             variant="outline"
             className="border border-[#253A7B] text-[#253A7B] hover:bg-[#253A7B] hover:text-white transition duration-300 font-semibold"
-            onClick={() => router.push("/landing/verify")}
+            onClick={() => router.push("/landing/auth/user_login/login")}
           >
             Login
           </Button>

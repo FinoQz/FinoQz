@@ -1,58 +1,15 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   getUserNotifications,
-  markAsRead,
-  markAllAsRead,
-  createNotification,
-  deleteNotification
+  markAllAsRead
 } = require('../controllers/notificationController');
-const { celebrate, Joi, Segments } = require('celebrate');
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
 
-// Get user notifications
-router.get('/', verifyToken(), getUserNotifications);
+// TODO: replace with your actual auth middleware paths
+const auth = require('../middlewares/authMiddleware');
 
-// Mark notification as read
-router.patch('/:notificationId/read',
-  verifyToken(),
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      notificationId: Joi.string().required()
-    })
-  }),
-  markAsRead
-);
-
-// Mark all notifications as read
-router.patch('/read-all', verifyToken(), markAllAsRead);
-
-// Create notification (Admin only)
-router.post('/',
-  verifyToken(),
-  requireAdmin,
-  celebrate({
-    [Segments.BODY]: Joi.object({
-      userId: Joi.string().required(),
-      type: Joi.string().valid('quiz_assigned', 'approval', 'certificate', 'payment', 'system').required(),
-      title: Joi.string().required(),
-      message: Joi.string().required(),
-      metadata: Joi.object().optional()
-    })
-  }),
-  createNotification
-);
-
-// Delete notification
-router.delete('/:notificationId',
-  verifyToken(),
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      notificationId: Joi.string().required()
-    })
-  }),
-  deleteNotification
-);
+router.get('/', auth, getUserNotifications);
+router.patch('/read-all', auth, markAllAsRead);
 
 module.exports = router;

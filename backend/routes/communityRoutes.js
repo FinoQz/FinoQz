@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+
 const {
   createPost,
   updatePost,
@@ -7,96 +8,44 @@ const {
   getPosts,
   getPostById,
   togglePin,
-  likePost
+  likePost,
+  getPostLikes,
+  sharePost,
+  featurePost,
+  flagPost
 } = require('../controllers/communityController');
-const { celebrate, Joi, Segments } = require('celebrate');
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
 
-// Get all posts (public - authenticated users)
-router.get('/posts', verifyToken(), getPosts);
+const {
+  addComment,
+  getComments,
+  deleteComment,
+  likeComment
+} = require('../controllers/commentController');
 
-// Get single post by ID
-router.get('/posts/:postId',
-  verifyToken(),
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      postId: Joi.string().required()
-    })
-  }),
-  getPostById
-);
+// TODO: replace with your actual auth middleware paths
+const auth = require('../middlewares/authMiddleware');
+const admin = require('../middlewares/adminAuth');
 
-// Create new post (Admin only)
-router.post('/posts',
-  verifyToken(),
-  requireAdmin,
-  celebrate({
-    [Segments.BODY]: Joi.object({
-      title: Joi.string().required().max(200),
-      content: Joi.string().required(),
-      category: Joi.string().valid('Announcements', 'Tips', 'Updates', 'General').optional(),
-      status: Joi.string().valid('draft', 'published', 'archived').optional(),
-      isPinned: Joi.boolean().optional(),
-      tags: Joi.array().items(Joi.string()).optional()
-    })
-  }),
-  createPost
-);
+// Public
+router.get('/posts', getPosts);
+router.get('/posts/:postId', getPostById);
+router.get('/comments/:postId', getComments);
 
-// Update post (Admin only)
-router.put('/posts/:postId',
-  verifyToken(),
-  requireAdmin,
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      postId: Joi.string().required()
-    }),
-    [Segments.BODY]: Joi.object({
-      title: Joi.string().max(200).optional(),
-      content: Joi.string().optional(),
-      category: Joi.string().valid('Announcements', 'Tips', 'Updates', 'General').optional(),
-      status: Joi.string().valid('draft', 'published', 'archived').optional(),
-      isPinned: Joi.boolean().optional(),
-      tags: Joi.array().items(Joi.string()).optional()
-    })
-  }),
-  updatePost
-);
+// User
+router.post('/posts', auth, createPost);
+router.put('/posts/:postId', auth, updatePost);
+router.delete('/posts/:postId', auth, deletePost);
+router.post('/posts/:postId/like', auth, likePost);
+router.get('/posts/:postId/likes', auth, getPostLikes);
+router.post('/posts/:postId/share', auth, sharePost);
+router.post('/posts/:postId/flag', auth, flagPost);
 
-// Delete post (Admin only)
-router.delete('/posts/:postId',
-  verifyToken(),
-  requireAdmin,
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      postId: Joi.string().required()
-    })
-  }),
-  deletePost
-);
+router.post('/comments', auth, addComment);
+router.delete('/comments/:commentId', auth, deleteComment);
+router.post('/comments/:commentId/like', auth, likeComment);
 
-// Toggle pin status (Admin only)
-router.patch('/posts/:postId/pin',
-  verifyToken(),
-  requireAdmin,
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      postId: Joi.string().required()
-    })
-  }),
-  togglePin
-);
-
-// Like a post
-router.post('/posts/:postId/like',
-  verifyToken(),
-  celebrate({
-    [Segments.PARAMS]: Joi.object({
-      postId: Joi.string().required()
-    })
-  }),
-  likePost
-);
+// Admin
+router.patch('/posts/:postId/pin', auth, admin, togglePin);
+router.patch('/posts/:postId/feature', auth, admin, featurePost);
 
 module.exports = router;

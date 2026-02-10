@@ -1,5 +1,6 @@
 const CommunityPost = require('../models/CommunityPost');
 const Comment = require('../models/Comment');
+const Notification = require('../models/Notification');
 
 /**
  * Create a new community post
@@ -9,6 +10,7 @@ const createPost = async (req, res) => {
   try {
     const { title, content, category, status, isPinned, tags } = req.body;
     const authorId = req.user._id;
+    const authorModel = req.user.role === 'admin' || req.user.role === 'moderator' ? 'Admin' : 'User';
 
     if (!title || !content) {
       return res.status(400).json({ message: 'Title and content are required' });
@@ -18,6 +20,7 @@ const createPost = async (req, res) => {
       title,
       content,
       author: authorId,
+      authorModel,
       category: category || 'General',
       status: status || 'draft',
       isPinned: isPinned || false,
@@ -44,21 +47,23 @@ const createPost = async (req, res) => {
 const updatePost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { title, content, category, status, isPinned, tags } = req.body;
-    const authorId = req.user._id;
+    const { title, content, category, status, isPinned, tags, featuredOnLanding } = req.body;
 
-    const post = await CommunityPost.findOne({ _id: postId, author: authorId });
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'moderator';
+    const query = isAdmin ? { _id: postId } : { _id: postId, author: req.user._id };
+
+    const post = await CommunityPost.findOne(query);
     
     if (!post) {
       return res.status(404).json({ message: 'Post not found or unauthorized' });
     }
 
-    // Update fields
     if (title) post.title = title;
     if (content) post.content = content;
     if (category) post.category = category;
     if (status) post.status = status;
     if (typeof isPinned === 'boolean') post.isPinned = isPinned;
+    if (typeof featuredOnLanding === 'boolean') post.featuredOnLanding = featuredOnLanding;
     if (tags) post.tags = tags;
 
     await post.save();
@@ -83,15 +88,16 @@ const updatePost = async (req, res) => {
 const deletePost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const authorId = req.user._id;
 
-    const post = await CommunityPost.findOneAndDelete({ _id: postId, author: authorId });
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'moderator';
+    const query = isAdmin ? { _id: postId } : { _id: postId, author: req.user._id };
+
+    const post = await CommunityPost.findOneAndDelete(query);
     
     if (!post) {
       return res.status(404).json({ message: 'Post not found or unauthorized' });
     }
 
-    // Delete all comments associated with this post
     await Comment.deleteMany({ postId });
 
     res.json({ message: 'Post deleted successfully' });
@@ -107,18 +113,12 @@ const deletePost = async (req, res) => {
  */
 const getPosts = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, category, search } = req.query;
+    const { page = 1, limit = 10, status, category, search, featured } = req.query;
 
     const query = {};
-    
-    if (status) {
-      query.status = status;
-    }
-    
-    if (category) {
-      query.category = category;
-    }
-    
+    if (status) query.status = status;
+    if (category) query.category = category;
+    if (featured === 'true') query.featuredOnLanding = true;
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -127,7 +127,7 @@ const getPosts = async (req, res) => {
     }
 
     const posts = await CommunityPost.find(query)
-      .populate('author', 'fullName email')
+      .populate('author', 'fullName email profilePicture')
       .sort({ isPinned: -1, createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -161,7 +161,6 @@ const getPostById = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // Increment views
     post.views += 1;
     await post.save();
 
@@ -200,12 +199,13 @@ const togglePin = async (req, res) => {
 };
 
 /**
- * Like a post
+ * Like or unlike a post
  * @route POST /api/community/posts/:postId/like
  */
 const likePost = async (req, res) => {
   try {
     const { postId } = req.params;
+    const userId = req.user._id;
 
     const post = await CommunityPost.findById(postId);
     
@@ -213,16 +213,135 @@ const likePost = async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    post.likes += 1;
+    const alreadyLiked = post.likes.users.some((u) => u.toString() === userId.toString());
+    if (alreadyLiked) {
+      post.likes.users = post.likes.users.filter((u) => u.toString() !== userId.toString());
+      post.likes.count = Math.max(0, post.likes.count - 1);
+    } else {
+      post.likes.users.push(userId);
+      post.likes.count += 1;
+
+      if (post.authorModel === 'User' && post.author.toString() !== userId.toString()) {
+        await Notification.create({
+          userId: post.author,
+          actorId: userId,
+          type: 'like',
+          postId: post._id
+        });
+      }
+    }
+
     await post.save();
 
     res.json({
-      message: 'Post liked successfully',
-      likes: post.likes
+      message: 'Post like toggled successfully',
+      likes: post.likes.count,
+      liked: !alreadyLiked
     });
   } catch (error) {
     console.error('Like post error:', error);
     res.status(500).json({ message: 'Failed to like post' });
+  }
+};
+
+/**
+ * Get users who liked a post
+ * @route GET /api/community/posts/:postId/likes
+ */
+const getPostLikes = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await CommunityPost.findById(postId)
+      .populate('likes.users', 'fullName email profilePicture');
+
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    res.json({ users: post.likes.users, count: post.likes.count });
+  } catch (error) {
+    console.error('Get post likes error:', error);
+    res.status(500).json({ message: 'Failed to fetch likes' });
+  }
+};
+
+/**
+ * Share a post
+ * @route POST /api/community/posts/:postId/share
+ */
+const sharePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+
+    const post = await CommunityPost.findById(postId);
+    
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    post.shares += 1;
+    await post.save();
+
+    if (post.authorModel === 'User' && post.author.toString() !== userId.toString()) {
+      await Notification.create({
+        userId: post.author,
+        actorId: userId,
+        type: 'share',
+        postId: post._id
+      });
+    }
+
+    res.json({ message: 'Post shared', shares: post.shares });
+  } catch (error) {
+    console.error('Share post error:', error);
+    res.status(500).json({ message: 'Failed to share post' });
+  }
+};
+
+/**
+ * Feature/unfeature post on landing
+ * @route PATCH /api/community/posts/:postId/feature
+ */
+const featurePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const post = await CommunityPost.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    post.featuredOnLanding = !post.featuredOnLanding;
+    await post.save();
+
+    res.json({ message: 'Feature toggled', featuredOnLanding: post.featuredOnLanding });
+  } catch (error) {
+    console.error('Feature post error:', error);
+    res.status(500).json({ message: 'Failed to feature post' });
+  }
+};
+
+/**
+ * Flag a post
+ * @route POST /api/community/posts/:postId/flag
+ */
+const flagPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user._id;
+
+    const post = await CommunityPost.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    post.flags.push({ userId, reason });
+    post.status = 'flagged';
+    await post.save();
+
+    res.json({ message: 'Post flagged' });
+  } catch (error) {
+    console.error('Flag post error:', error);
+    res.status(500).json({ message: 'Failed to flag post' });
   }
 };
 
@@ -233,5 +352,9 @@ module.exports = {
   getPosts,
   getPostById,
   togglePin,
-  likePost
+  likePost,
+  getPostLikes,
+  sharePost,
+  featurePost,
+  flagPost
 };

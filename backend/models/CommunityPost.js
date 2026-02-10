@@ -13,18 +13,23 @@ const communityPostSchema = new mongoose.Schema({
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin',
+    refPath: 'authorModel',
+    required: true
+  },
+  authorModel: {
+    type: String,
+    enum: ['Admin', 'User'],
     required: true
   },
   category: {
     type: String,
-    enum: ['Announcements', 'Tips', 'Updates', 'General'],
+    enum: ['Announcements', 'Tips', 'Updates', 'General', 'Discussions', 'Q&A'],
     default: 'General',
     index: true
   },
   status: {
     type: String,
-    enum: ['draft', 'published', 'archived'],
+    enum: ['draft', 'published', 'archived', 'flagged'],
     default: 'draft',
     index: true
   },
@@ -33,7 +38,20 @@ const communityPostSchema = new mongoose.Schema({
     default: false,
     index: true
   },
+  featuredOnLanding: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  allowComments: {
+    type: Boolean,
+    default: true
+  },
   likes: {
+    count: { type: Number, default: 0 },
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  },
+  shares: {
     type: Number,
     default: 0
   },
@@ -41,6 +59,15 @@ const communityPostSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  commentsCount: {
+    type: Number,
+    default: 0
+  },
+  flags: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    reason: { type: String, trim: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
   tags: [{
     type: String,
     trim: true
@@ -50,5 +77,6 @@ const communityPostSchema = new mongoose.Schema({
 // Compound indexes for performance
 communityPostSchema.index({ status: 1, isPinned: -1, createdAt: -1 });
 communityPostSchema.index({ category: 1, status: 1, createdAt: -1 });
+communityPostSchema.index({ featuredOnLanding: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('CommunityPost', communityPostSchema);

@@ -122,6 +122,7 @@ app.use('/api/certificates', require('./routes/certificateRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 // ✅ Celebrate validation errors
 app.use(errors());

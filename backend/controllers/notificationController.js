@@ -10,7 +10,7 @@ const getUserNotifications = async (req, res) => {
     const { page = 1, limit = 20, isRead } = req.query;
 
     const query = { userId };
-    
+
     if (isRead !== undefined) {
       query.isRead = isRead === 'true';
     }
@@ -46,7 +46,7 @@ const markAsRead = async (req, res) => {
     const userId = req.user._id;
 
     const notification = await Notification.findOne({ _id: notificationId, userId });
-    
+
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
@@ -81,10 +81,7 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
-/**
- * Create a notification (system/admin use)
- * @route POST /api/notifications
- */
+
 const createNotification = async (req, res) => {
   try {
     const { userId, type, title, message, metadata } = req.body;
@@ -117,20 +114,17 @@ const createNotification = async (req, res) => {
   }
 };
 
-/**
- * Delete a notification
- * @route DELETE /api/notifications/:notificationId
- */
+
 const deleteNotification = async (req, res) => {
   try {
     const { notificationId } = req.params;
     const userId = req.user._id;
 
-    const notification = await Notification.findOneAndDelete({ 
-      _id: notificationId, 
-      userId 
+    const notification = await Notification.findOneAndDelete({
+      _id: notificationId,
+      userId
     });
-    
+
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
@@ -142,10 +136,27 @@ const deleteNotification = async (req, res) => {
   }
 };
 
+
+const getNotificationsWithDetails = async (req, res) => {
+  try {
+    const notifications = await Notification.find({ userId: req.user._id })
+      .populate('actorId', 'fullName profilePicture')
+      .populate('postId', 'title')
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({ notifications });
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ message: 'Failed to fetch notifications' });
+  }
+};
+
 module.exports = {
   getUserNotifications,
   markAsRead,
   markAllAsRead,
   createNotification,
-  deleteNotification
+  deleteNotification,
+  getNotificationsWithDetails
 };

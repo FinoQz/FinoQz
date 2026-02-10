@@ -1,5 +1,6 @@
 const Comment = require('../models/Comment');
 const CommunityPost = require('../models/CommunityPost');
+const Notification = require('../models/Notification');
 
 /**
  * Add a comment to a post
@@ -14,13 +15,11 @@ const addComment = async (req, res) => {
       return res.status(400).json({ message: 'Post ID and content are required' });
     }
 
-    // Verify post exists
     const post = await CommunityPost.findById(postId);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // If replying to a comment, verify parent exists
     if (parentCommentId) {
       const parentComment = await Comment.findById(parentCommentId);
       if (!parentComment) {
@@ -34,6 +33,19 @@ const addComment = async (req, res) => {
       content,
       parentCommentId: parentCommentId || null
     });
+
+    post.commentsCount += 1;
+    await post.save();
+
+    if (post.authorModel === 'User' && post.author.toString() !== userId.toString()) {
+      await Notification.create({
+        userId: post.author,
+        actorId: userId,
+        type: parentCommentId ? 'reply' : 'comment',
+        postId: post._id,
+        commentId: comment._id
+      });
+    }
 
     const populatedComment = await Comment.findById(comment._id)
       .populate('userId', 'fullName email profilePicture');
@@ -57,7 +69,6 @@ const getComments = async (req, res) => {
     const { postId } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
-    // Get top-level comments (no parent)
     const comments = await Comment.find({ 
       postId, 
       parentCommentId: null,
@@ -68,7 +79,6 @@ const getComments = async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
-    // Get replies for each comment
     const commentsWithReplies = await Promise.all(
       comments.map(async (comment) => {
         const replies = await Comment.find({
@@ -121,7 +131,6 @@ const deleteComment = async (req, res) => {
       return res.status(404).json({ message: 'Comment not found or unauthorized' });
     }
 
-    // Soft delete
     comment.isDeleted = true;
     await comment.save();
 
@@ -133,12 +142,13 @@ const deleteComment = async (req, res) => {
 };
 
 /**
- * Like a comment
+ * Like or unlike a comment
  * @route POST /api/community/comments/:commentId/like
  */
 const likeComment = async (req, res) => {
   try {
     const { commentId } = req.params;
+    const userId = req.user._id;
 
     const comment = await Comment.findById(commentId);
     
@@ -146,12 +156,30 @@ const likeComment = async (req, res) => {
       return res.status(404).json({ message: 'Comment not found' });
     }
 
-    comment.likes += 1;
+    const alreadyLiked = comment.likes.users.some((u) => u.toString() === userId.toString());
+    if (alreadyLiked) {
+      comment.likes.users = comment.likes.users.filter((u) => u.toString() !== userId.toString());
+      comment.likes.count = Math.max(0, comment.likes.count - 1);
+    } else {
+      comment.likes.users.push(userId);
+      comment.likes.count += 1;
+
+      if (comment.userId.toString() !== userId.toString()) {
+        await Notification.create({
+          userId: comment.userId,
+          actorId: userId,
+          type: 'like',
+          commentId: comment._id
+        });
+      }
+    }
+
     await comment.save();
 
     res.json({
-      message: 'Comment liked successfully',
-      likes: comment.likes
+      message: 'Comment like toggled successfully',
+      likes: comment.likes.count,
+      liked: !alreadyLiked
     });
   } catch (error) {
     console.error('Like comment error:', error);
