@@ -8,6 +8,9 @@
 // - basic input checks and numeric normalizations
 
 const Quiz = require('../models/Quiz');
+const Question = require('../models/Question');
+const Transaction = require('../models/Transaction');
+const QuizAttempt = require('../models/QuizAttempt');
 const cloudinary = require('../utils/cloudinary');
 const mongoose = require('mongoose');
 const generatorService = require('../services/generatorService');
@@ -418,12 +421,50 @@ exports.enroll = async (req, res) => {
       if (!canAccess) return res.status(403).json({ message: 'Access denied' });
     }
 
+    const existingPurchase = await Transaction.findOne({
+      userId: req.userId,
+      quizId: id,
+      status: 'success'
+    });
+
+    const existingAttempt = await QuizAttempt.findOne({
+      userId: req.userId,
+      quizId: id
+    }).lean();
+
+    if (!existingPurchase && !existingAttempt && quiz.pricingType === 'paid') {
+      return res.status(400).json({ message: 'Payment required to enroll' });
+    }
+
+    let purchaseForEnroll = existingPurchase;
+    if (!purchaseForEnroll && quiz.pricingType === 'free') {
+      purchaseForEnroll = await Transaction.create({
+        userId: req.userId,
+        quizId: id,
+        amount: 0,
+        paymentMethod: 'offline',
+        status: 'success',
+        completedAt: new Date(),
+        metadata: { kind: 'free_enroll' }
+      });
+    }
+
+    const alreadyEnrolled = Boolean(existingAttempt) || Boolean(purchaseForEnroll?.metadata?.enrolled);
+    if (alreadyEnrolled) {
+      return res.json({ message: 'Already enrolled', participantCount: quiz.participantCount || 0 });
+    }
+
     const updated = await Quiz.findByIdAndUpdate(
       id,
       { $inc: { participantCount: 1 } },
       { new: true }
     );
     if (!updated) return res.status(404).json({ message: "Quiz not found" });
+
+    if (purchaseForEnroll) {
+      purchaseForEnroll.metadata = { ...(purchaseForEnroll.metadata || {}), enrolled: true };
+      await purchaseForEnroll.save();
+    }
     return res.json({ message: "Enrolled", participantCount: updated.participantCount });
   } catch (err) {
     console.error("❌ enroll error:", err);
@@ -461,25 +502,46 @@ exports.getQuizPreview = async (req, res) => {
     }
 
     const quiz = await Quiz.findById(quizId)
-      .select('quizTitle description duration totalMarks pricingType price difficultyLevel category')
+      .select('quizTitle description duration totalMarks pricingType price difficultyLevel category questions')
       .lean();
 
     if (!quiz) {
       return res.status(404).json({ message: 'Quiz not found' });
     }
 
-    // Get first 3 questions for preview (without correct answers)
-    const Question = require('../models/Question');
-    const questions = await Question.find({ quizId })
-      .select('questionText options questionType marks')
-      .limit(3)
-      .lean();
+    let questionIds = Array.isArray(quiz.questions) ? quiz.questions.map(String) : [];
+
+    let questions = questionIds.length > 0
+      ? await Question.find({ _id: { $in: questionIds } })
+          .select('text options type marks')
+          .lean()
+      : [];
+
+    if (questionIds.length === 0) {
+      questions = await Question.find({ quizId })
+        .select('text options type marks')
+        .lean();
+      questionIds = questions.map(q => String(q._id));
+      if (questionIds.length > 0) {
+        await Quiz.updateOne(
+          { _id: quizId },
+          { $addToSet: { questions: { $each: questionIds } } }
+        );
+      }
+    }
+
+    const questionMap = new Map(questions.map(q => [String(q._id), q]));
+    const orderedQuestions = questionIds
+      .map(id => questionMap.get(id))
+      .filter(Boolean)
+      .slice(0, 3);
 
     // Remove correct answer information
-    const previewQuestions = questions.map(q => ({
-      text: q.questionText,
+    const previewQuestions = orderedQuestions.map(q => ({
+      id: String(q._id),
+      text: q.text,
       options: q.options || [],
-      type: q.questionType || 'mcq',
+      type: q.type || 'mcq',
       marks: q.marks
     }));
 
@@ -495,13 +557,103 @@ exports.getQuizPreview = async (req, res) => {
         difficultyLevel: quiz.difficultyLevel,
         category: quiz.category,
         previewQuestions,
-        totalQuestions: await Question.countDocuments({ quizId }),
+        totalQuestions: questionIds.length,
         isPreview: true
       }
     });
   } catch (err) {
     console.error('Preview error:', err);
     return res.status(500).json({ message: 'Failed to fetch quiz preview' });
+  }
+};
+
+// Get full quiz questions for attempt
+exports.getQuizQuestions = async (req, res) => {
+  try {
+    const user = await ensureActiveUser(req, res);
+    if (!user) return;
+
+    const quizId = req.params.quizId || req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ message: 'Invalid quiz ID' });
+    }
+
+    const quiz = await Quiz.findById(quizId)
+      .select('status startAt endAt visibility assignedGroups questions shuffleQuestions numberOfQuestions')
+      .lean();
+
+    if (!quiz || quiz.status !== 'published') {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    const now = new Date();
+    if (quiz.startAt && quiz.startAt > now) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+    if (quiz.endAt && quiz.endAt < now) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    if (quiz.visibility === 'private') {
+      const userGroupTokens = await getUserGroupTokens(req.userId);
+      const assigned = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
+      const canAccess = assigned.some(g => userGroupTokens.includes(String(g)));
+      if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+    }
+
+    let questionIds = Array.isArray(quiz.questions) ? quiz.questions.map(String) : [];
+    let questions = questionIds.length > 0
+      ? await Question.find({ _id: { $in: questionIds } })
+          .select('text options type correct marks')
+          .lean()
+      : [];
+
+    if (questionIds.length === 0) {
+      questions = await Question.find({ quizId })
+        .select('text options type correct marks')
+        .lean();
+      questionIds = questions.map(q => String(q._id));
+      if (questionIds.length > 0) {
+        await Quiz.updateOne(
+          { _id: quizId },
+          { $addToSet: { questions: { $each: questionIds } } }
+        );
+      }
+    }
+
+    if (questionIds.length === 0) {
+      return res.json({ data: { questions: [] } });
+    }
+
+    const questionMap = new Map(questions.map(q => [String(q._id), q]));
+    let orderedQuestions = questionIds
+      .map(id => questionMap.get(id))
+      .filter(Boolean);
+
+    if (quiz.shuffleQuestions) {
+      for (let i = orderedQuestions.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [orderedQuestions[i], orderedQuestions[j]] = [orderedQuestions[j], orderedQuestions[i]];
+      }
+    }
+
+    if (quiz.numberOfQuestions && orderedQuestions.length > quiz.numberOfQuestions) {
+      orderedQuestions = orderedQuestions.slice(0, quiz.numberOfQuestions);
+    }
+
+    const normalized = orderedQuestions.map(q => ({
+      id: String(q._id),
+      type: q.type || 'mcq',
+      text: q.text,
+      options: Array.isArray(q.options) ? q.options : [],
+      correctAnswer: typeof q.correct === 'number' ? q.correct : null,
+      marks: typeof q.marks === 'number' ? q.marks : 1
+    }));
+
+    return res.json({ data: { questions: normalized } });
+  } catch (err) {
+    console.error('Get quiz questions error:', err);
+    return res.status(500).json({ message: 'Failed to fetch quiz questions' });
   }
 };
 

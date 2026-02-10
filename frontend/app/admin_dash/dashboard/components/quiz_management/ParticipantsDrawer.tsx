@@ -19,6 +19,7 @@ import ActivityTimeline from './ActivityTimeline';
 import ExportReports from './ExportReports';
 import ViewAttemptModal from './ViewAttemptModal';
 import ExportModal from './ExportModal';
+import AdminQuizPreviewModal from './AdminQuizPreviewModal';
 
 interface ParticipantsDrawerProps {
   isOpen: boolean;
@@ -34,12 +35,13 @@ interface ParticipantsDrawerProps {
 }
 
 export default function ParticipantsDrawer({ isOpen, onClose, quizData }: ParticipantsDrawerProps) {
+  const quizId = quizData._id;
   const [activeTab, setActiveTab] = useState<'participants' | 'transactions'>('participants');
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
   const [showViewAttemptModal, setShowViewAttemptModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
-  interface AttemptAnswer { questionId: string; answer: string; isCorrect: boolean; }
   interface AttemptSource {
     userId?: string;
     _id?: string;
@@ -49,14 +51,12 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
     score?: number | null;
     attemptScore?: number;
     timeTaken?: number | string | null;
-    answers?: AttemptAnswer[];
   }
   interface NormalizedAttempt {
-    userId: string;
+    attemptId: string;
     name: string;
     score: number;
     timeTaken: string;
-    answers: AttemptAnswer[];
   }
 
   const [selectedAttempt, setSelectedAttempt] = useState<NormalizedAttempt | null>(null);
@@ -69,11 +69,10 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
         ? (parseInt(timeTakenRaw, 10) || 0)
         : (timeTakenRaw ?? 0);
     const normalizedAttempt: NormalizedAttempt = {
-      userId: attemptData.userId || attemptData._id || attemptData.id || '',
+      attemptId: attemptData._id || attemptData.id || '',
       name: attemptData.userName || attemptData.name || 'Unknown',
       score: attemptData.score ?? attemptData.attemptScore ?? 0,
-      timeTaken: String(timeTakenNumber),
-      answers: attemptData.answers || []
+      timeTaken: String(timeTakenNumber)
     };
     setSelectedAttempt(normalizedAttempt);
     setShowViewAttemptModal(true);
@@ -126,6 +125,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
             {/* Quick Actions */}
             <DrawerHeader
               quizData={{ _id: quizData._id, title: quizData.quizTitle }}
+              onPreview={() => setShowPreviewModal(true)}
               onExport={handleExport}
             />
 
@@ -159,22 +159,22 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
             {activeTab === 'participants' ? (
               <>
                 <KPICards />
-                <SecondaryMetrics />
+                <SecondaryMetrics quizId={quizId} />
 
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-6">
                     <RevenueChart />
-                    <AttemptsBarChart />
+                    <AttemptsBarChart quizId={quizId} />
                   </div>
                   <div className="space-y-6">
-                    <PaidVsFreeDonutChart />
-                    <QuestionAccuracyChart />
+                    <PaidVsFreeDonutChart quizId={quizId} />
+                    <QuestionAccuracyChart quizId={quizId} />
                   </div>
                 </div>
 
-                <QuestionInsightsCard />
-                <LeaderboardCard />
+                <QuestionInsightsCard quizId={quizId} />
+                <LeaderboardCard quizId={quizId} />
                 <ActivityTimeline />
                 <ExportReports onExport={handleExport} />
                 <TableFilters />
@@ -190,11 +190,11 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                   selectedParticipants={selectedParticipants}
                   onSelectionChange={setSelectedParticipants}
                   onViewAttempt={handleViewAttempt}
-                  quizId={quizData._id}
+                  quizId={quizId}
                 />
               </>
             ) : (
-              <TransactionsTab quizId={quizData._id} />
+              <TransactionsTab quizId={quizId} />
             )}
           </div>
         </div>
@@ -212,6 +212,13 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
         <ExportModal
           quizId={quizData._id}
           onClose={() => setShowExportModal(false)}
+        />
+      )}
+
+      {showPreviewModal && (
+        <AdminQuizPreviewModal
+          quizId={quizId}
+          onClose={() => setShowPreviewModal(false)}
         />
       )}
 

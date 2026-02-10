@@ -11,6 +11,18 @@ interface AttemptsChartProps {
 }
 
 export default function AttemptsChart({ data }: AttemptsChartProps) {
+  if (!data.length) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <BarChart3 className="w-5 h-5 text-[#253A7B]" />
+          <h3 className="text-sm font-semibold text-gray-700">Quiz Attempts Per Day</h3>
+        </div>
+        <p className="text-sm text-gray-500">No attempts data available.</p>
+      </div>
+    );
+  }
+
   const maxAttempts = Math.max(...data.map(d => d.attempts));
 
   return (

@@ -16,6 +16,33 @@ const redis = require('../utils/redis');
 const mongoose = require('mongoose');
 
 
+const buildDashboardStats = async () => {
+  const [
+    totalUsers,
+    activeUsers,
+    pendingApprovals,
+    totalRevenueAgg,
+    totalPaidUsers,
+    freeQuizAttemptsAgg,
+  ] = await Promise.all([
+    User.countDocuments({}),
+    User.countDocuments({ status: "approved" }),
+    User.countDocuments({ status: "awaiting_admin_approval" }),
+    User.aggregate([{ $group: { _id: null, total: { $sum: "$totalSpent" } } }]),
+    User.countDocuments({ isPaidUser: true }),
+    User.aggregate([{ $group: { _id: null, total: { $sum: "$freeQuizAttempts" } } }]),
+  ]);
+
+  return {
+    totalUsers,
+    activeUsers,
+    pendingApprovals,
+    totalRevenue: (Array.isArray(totalRevenueAgg) && totalRevenueAgg[0]?.total) || 0,
+    totalPaidUsers,
+    freeQuizAttempts: (Array.isArray(freeQuizAttemptsAgg) && freeQuizAttemptsAgg[0]?.total) || 0,
+  };
+};
+
 async function emitDashboardStats(req) {
   console.log("📊 emitDashboardStats triggered");
 
@@ -32,31 +59,7 @@ async function emitDashboardStats(req) {
       return;
     }
 
-    const [
-      totalUsers,
-      activeUsers,
-      pendingApprovals,
-      totalRevenueAgg,
-      totalPaidUsers,
-      freeQuizAttemptsAgg,
-    ] = await Promise.all([
-      User.countDocuments({}),
-      User.countDocuments({ status: "approved" }),
-      User.countDocuments({ status: "awaiting_admin_approval" }),
-      User.aggregate([{ $group: { _id: null, total: { $sum: "$totalSpent" } } }]),
-      User.countDocuments({ isPaidUser: true }),
-      User.aggregate([{ $group: { _id: null, total: { $sum: "$freeQuizAttempts" } } }]),
-    ]);
-
-    const stats = {
-      totalUsers,
-      activeUsers,
-      pendingApprovals,
-      totalRevenue: Array.isArray(totalRevenueAgg) && totalRevenueAgg[0]?.total || 0,
-      totalPaidUsers,
-      freeQuizAttempts: Array.isArray(freeQuizAttemptsAgg) && freeQuizAttemptsAgg[0]?.total || 0,
-    };
-
+    const stats = await buildDashboardStats();
     await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
 
     if (io) {
@@ -69,6 +72,22 @@ async function emitDashboardStats(req) {
 }
 
 exports.emitDashboardStats = emitDashboardStats;
+
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const cached = await redis.get("dashboard:stats");
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
+    const stats = await buildDashboardStats();
+    await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
+    return res.json(stats);
+  } catch (err) {
+    console.error("❌ getDashboardStats error:", err);
+    return res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+  }
+};
 
 const { emitLiveUserStats, emitAnalyticsUpdate, emitUsersUpdate} = require('../utils/emmiters');
 const userApprovalSuccessTemplate = require('../emailTemplates/userApprovalSuccessTemplate');

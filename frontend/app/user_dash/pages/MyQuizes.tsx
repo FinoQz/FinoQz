@@ -397,6 +397,7 @@ export default function MyQuizes() {
       {attemptingQuiz && (
         <div className="fixed inset-0 z-50 bg-white">
           <UserQuizAttempt
+            quizId={String(attemptingQuiz.id)}
             quizData={{
               quizTitle: attemptingQuiz.title,
               duration: attemptingQuiz.duration.toString(),

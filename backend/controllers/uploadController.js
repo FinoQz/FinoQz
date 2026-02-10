@@ -104,7 +104,7 @@ exports.uploadManual = async (req, res) => {
     }
 
     const docs = questions.map((q) => ({
-      quiz: quizId,
+      quizId,
       text: String(q.text || '').trim(),
       options: Array.isArray(q.options) ? q.options.map(String) : ['', '', '', ''],
       correct: typeof q.correct === 'number' ? q.correct : 0,

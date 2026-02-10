@@ -6,7 +6,8 @@ const {
   getQuizStats,
   getRevenueAnalytics,
   getTopPerformers,
-  getCategoryPerformance
+  getCategoryPerformance,
+  getQuestionInsights
 } = require('../controllers/analyticsController');
 const verifyToken = require('../middlewares/verifyToken');
 const requireAdmin = require('../middlewares/requireAdmin');
@@ -31,5 +32,8 @@ router.get('/top-performers', getTopPerformers);
 
 // Get category performance
 router.get('/category-performance', getCategoryPerformance);
+
+// Get question-level insights
+router.get('/question-insights', getQuestionInsights);
 
 module.exports = router;

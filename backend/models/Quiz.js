@@ -29,6 +29,9 @@ const quizSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   participantCount: { type: Number, default: 0 },
+
+  questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
+  landingDemoQuestions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
 }, { timestamps: true });
 
 quizSchema.index({ quizTitle: "text", category: 1, status: 1 });

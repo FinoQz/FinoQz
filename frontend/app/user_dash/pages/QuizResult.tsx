@@ -59,8 +59,10 @@ export default function QuizResult() {
     try {
       const response = await api.get(`/api/quiz-attempts/${attemptId}/result`);
       setResult(response.data.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch quiz result');
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'Failed to fetch quiz result';
+      const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || error;
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

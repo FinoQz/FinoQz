@@ -15,6 +15,7 @@ const {
   addNewUser,
   sendBulkEmail,
   getMonthlyUsers,
+  getDashboardStats,
   createGroup,
   getGroups,
   updateGroup,
@@ -53,6 +54,7 @@ router.post("/send-email", authMiddleware("admin"), requireAdmin, sendBulkEmail)
 
 
 router.get('/monthly-users', authMiddleware('admin'), requireAdmin, getMonthlyUsers);
+router.get('/dashboard-stats', authMiddleware('admin'), requireAdmin, getDashboardStats);
 
 router.post('/groups', authMiddleware('admin'), requireAdmin, createGroup);
 

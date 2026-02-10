@@ -5,6 +5,10 @@ const Certificate = require('../models/Certificate');
 const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
 
+const getRequestUserId = (req) => {
+  return req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
+};
+
 /**
  * Start a new quiz attempt
  * @route POST /api/quiz-attempts/start
@@ -12,7 +16,10 @@ const mongoose = require('mongoose');
 const startAttempt = async (req, res) => {
   try {
     const { quizId } = req.body;
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
     // Validate quiz exists and is accessible
     const quiz = await Quiz.findById(quizId);
@@ -72,7 +79,10 @@ const saveAnswer = async (req, res) => {
   try {
     const { attemptId } = req.params;
     const { questionId, selectedAnswer, timeSpent } = req.body;
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
     // Find attempt and verify ownership
     const attempt = await QuizAttempt.findOne({ _id: attemptId, userId });
@@ -94,20 +104,16 @@ const saveAnswer = async (req, res) => {
     let isCorrect = false;
     let marksAwarded = 0;
 
-    if (question.questionType === 'MCQ') {
-      isCorrect = selectedAnswer === question.correctAnswer;
-      marksAwarded = isCorrect ? question.marks : 0;
-    } else if (question.questionType === 'Multiple Choice') {
-      // For multiple choice, check if arrays match
-      const correctAnswers = Array.isArray(question.correctAnswer) 
-        ? question.correctAnswer.sort() 
-        : [];
-      const selectedAnswers = Array.isArray(selectedAnswer) 
-        ? selectedAnswer.sort() 
-        : [];
+    if (Array.isArray(question.correct)) {
+      const correctAnswers = question.correct.map(String).sort();
+      const selectedAnswers = Array.isArray(selectedAnswer)
+        ? selectedAnswer.map(String).sort()
+        : [String(selectedAnswer)];
       isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(selectedAnswers);
-      marksAwarded = isCorrect ? question.marks : 0;
+    } else {
+      isCorrect = selectedAnswer === question.correct;
     }
+    marksAwarded = isCorrect ? question.marks : 0;
 
     // Update or add answer
     const existingAnswerIndex = attempt.answers.findIndex(
@@ -152,7 +158,10 @@ const saveAnswer = async (req, res) => {
 const submitAttempt = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
     // Find attempt
     const attempt = await QuizAttempt.findOne({ _id: attemptId, userId });
@@ -239,15 +248,18 @@ const submitAttempt = async (req, res) => {
 const getAttemptDetails = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const userId = req.user._id;
-    const isAdmin = req.user.role === 'admin';
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const isAdmin = (req.role || req.user?.role) === 'admin';
 
     const query = isAdmin ? { _id: attemptId } : { _id: attemptId, userId };
     
     const attempt = await QuizAttempt.findOne(query)
       .populate('userId', 'fullName email')
       .populate('quizId', 'quizTitle totalMarks duration')
-      .populate('answers.questionId', 'questionText questionType marks');
+      .populate('answers.questionId', 'text type marks');
 
     if (!attempt) {
       return res.status(404).json({ message: 'Attempt not found' });
@@ -266,7 +278,10 @@ const getAttemptDetails = async (req, res) => {
  */
 const getUserAttempts = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
     const { page = 1, limit = 10, status } = req.query;
 
     const query = { userId };
@@ -360,7 +375,10 @@ const getAttemptsByQuiz = async (req, res) => {
 const getAttemptResult = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
     const attempt = await QuizAttempt.findById(attemptId)
       .populate('quizId', 'quizTitle attemptLimit')
@@ -378,7 +396,7 @@ const getAttemptResult = async (req, res) => {
     // Get questions with correct answers and explanations
     const questionIds = attempt.answers.map(a => a.questionId);
     const questions = await Question.find({ _id: { $in: questionIds } })
-      .select('questionText options correctAnswer explanation marks')
+      .select('text options correct explanation marks')
       .lean();
 
     // Create a map for quick lookup
@@ -391,9 +409,9 @@ const getAttemptResult = async (req, res) => {
 
       return {
         questionId: answer.questionId,
-        questionText: question.questionText,
+        questionText: question.text,
         selectedAnswer: answer.selectedAnswer,
-        correctAnswer: question.correctAnswer,
+        correctAnswer: question.correct,
         isCorrect: answer.isCorrect,
         marksAwarded: answer.marksAwarded,
         marksAllocated: question.marks,

@@ -48,6 +48,12 @@ const QuestionSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+
+  quizId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quiz',
+    default: null
   }
 
 }, { timestamps: true });

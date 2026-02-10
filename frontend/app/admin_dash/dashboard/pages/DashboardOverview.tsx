@@ -176,18 +176,13 @@ export default function DashboardOverview() {
 
     const fetchInitialStats = async () => {
       try {
-        const [allRes, activeRes, monthlyRes, pendingRes] = await Promise.all([
-          apiAdmin.get('/api/admin/panel/all-users'),
-          apiAdmin.get('/api/admin/panel/approved-users'),
+        const [statsRes, monthlyRes, pendingRes] = await Promise.all([
+          apiAdmin.get('/api/admin/panel/dashboard-stats'),
           apiAdmin.get('/api/admin/panel/monthly-users'),
           apiAdmin.get('/api/admin/panel/pending-users'),
         ]);
 
         setPendingUsersList(pendingRes.data);
-
-        const totalUsers = allRes.data.length;
-        const activeUsers = activeRes.data.length;
-        const pendingApprovals = pendingRes.data.length;
 
         const current = monthlyRes.data.currentMonth;
         const last = monthlyRes.data.lastMonth;
@@ -195,9 +190,7 @@ export default function DashboardOverview() {
 
         setStats((prev) => ({
           ...prev,
-          totalUsers,
-          activeUsers,
-          pendingApprovals,
+          ...statsRes.data
         }));
 
         setGrowthPercent(growth.toFixed(1));

@@ -10,6 +10,18 @@ interface FreeVsPaidChartProps {
 
 export default function FreeVsPaidChart({ freeParticipation, paidParticipation }: FreeVsPaidChartProps) {
   const total = freeParticipation + paidParticipation;
+  if (total === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <PieChart className="w-5 h-5 text-[#253A7B]" />
+          <h3 className="text-sm font-semibold text-gray-700">Free vs Paid Quiz Participation</h3>
+        </div>
+        <p className="text-sm text-gray-500">No participation data available.</p>
+      </div>
+    );
+  }
+
   const freePercentage = Math.round((freeParticipation / total) * 100);
   const paidPercentage = Math.round((paidParticipation / total) * 100);
 

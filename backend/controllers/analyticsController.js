@@ -346,11 +346,89 @@ const getCategoryPerformance = async (req, res) => {
   }
 };
 
+/**
+ * Get question-level insights for a quiz
+ * @route GET /api/analytics/question-insights
+ */
+const getQuestionInsights = async (req, res) => {
+  try {
+    const { quizId } = req.query;
+
+    if (!quizId) {
+      return res.status(400).json({ message: 'quizId is required' });
+    }
+
+    const matchStage = { quizId: new mongoose.Types.ObjectId(quizId), status: 'submitted' };
+
+    const [result] = await QuizAttempt.aggregate([
+      { $match: matchStage },
+      {
+        $facet: {
+          totals: [{ $count: 'totalAttempts' }],
+          perQuestion: [
+            { $unwind: '$answers' },
+            {
+              $group: {
+                _id: '$answers.questionId',
+                answeredCount: { $sum: 1 },
+                correctCount: { $sum: { $cond: ['$answers.isCorrect', 1, 0] } },
+                avgTime: { $avg: '$answers.timeSpent' }
+              }
+            },
+            {
+              $lookup: {
+                from: 'questions',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'question'
+              }
+            },
+            { $unwind: '$question' },
+            {
+              $project: {
+                questionId: '$_id',
+                text: '$question.text',
+                answeredCount: 1,
+                correctCount: 1,
+                avgTime: { $round: ['$avgTime', 0] }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    const totalAttempts = result?.totals?.[0]?.totalAttempts || 0;
+    const questions = (result?.perQuestion || []).map((question) => {
+      const correctRate = question.answeredCount
+        ? Math.round((question.correctCount / question.answeredCount) * 100)
+        : 0;
+      const skippedCount = Math.max(totalAttempts - question.answeredCount, 0);
+      const skipRate = totalAttempts
+        ? Math.round((skippedCount / totalAttempts) * 100)
+        : 0;
+
+      return {
+        ...question,
+        correctRate,
+        skippedCount,
+        skipRate
+      };
+    });
+
+    res.json({ totalAttempts, questions });
+  } catch (error) {
+    console.error('Get question insights error:', error);
+    res.status(500).json({ message: 'Failed to fetch question insights' });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getUserGrowth,
   getQuizStats,
   getRevenueAnalytics,
   getTopPerformers,
-  getCategoryPerformance
+  getCategoryPerformance,
+  getQuestionInsights
 };

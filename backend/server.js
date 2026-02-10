@@ -17,6 +17,13 @@ const { initSocket } = require('./utils/socket'); // destructured for clarity
 const app = express();
 const server = http.createServer(app);
 
+// Safe env presence log for Cashfree config (no secrets printed)
+console.log('Cashfree env loaded:', {
+  env: process.env.CASHFREE_ENV || 'not set',
+  clientIdSet: Boolean(process.env.CASHFREE_CLIENT_ID),
+  clientSecretSet: Boolean(process.env.CASHFREE_CLIENT_SECRET)
+});
+
 // ✅ Initialize Socket.io
 const io = initSocket(server);
 app.set('io', io);
@@ -62,8 +69,8 @@ app.use(require('cors')({
 
 
 // ✅ Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(helmet());
 app.use(morgan('dev'));

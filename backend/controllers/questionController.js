@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 exports.createQuestion = async (req, res, next) => {
   try {
     const payload = req.body;
+    const quizId = req.params.quizId;
     const q = await Question.create({
       type: payload.type || 'mcq',
       text: payload.text,
@@ -15,15 +16,13 @@ exports.createQuestion = async (req, res, next) => {
       marks: payload.marks || 1,
       confidence: payload.confidence || 'medium',
       status: payload.status || 'pending',
-      createdBy: req.userId || null
+      createdBy: req.userId || null,
+      quizId: mongoose.Types.ObjectId.isValid(quizId) ? quizId : null
     });
 
     // Optionally attach to quizId in URL: POST /api/quizzes/:quizId/questions
-    if (req.params.quizId) {
-      const quizId = req.params.quizId;
-      if (mongoose.Types.ObjectId.isValid(quizId)) {
-        await Quiz.findByIdAndUpdate(quizId, { $push: { questions: q._id } });
-      }
+    if (mongoose.Types.ObjectId.isValid(quizId)) {
+      await Quiz.findByIdAndUpdate(quizId, { $push: { questions: q._id } });
     }
 
     return res.status(201).json({ message: 'Question created', question: q });
@@ -40,6 +39,11 @@ exports.bulkCreateAndAttach = async (req, res, next) => {
       return res.status(400).json({ message: 'No questions provided' });
     }
 
+    const quizId = req.params.quizId;
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ message: 'Valid quizId required in path' });
+    }
+
     const docs = questions.map(q => ({
       type: q.type || 'mcq',
       text: q.text,
@@ -48,16 +52,12 @@ exports.bulkCreateAndAttach = async (req, res, next) => {
       marks: q.marks || 1,
       confidence: q.confidence || 'medium',
       status: q.status || 'accepted',
-      createdBy: req.userId || null
+      createdBy: req.userId || null,
+      quizId
     }));
 
     const created = await Question.insertMany(docs);
     const ids = created.map(c => c._id);
-
-    const quizId = req.params.quizId;
-    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
-      return res.status(400).json({ message: 'Valid quizId required in path' });
-    }
 
     const quiz = await Quiz.findByIdAndUpdate(quizId, { $push: { questions: { $each: ids } } }, { new: true });
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });

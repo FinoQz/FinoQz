@@ -1,51 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trophy, Medal, Award, Eye, Pin } from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin';
 
-export default function LeaderboardCard() {
-  const topScorers = [
-    {
-      rank: 1,
-      name: 'Priya Patel',
-      email: 'priya.patel@email.com',
-      score: 92,
-      timeTaken: '38 min',
-      avatar: 'PP'
-    },
-    {
-      rank: 2,
-      name: 'Anjali Verma',
-      email: 'anjali.verma@email.com',
-      score: 88,
-      timeTaken: '40 min',
-      avatar: 'AV'
-    },
-    {
-      rank: 3,
-      name: 'Rahul Sharma',
-      email: 'rahul.sharma@email.com',
-      score: 85,
-      timeTaken: '42 min',
-      avatar: 'RS'
-    },
-    {
-      rank: 4,
-      name: 'Sneha Singh',
-      email: 'sneha.singh@email.com',
-      score: 78,
-      timeTaken: '45 min',
-      avatar: 'SS'
-    },
-    {
-      rank: 5,
-      name: 'Vikram Reddy',
-      email: 'vikram.reddy@email.com',
-      score: 75,
-      timeTaken: '43 min',
-      avatar: 'VR'
-    }
-  ];
+interface LeaderboardCardProps {
+  quizId: string;
+}
+
+interface TopPerformer {
+  userId: string;
+  fullName: string;
+  email: string;
+  avgPercentage: number;
+  totalAttempts: number;
+}
+
+export default function LeaderboardCard({ quizId }: LeaderboardCardProps) {
+  const [topScorers, setTopScorers] = useState<TopPerformer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!quizId) return;
+
+    const fetchTopPerformers = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const response = await apiAdmin.get(`/api/analytics/top-performers?quizId=${quizId}&limit=5`);
+        setTopScorers(response.data || []);
+      } catch (err) {
+        console.error('Failed to load top performers:', err);
+        setError('Failed to load leaderboard');
+        setTopScorers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopPerformers();
+  }, [quizId]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -85,58 +81,70 @@ export default function LeaderboardCard() {
         </button>
       </div>
 
-      <div className="space-y-3">
-        {topScorers.map((scorer) => (
-          <div
-            key={scorer.rank}
-            className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition border border-gray-200"
-          >
-            {/* Rank */}
-            <div className="flex items-center justify-center w-10 h-10">
-              {getRankIcon(scorer.rank)}
-            </div>
+      {loading ? (
+        <div className="text-sm text-gray-500">Loading leaderboard...</div>
+      ) : error ? (
+        <div className="text-sm text-red-600">{error}</div>
+      ) : topScorers.length === 0 ? (
+        <div className="text-sm text-gray-500">No leaderboard data available.</div>
+      ) : (
+        <div className="space-y-3">
+          {topScorers.map((scorer, index) => (
+            <div
+              key={scorer.userId}
+              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition border border-gray-200"
+            >
+              {/* Rank */}
+              <div className="flex items-center justify-center w-10 h-10">
+                {getRankIcon(index + 1)}
+              </div>
 
-            {/* Avatar */}
-            <div className={`w-12 h-12 rounded-full ${getRankColor(scorer.rank)} flex items-center justify-center text-white font-bold text-sm`}>
-              {scorer.avatar}
-            </div>
+              {/* Avatar */}
+              <div className={`w-12 h-12 rounded-full ${getRankColor(index + 1)} flex items-center justify-center text-white font-bold text-sm`}>
+                {(scorer.fullName || 'U')
+                  .split(' ')
+                  .slice(0, 2)
+                  .map((part) => part[0])
+                  .join('')}
+              </div>
 
-            {/* Info */}
-            <div className="flex-1">
-              <p className="font-bold text-gray-900">{scorer.name}</p>
-              <p className="text-xs text-gray-500">{scorer.email}</p>
-            </div>
+              {/* Info */}
+              <div className="flex-1">
+                <p className="font-bold text-gray-900">{scorer.fullName || 'Unknown'}</p>
+                <p className="text-xs text-gray-500">{scorer.email || '—'}</p>
+              </div>
 
-            {/* Score */}
-            <div className="text-right">
-              <p className="text-2xl font-bold text-gray-900">{scorer.score}%</p>
-              <p className="text-xs text-gray-500">{scorer.timeTaken}</p>
-            </div>
+              {/* Score */}
+              <div className="text-right">
+                <p className="text-2xl font-bold text-gray-900">{scorer.avgPercentage?.toFixed(1) || '0'}%</p>
+                <p className="text-xs text-gray-500">Attempts: {scorer.totalAttempts}</p>
+              </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                className="p-2 hover:bg-blue-100 rounded-lg transition"
-                title="View Profile"
-              >
-                <Eye className="w-4 h-4 text-blue-600" />
-              </button>
-              <button
-                className="p-2 hover:bg-yellow-100 rounded-lg transition"
-                title="Pin Winner"
-              >
-                <Pin className="w-4 h-4 text-yellow-600" />
-              </button>
-              <button
-                className="p-2 hover:bg-green-100 rounded-lg transition"
-                title="Award Badge"
-              >
-                <Award className="w-4 h-4 text-green-600" />
-              </button>
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  className="p-2 hover:bg-blue-100 rounded-lg transition"
+                  title="View Profile"
+                >
+                  <Eye className="w-4 h-4 text-blue-600" />
+                </button>
+                <button
+                  className="p-2 hover:bg-yellow-100 rounded-lg transition"
+                  title="Pin Winner"
+                >
+                  <Pin className="w-4 h-4 text-yellow-600" />
+                </button>
+                <button
+                  className="p-2 hover:bg-green-100 rounded-lg transition"
+                  title="Award Badge"
+                >
+                  <Award className="w-4 h-4 text-green-600" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

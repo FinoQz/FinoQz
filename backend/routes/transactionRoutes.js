@@ -20,7 +20,7 @@ router.post('/initiate',
     [Segments.BODY]: Joi.object({
       quizId: Joi.string().required(),
       amount: Joi.number().positive().required(),
-      paymentMethod: Joi.string().valid('razorpay', 'stripe', 'offline', 'wallet').required()
+      paymentMethod: Joi.string().valid('razorpay', 'stripe', 'offline', 'wallet', 'cashfree').required()
     })
   }),
   initiatePayment
@@ -31,10 +31,11 @@ router.post('/verify',
   verifyToken(),
   celebrate({
     [Segments.BODY]: Joi.object({
-      transactionId: Joi.string().required(),
+      transactionId: Joi.string().optional(),
+      orderId: Joi.string().optional(),
       gatewayTransactionId: Joi.string().optional(),
       gatewayResponse: Joi.object().optional()
-    })
+    }).or('transactionId', 'orderId')
   }),
   verifyPayment
 );

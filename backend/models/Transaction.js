@@ -29,7 +29,7 @@ const transactionSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['razorpay', 'stripe', 'offline', 'wallet'],
+    enum: ['razorpay', 'stripe', 'offline', 'wallet', 'cashfree'],
     required: true
   },
   gatewayTransactionId: {

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Clock, FileQuestion, Star, X, CreditCard, Smartphone, Wallet, CheckCircle, Eye, Info, Play } from 'lucide-react';
+import Image from 'next/image';
+import { Search, Filter, Clock, FileQuestion, X, CreditCard, Smartphone, Wallet, CheckCircle, Info, Play } from 'lucide-react';
 import UserQuizAttempt from '../components/UserQuizAttempt';
+import QuizPreview from '../components/QuizPreview';
 import apiUser from '@/lib/apiUser';
 
 interface Quiz {
@@ -28,7 +30,6 @@ export default function Quizes() {
   const [sortBy, setSortBy] = useState<'newest' | 'popular'>('newest');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [attemptingQuiz, setAttemptingQuiz] = useState<Quiz | null>(null);
-  const [previewingQuiz, setPreviewingQuiz] = useState<Quiz | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedQuizToBuy, setSelectedQuizToBuy] = useState<Quiz | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'upi' | 'card' | 'wallet' | null>(null);
@@ -65,7 +66,7 @@ export default function Quizes() {
           // Mark purchased quizzes
           const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
             ...quiz,
-            isPurchased: quiz.pricingType === 'free' || purchasedIds.has(String(quiz._id))
+            isPurchased: purchasedIds.has(String(quiz._id))
           }));
           
           setQuizzes(enrichedQuizzes);
@@ -73,7 +74,7 @@ export default function Quizes() {
           // If fetching purchased quizzes fails, just show all quizzes
           const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
             ...quiz,
-            isPurchased: quiz.pricingType === 'free'
+            isPurchased: false
           }));
           setQuizzes(enrichedQuizzes);
         }
@@ -133,15 +134,44 @@ export default function Quizes() {
     return filtered;
   }, [searchQuery, selectedCategory, priceFilter, sortBy, quizzes]);
 
+  const enrollQuiz = async (quiz: Quiz) => {
+    await apiUser.post(`/api/quizzes/${quiz._id}/enroll`);
+    setPurchasedQuizIds((prev) => new Set(prev).add(String(quiz._id)));
+    setQuizzes((prev) => prev.map((item) => (
+      String(item._id) === String(quiz._id)
+        ? { ...item, isPurchased: true }
+        : item
+    )));
+  };
+
   const handleStartQuiz = (quiz: Quiz) => {
-    if (quiz.pricingType === 'free' || quiz.isPurchased) {
-      setSelectedQuizToStart(quiz);
-      setShowStartQuizPopup(true);
-    } else {
-      // Show payment modal for unpurchased paid quiz
-      setSelectedQuizToBuy(quiz);
-      setShowPaymentModal(true);
+    if (!quiz.isPurchased) {
+      alert('Please enroll before starting this quiz.');
+      return;
     }
+    setSelectedQuizToStart(quiz);
+    setShowStartQuizPopup(true);
+  };
+
+  const handleEnrollOnly = async (quiz: Quiz) => {
+    if (quiz.isPurchased) {
+      alert('You are already enrolled.');
+      return;
+    }
+
+    if (quiz.pricingType === 'free' || quiz.price === 0) {
+      try {
+        await enrollQuiz(quiz);
+        alert('Enrolled successfully. You can start the quiz now.');
+      } catch (err) {
+        console.error('Enroll error:', err);
+        alert('Failed to enroll in quiz. Please try again.');
+      }
+      return;
+    }
+
+    setSelectedQuizToBuy(quiz);
+    setShowPaymentModal(true);
   };
 
   const handlePreviewQuiz = (quiz: Quiz) => {
@@ -153,9 +183,6 @@ export default function Quizes() {
     setAttemptingQuiz(null);
   };
 
-  const handleExitPreview = () => {
-    setPreviewingQuiz(null);
-  };
 
   const handleClosePaymentModal = () => {
     setShowPaymentModal(false);
@@ -169,29 +196,35 @@ export default function Quizes() {
 
   const handleConfirmPayment = async () => {
     if (!selectedPaymentMethod || !selectedQuizToBuy) return;
-    
+
     try {
-      // Initiate payment transaction
+      const mappedMethod = selectedPaymentMethod === 'wallet' ? 'wallet' : 'cashfree';
       const response = await apiUser.post('/api/transactions/initiate', {
         quizId: selectedQuizToBuy._id,
         amount: selectedQuizToBuy.price,
-        paymentMethod: selectedPaymentMethod === 'card' ? 'razorpay' : selectedPaymentMethod
+        paymentMethod: mappedMethod
       });
-      
-      const transaction = response.data;
-      
-      // TODO: Integrate with actual payment gateway (Razorpay/Stripe)
-      // For now, show message that payment integration is pending
+      const transactionId = response.data?.transaction;
+
+      if (!transactionId) {
+        throw new Error('Transaction could not be initiated');
+      }
+
+      if (mappedMethod === 'wallet') {
+        await apiUser.post('/api/transactions/verify', { transactionId });
+        await enrollQuiz(selectedQuizToBuy);
+        handleClosePaymentModal();
+        alert('Payment successful. Quiz added to My Quizzes.');
+        return;
+      }
+
+      const orderData = response.data?.orderData;
+      if (!orderData?.checkoutUrl) {
+        throw new Error('Cashfree checkout URL missing');
+      }
+
       handleClosePaymentModal();
-      alert(`Payment gateway integration pending. Transaction ID: ${transaction._id || 'N/A'}`);
-      
-      // Note: Once payment gateway is integrated, verify payment here
-      // const verifyResponse = await apiUser.post('/api/transactions/verify', {
-      //   transactionId: transaction._id,
-      //   gatewayTransactionId: gatewayResponse.razorpay_payment_id,
-      //   gatewayResponse: gatewayResponse
-      // });
-      
+      window.location.href = orderData.checkoutUrl;
     } catch (err) {
       console.error('Payment error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
@@ -202,13 +235,6 @@ export default function Quizes() {
   const handleClosePreviewPopup = () => {
     setShowPreviewPopup(false);
     setSelectedQuizForPreview(null);
-  };
-
-  const handleStartPreview = () => {
-    if (selectedQuizForPreview) {
-      setPreviewingQuiz(selectedQuizForPreview);
-      handleClosePreviewPopup();
-    }
   };
 
   const handleCloseStartQuizPopup = () => {
@@ -223,30 +249,11 @@ export default function Quizes() {
     }
   };
 
-  // Show Quiz Preview Screen (for paid quizzes)
-  if (previewingQuiz) {
-    return (
-      <UserQuizAttempt
-        quizData={{
-          quizTitle: `${previewingQuiz.quizTitle} (Preview)`,
-          duration: '5',
-          totalMarks: '3',
-          negativeMarking: false,
-          negativePerWrong: '0'
-        }}
-        onExit={handleExitPreview}
-        onSubmit={(score, answers) => {
-          console.log('Preview completed:', { score, answers });
-          handleExitPreview();
-        }}
-      />
-    );
-  }
-
   // Show Quiz Attempt Screen
   if (attemptingQuiz) {
     return (
       <UserQuizAttempt
+        quizId={attemptingQuiz._id}
         quizData={{
           quizTitle: attemptingQuiz.quizTitle,
           duration: attemptingQuiz.duration.toString(),
@@ -273,24 +280,6 @@ export default function Quizes() {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading quizzes...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Quizes / Explore</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-2">Discover and explore quiz topics to expand your financial knowledge</p>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
             <button 
               onClick={() => window.location.reload()}
@@ -304,8 +293,26 @@ export default function Quizes() {
     );
   }
 
+  const fetchPreviewData = async (quizId: string) => {
+    const response = await apiUser.get(`/api/quizzes/quizzes/${quizId}/preview`);
+    return response.data?.data;
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
+      {showPreviewPopup && selectedQuizForPreview && (
+        <QuizPreview
+          quizId={selectedQuizForPreview._id}
+          onClose={handleClosePreviewPopup}
+          onPurchase={() => {
+            handleClosePreviewPopup();
+            setSelectedQuizToBuy(selectedQuizForPreview);
+            setShowPaymentModal(true);
+          }}
+          canPreview={Boolean(selectedQuizForPreview.isPurchased)}
+          fetchPreviewData={fetchPreviewData}
+        />
+      )}
       {/* Payment Modal */}
       {showPaymentModal && selectedQuizToBuy && (
         <>
@@ -357,7 +364,7 @@ export default function Quizes() {
                     <Smartphone className="w-5 h-5 text-purple-600" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-900">UPI</p>
+                    <p className="font-semibold text-gray-900">Cashfree UPI</p>
                     <p className="text-xs text-gray-600">Google Pay, PhonePe, Paytm</p>
                   </div>
                   {selectedPaymentMethod === 'upi' && (
@@ -365,7 +372,7 @@ export default function Quizes() {
                   )}
                 </button>
 
-                {/* Razorpay (Card) */}
+                {/* Cashfree (Card) */}
                 <button
                   onClick={() => handlePaymentMethodSelect('card')}
                   className={`w-full p-4 rounded-xl border-2 transition flex items-center gap-3 ${
@@ -378,8 +385,8 @@ export default function Quizes() {
                     <CreditCard className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-900">Card Payment</p>
-                    <p className="text-xs text-gray-600">Credit/Debit Card via Razorpay</p>
+                    <p className="font-semibold text-gray-900">Cashfree Card</p>
+                    <p className="text-xs text-gray-600">Credit/Debit Card via Cashfree</p>
                   </div>
                   {selectedPaymentMethod === 'card' && (
                     <CheckCircle className="w-5 h-5 text-[#253A7B]" />
@@ -400,6 +407,7 @@ export default function Quizes() {
                   </div>
                   <div className="flex-1 text-left">
                     <p className="font-semibold text-gray-900">Wallet</p>
+                    <p className="text-xs text-gray-600">Use your account wallet balance</p>
                   </div>
                   {selectedPaymentMethod === 'wallet' && (
                     <CheckCircle className="w-5 h-5 text-[#253A7B]" />
@@ -407,121 +415,14 @@ export default function Quizes() {
                 </button>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleClosePaymentModal}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmPayment}
-                  disabled={!selectedPaymentMethod}
-                  className={`flex-1 px-6 py-3 rounded-xl font-medium transition ${
-                    selectedPaymentMethod
-                      ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  Pay ₹{selectedQuizToBuy.price}
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Preview Popup */}
-      {showPreviewPopup && selectedQuizForPreview && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
-            onClick={handleClosePreviewPopup}
-          >
-            {/* Modal */}
-            <div 
-              className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Eye className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">Quiz Preview</h2>
-                    <p className="text-xs text-gray-600">Try before you buy</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleClosePreviewPopup}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
-                >
-                  <X className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-
-              {/* Quiz Info */}
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{selectedQuizForPreview.quizTitle}</h3>
-                <p className="text-sm text-gray-600 mb-4">{selectedQuizForPreview.category}</p>
-                
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="p-3 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-600 mb-1">Full Quiz</p>
-                    <p className="font-semibold text-gray-900">{selectedQuizForPreview.duration} min • {selectedQuizForPreview.totalMarks} marks</p>
-                  </div>
-                  <div className="p-3 bg-blue-50 rounded-xl">
-                    <p className="text-xs text-blue-600 mb-1">Preview</p>
-                    <p className="font-semibold text-blue-900">5 min • 3 Qs</p>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl">
-                  <div className="flex items-start gap-2">
-                    <Info className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-orange-900 mb-1">Preview Limitations</p>
-                      <ul className="text-xs text-orange-800 space-y-1">
-                        <li>• Only 3 sample questions available</li>
-                        <li>• 5 minutes time limit</li>
-                        <li>• Preview results won&apos;t be saved</li>
-                        <li>• Purchase to access full quiz</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price Info */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Full Quiz Price</p>
-                    <p className="text-2xl font-bold text-[#253A7B]">₹{selectedQuizForPreview.price}</p>
-                  </div>
-                  <FileQuestion className="w-8 h-8 text-[#253A7B]" />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleClosePreviewPopup}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleStartPreview}
-                  className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
-                >
-                  Start Preview
-                </button>
-              </div>
+              {/* Confirm Button */}
+              <button
+                onClick={handleConfirmPayment}
+                disabled={!selectedPaymentMethod}
+                className="w-full px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Confirm Payment
+              </button>
             </div>
           </div>
         </>
@@ -788,23 +689,30 @@ export default function Quizes() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {quiz.pricingType === 'paid' && quiz.price > 0 && !quiz.isPurchased && (
+                    <button 
+                      onClick={() => handlePreviewQuiz(quiz)}
+                      className="px-3 py-1.5 border-2 border-[#253A7B] text-[#253A7B] rounded-lg hover:bg-[#253A7B] hover:text-white transition text-sm font-medium"
+                    >
+                      Preview
+                    </button>
+                    {!quiz.isPurchased && (
                       <button 
-                        onClick={() => handlePreviewQuiz(quiz)}
-                        className="px-3 py-1.5 border-2 border-[#253A7B] text-[#253A7B] rounded-lg hover:bg-[#253A7B] hover:text-white transition text-sm font-medium"
+                        onClick={() => handleEnrollOnly(quiz)}
+                        className="px-3 py-1.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-[#253A7B] hover:text-[#253A7B] transition text-sm font-medium"
                       >
-                        Preview
+                        {quiz.pricingType === 'free' || quiz.price === 0 ? 'Enroll' : 'Buy'}
                       </button>
                     )}
                     <button 
                       onClick={() => handleStartQuiz(quiz)}
-                      className="px-4 py-1.5 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition text-sm font-medium"
+                      disabled={!quiz.isPurchased}
+                      className={`px-4 py-1.5 rounded-lg transition text-sm font-medium ${
+                        quiz.isPurchased
+                          ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
                     >
-                      {quiz.pricingType === 'free' || quiz.price === 0
-                        ? 'Start'
-                        : quiz.isPurchased
-                        ? 'Start'
-                        : `Buy`}
+                      Start
                     </button>
                   </div>
                 </div>

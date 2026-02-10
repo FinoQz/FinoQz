@@ -1,7 +1,32 @@
 const Transaction = require('../models/Transaction');
 const Quiz = require('../models/Quiz');
 const Wallet = require('../models/Wallet');
+const User = require('../models/User');
 const mongoose = require('mongoose');
+const axios = require('axios');
+
+const getRequestUserId = (req) => {
+  return req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
+};
+
+const getCashfreeBaseUrl = () => {
+  if (process.env.CASHFREE_API_BASE) return process.env.CASHFREE_API_BASE;
+  const env = (process.env.CASHFREE_ENV || 'sandbox').toLowerCase();
+  return env === 'production'
+    ? 'https://api.cashfree.com/pg'
+    : 'https://sandbox.cashfree.com/pg';
+};
+
+const getCashfreeCheckoutUrl = (paymentSessionId) => {
+  if (process.env.CASHFREE_CHECKOUT_URL) {
+    return `${process.env.CASHFREE_CHECKOUT_URL}?payment_session_id=${paymentSessionId}`;
+  }
+  const env = (process.env.CASHFREE_ENV || 'sandbox').toLowerCase();
+  const base = env === 'production'
+    ? 'https://payments.cashfree.com/orders/sessions'
+    : 'https://sandbox.cashfree.com/pg/orders/sessions';
+  return `${base}?payment_session_id=${paymentSessionId}`;
+};
 
 /**
  * Initiate payment
@@ -10,7 +35,10 @@ const mongoose = require('mongoose');
 const initiatePayment = async (req, res) => {
   try {
     const { quizId, amount, paymentMethod } = req.body;
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
     if (!quizId || !amount || !paymentMethod) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -63,19 +91,67 @@ const initiatePayment = async (req, res) => {
       });
     }
 
-    // For Razorpay/Stripe, return order details
-    // This would integrate with actual payment gateway
-    const orderData = {
-      transactionId: transaction._id,
-      amount: amount * 100, // Convert to paise/cents
-      currency: transaction.currency,
-      // Add gateway-specific order ID here
-    };
+    // Cashfree order creation
+    if (paymentMethod === 'cashfree') {
+      const clientId = process.env.CASHFREE_CLIENT_ID;
+      const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+      if (!clientId || !clientSecret) {
+        return res.status(500).json({ message: 'Cashfree keys not configured' });
+      }
+
+      const user = await User.findById(userId).select('fullName email mobile').lean();
+      const cashfreeBaseUrl = getCashfreeBaseUrl();
+
+      const orderPayload = {
+        order_id: String(transaction._id),
+        order_amount: amount,
+        order_currency: transaction.currency,
+        customer_details: {
+          customer_id: String(userId),
+          customer_name: user?.fullName || 'User',
+          customer_email: user?.email || 'unknown@example.com',
+          customer_phone: user?.mobile || '9999999999'
+        },
+        order_meta: {
+          return_url: `${frontendUrl}/user_dash/payment/cashfree?quizId=${quizId}`
+        }
+      };
+
+      const orderResponse = await axios.post(`${cashfreeBaseUrl}/orders`, orderPayload, {
+        headers: {
+          'x-client-id': clientId,
+          'x-client-secret': clientSecret,
+          'x-api-version': '2023-08-01',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const paymentSessionId = orderResponse.data?.payment_session_id;
+      const checkoutUrl = paymentSessionId ? getCashfreeCheckoutUrl(paymentSessionId) : null;
+      transaction.metadata = {
+        ...(transaction.metadata || {}),
+        cashfreeOrderId: orderResponse.data?.order_id,
+        paymentSessionId
+      };
+      await transaction.save();
+
+      return res.json({
+        message: 'Payment initiated',
+        transaction: transaction._id,
+        orderData: {
+          orderId: orderResponse.data?.order_id,
+          paymentSessionId,
+          checkoutUrl
+        }
+      });
+    }
+
+    // For Stripe/offline, return transaction details
     res.json({
       message: 'Payment initiated',
-      transaction: transaction._id,
-      orderData
+      transaction: transaction._id
     });
   } catch (error) {
     console.error('Initiate payment error:', error);
@@ -89,25 +165,64 @@ const initiatePayment = async (req, res) => {
  */
 const verifyPayment = async (req, res) => {
   try {
-    const { transactionId, gatewayTransactionId, gatewayResponse } = req.body;
+    const { transactionId, orderId, gatewayTransactionId, gatewayResponse } = req.body;
+    const resolvedId = transactionId || orderId;
 
-    if (!transactionId) {
+    if (!resolvedId) {
       return res.status(400).json({ message: 'Transaction ID required' });
     }
 
-    const transaction = await Transaction.findById(transactionId);
+    const transaction = await Transaction.findById(resolvedId);
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
 
-    // Here you would verify the payment with the gateway
-    // For now, we'll mark it as success
-    transaction.status = 'success';
-    transaction.gatewayTransactionId = gatewayTransactionId;
-    transaction.gatewayResponse = gatewayResponse || {};
-    transaction.completedAt = new Date();
+    const paymentMethod = transaction.paymentMethod;
 
-    await transaction.save();
+    if (paymentMethod === 'cashfree') {
+      const clientId = process.env.CASHFREE_CLIENT_ID;
+      const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
+      const cashfreeBaseUrl = getCashfreeBaseUrl();
+
+      if (!clientId || !clientSecret) {
+        return res.status(500).json({ message: 'Cashfree keys not configured' });
+      }
+
+      const orderIdToCheck = transaction.metadata?.cashfreeOrderId || resolvedId;
+      const orderResponse = await axios.get(`${cashfreeBaseUrl}/orders/${orderIdToCheck}`, {
+        headers: {
+          'x-client-id': clientId,
+          'x-client-secret': clientSecret,
+          'x-api-version': '2023-08-01'
+        }
+      });
+
+      const orderStatus = orderResponse.data?.order_status;
+      if (orderStatus !== 'PAID') {
+        transaction.status = orderStatus === 'ACTIVE' ? 'pending' : 'failed';
+        transaction.gatewayResponse = orderResponse.data || {};
+        await transaction.save();
+        return res.status(400).json({ message: 'Payment not completed' });
+      }
+
+      transaction.status = 'success';
+      transaction.gatewayTransactionId = orderResponse.data?.cf_payment_id || gatewayTransactionId;
+      transaction.gatewayResponse = {
+        ...(gatewayResponse || {}),
+        orderStatus,
+        cashfree: orderResponse.data || {}
+      };
+      transaction.completedAt = new Date();
+      await transaction.save();
+    } else if (paymentMethod === 'wallet' || paymentMethod === 'offline') {
+      transaction.status = 'success';
+      transaction.gatewayTransactionId = gatewayTransactionId || transaction.gatewayTransactionId;
+      transaction.gatewayResponse = gatewayResponse || {};
+      transaction.completedAt = new Date();
+      await transaction.save();
+    } else {
+      return res.status(400).json({ message: 'Unsupported payment method verification' });
+    }
 
     res.json({
       message: 'Payment verified successfully',
@@ -125,7 +240,10 @@ const verifyPayment = async (req, res) => {
  */
 const getTransactionHistory = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
     const { page = 1, limit = 20, status } = req.query;
 
     const query = { userId };

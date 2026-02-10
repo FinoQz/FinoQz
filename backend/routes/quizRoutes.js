@@ -146,9 +146,13 @@ router.post('/admin/generate-questions', adminAuth, c.generateQuestions);
 // Public routes (user panel)
 router.get('/quizzes', authMiddleware(), listLimiter, c.listPublic);
 router.get('/quizzes/:id', authMiddleware(), c.getById);
+router.get('/:quizId/questions', authMiddleware(), c.getQuizQuestions);
+router.get('/quizzes/:quizId/questions', authMiddleware(), c.getQuizQuestions);
+router.get('/:quizId/preview', authMiddleware(), c.getQuizPreview);
 router.get('/quizzes/:quizId/preview', authMiddleware(), c.getQuizPreview);
 router.get('/my-quizzes', authMiddleware(), c.getMyQuizzes);
 router.post('/quizzes/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
+router.post('/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
 
 // Celebrate error handler
 router.use(errors());

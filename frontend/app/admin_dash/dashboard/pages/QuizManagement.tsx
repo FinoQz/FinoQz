@@ -19,7 +19,7 @@ interface Quiz {
   createdAt: string;
   duration: number;
   price: number;
-  pricingType: 'free' | 'paid';
+  pricingType?: 'free' | 'paid';
   status: 'published' | 'draft';
   participantCount?: number;
   totalMarks?: number;
@@ -147,8 +147,9 @@ export default function QuizManagement() {
       } else {
         setError(res.data?.message || 'Failed to duplicate quiz');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to duplicate quiz');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to duplicate quiz');
     } finally {
       setLoading(false);
     }
@@ -309,7 +310,15 @@ export default function QuizManagement() {
 
       {showEditModal && quizToEdit && (
         <EditQuizModal
-          quiz={quizToEdit}
+          quiz={{
+            ...quizToEdit,
+            totalMarks: quizToEdit.totalMarks ?? 0,
+            pricingType: quizToEdit.pricingType ?? 'free',
+            attemptLimit: quizToEdit.attemptLimit ?? '',
+            difficultyLevel: quizToEdit.difficultyLevel ?? '',
+            category: quizToEdit.category ?? '',
+            visibility: quizToEdit.visibility ?? '',
+          }}
           onClose={() => {
             setShowEditModal(false);
             setQuizToEdit(null);

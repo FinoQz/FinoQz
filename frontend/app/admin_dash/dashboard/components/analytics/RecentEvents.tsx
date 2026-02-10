@@ -16,6 +16,18 @@ interface RecentEventsProps {
 }
 
 export default function RecentEvents({ events }: RecentEventsProps) {
+  if (!events.length) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <Activity className="w-5 h-5 text-[#253A7B]" />
+          <h3 className="text-sm font-semibold text-gray-700">Recent Analytics Events</h3>
+        </div>
+        <p className="text-sm text-gray-500">No recent events available.</p>
+      </div>
+    );
+  }
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'revenue': return TrendingUp;

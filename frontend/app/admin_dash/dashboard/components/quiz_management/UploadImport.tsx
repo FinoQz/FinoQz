@@ -206,7 +206,7 @@ function ManualQuizSetup({
         <button
           className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold"
           onClick={handleSaveQuiz}
-          disabled={saving || !!(numberOfQuestions && questions.length < parseInt(numberOfQuestions, 10))}
+          disabled={saving}
         >
           {saving ? <Loader2 className="animate-spin w-5 h-5" /> : `Save Quiz${numberOfQuestions ? ` (${questions.length}/${numberOfQuestions})` : ''}`}
         </button>
@@ -356,7 +356,11 @@ function UploadQuizFile({
 
       const payload = res.data?.data || res.data?.questions || res.data;
       const list = Array.isArray(payload) ? payload : [];
-      setQuestions(pickRandom(list, numberOfQuestions));
+      const selected = pickRandom(list, numberOfQuestions);
+      setQuestions(selected);
+      if (!isValidObjectId(quizId)) {
+        onCacheQuestions?.(selected);
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to parse file');
@@ -390,7 +394,13 @@ function UploadQuizFile({
 
   // Save edited question
   const handleSaveQuestion = (idx: number, q: Question) => {
-    setQuestions(prev => prev.map((item, i) => (i === idx ? q : item)));
+    setQuestions(prev => {
+      const updated = prev.map((item, i) => (i === idx ? q : item));
+      if (!isValidObjectId(quizId)) {
+        onCacheQuestions?.(updated);
+      }
+      return updated;
+    });
     setEditingIdx(null);
   };
 

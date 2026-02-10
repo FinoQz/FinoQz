@@ -37,6 +37,17 @@ interface TransformedUserGrowthData {
   revenue: number;
 }
 
+interface QuizStats {
+  quizId: string;
+  quizTitle: string;
+  totalAttempts: number;
+}
+
+interface CategoryStats {
+  category: string;
+  totalAttempts: number;
+}
+
 export default function Analytics() {
   const [dateRange, setDateRange] = useState('30');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -53,64 +64,8 @@ export default function Analytics() {
   const [topCategories, setTopCategories] = useState<Array<{ name: string; count: number }>>([]);
   const [topQuizzes, setTopQuizzes] = useState<Array<{ id: string; title: string; attempts: number }>>([]);
 
-  // Keep hourly engagement and recent events as placeholder for now
-  const hourlyEngagement = [
-    { hour: '12A', engagement: 45 },
-    { hour: '1A', engagement: 32 },
-    { hour: '2A', engagement: 28 },
-    { hour: '3A', engagement: 25 },
-    { hour: '4A', engagement: 22 },
-    { hour: '5A', engagement: 30 },
-    { hour: '6A', engagement: 65 },
-    { hour: '7A', engagement: 120 },
-    { hour: '8A', engagement: 185 },
-    { hour: '9A', engagement: 245 },
-    { hour: '10A', engagement: 290 },
-    { hour: '11A', engagement: 310 },
-    { hour: '12P', engagement: 285 },
-    { hour: '1P', engagement: 265 },
-    { hour: '2P', engagement: 295 },
-    { hour: '3P', engagement: 320 },
-    { hour: '4P', engagement: 340 },
-    { hour: '5P', engagement: 365 },
-    { hour: '6P', engagement: 380 },
-    { hour: '7P', engagement: 395 },
-    { hour: '8P', engagement: 410 },
-    { hour: '9P', engagement: 385 },
-    { hour: '10P', engagement: 295 },
-    { hour: '11P', engagement: 180 }
-  ];
-
-  const recentEvents = [
-    {
-      id: '1',
-      type: 'revenue' as const,
-      title: 'Revenue Spike Detected',
-      description: 'Revenue increased by 23% in the last 24 hours',
-      timestamp: '2 hours ago'
-    },
-    {
-      id: '2',
-      type: 'quiz' as const,
-      title: 'New Quiz Created',
-      description: '"Advanced Investment Strategies" published by admin',
-      timestamp: '5 hours ago'
-    },
-    {
-      id: '3',
-      type: 'user' as const,
-      title: 'User Milestone Reached',
-      description: '10,000+ registered users milestone achieved',
-      timestamp: '1 day ago'
-    },
-    {
-      id: '4',
-      type: 'revenue' as const,
-      title: 'Payment Gateway Update',
-      description: 'Successfully processed 150+ transactions today',
-      timestamp: '1 day ago'
-    }
-  ];
+  const hourlyEngagement: Array<{ hour: string; engagement: number }> = [];
+  const recentEvents: Array<{ id: string; type: 'revenue' | 'quiz' | 'user'; title: string; description: string; timestamp: string }> = [];
 
   // Fetch analytics data from backend
   useEffect(() => {
@@ -141,7 +96,7 @@ export default function Analytics() {
 
         // Transform quiz stats for top quizzes
         const quizStats = quizStatsResponse.data || [];
-        const transformedQuizzes = quizStats.slice(0, 5).map((quiz: any) => ({
+        const transformedQuizzes = quizStats.slice(0, 5).map((quiz: QuizStats) => ({
           id: quiz.quizId,
           title: quiz.quizTitle,
           attempts: quiz.totalAttempts
@@ -154,7 +109,7 @@ export default function Analytics() {
 
         // Transform category performance
         const categoryStats = categoryResponse.data || [];
-        const transformedCategories = categoryStats.map((cat: any) => ({
+        const transformedCategories = categoryStats.map((cat: CategoryStats) => ({
           name: cat.category || 'Uncategorized',
           count: cat.totalAttempts
         }));

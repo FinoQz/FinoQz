@@ -216,7 +216,7 @@ export default function ResultSummary({
           <Award className="w-12 h-12 text-green-600 mx-auto mb-3" />
           <h3 className="text-lg font-bold text-green-900 mb-2">Excellent Performance!</h3>
           <p className="text-green-700">
-            You've demonstrated great understanding of the subject. Keep up the fantastic work!
+            Youve demonstrated great understanding of the subject. Keep up the fantastic work!
           </p>
         </div>
       ) : (
@@ -224,7 +224,7 @@ export default function ResultSummary({
           <Target className="w-12 h-12 text-orange-600 mx-auto mb-3" />
           <h3 className="text-lg font-bold text-orange-900 mb-2">Room for Improvement</h3>
           <p className="text-orange-700">
-            Don't be discouraged! Review the material and try again. You're on the path to success!
+            Dont be discouraged! Review the material and try again. Youre on the path to success!
           </p>
         </div>
       )}

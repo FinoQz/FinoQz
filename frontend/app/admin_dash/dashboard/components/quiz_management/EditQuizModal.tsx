@@ -66,8 +66,9 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
       } else {
         setError(response.data?.message || 'Failed to update quiz');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred while updating the quiz');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'An error occurred while updating the quiz');
     } finally {
       setLoading(false);
     }

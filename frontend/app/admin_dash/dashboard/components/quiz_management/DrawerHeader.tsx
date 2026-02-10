@@ -8,13 +8,11 @@ interface DrawerHeaderProps {
     _id: string;
     title: string;
   };
+  onPreview: () => void;
   onExport: () => void;
 }
 
-export default function DrawerHeader({ quizData, onExport }: DrawerHeaderProps) {
-  const handlePreviewQuiz = () => {
-    alert(`Preview quiz: ${quizData.title}`);
-  };
+export default function DrawerHeader({ quizData, onPreview, onExport }: DrawerHeaderProps) {
 
   const handleGenerateCertificates = () => {
     alert('Generating certificates... This may take a few minutes.');
@@ -28,7 +26,8 @@ export default function DrawerHeader({ quizData, onExport }: DrawerHeaderProps) 
     <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
       <div className="flex flex-wrap gap-3">
         <button
-          onClick={handlePreviewQuiz}
+          onClick={onPreview}
+          title={`Preview ${quizData.title}`}
           className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
         >
           <Eye className="w-4 h-4" />

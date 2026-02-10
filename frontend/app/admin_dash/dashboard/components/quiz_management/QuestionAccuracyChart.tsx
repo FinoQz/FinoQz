@@ -1,30 +1,67 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowUpDown } from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin';
 
-export default function QuestionAccuracyChart() {
+interface QuestionAccuracyChartProps {
+  quizId: string;
+}
+
+interface QuestionAccuracyItem {
+  questionId: string;
+  text: string;
+  correctRate: number;
+}
+
+export default function QuestionAccuracyChart({ quizId }: QuestionAccuracyChartProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
-  const [questions, setQuestions] = useState([
-    { id: 1, text: 'What is compound interest?', correctRate: 89 },
-    { id: 2, text: 'Define EBITDA', correctRate: 76 },
-    { id: 3, text: 'Capital gains tax rate', correctRate: 68 },
-    { id: 4, text: 'Stock market basics', correctRate: 82 },
-    { id: 5, text: 'Mutual fund NAV', correctRate: 71 },
-    { id: 6, text: 'Cryptocurrency concept', correctRate: 54 },
-    { id: 7, text: 'Balance sheet components', correctRate: 79 },
-    { id: 8, text: 'IPO process', correctRate: 63 }
-  ]);
+  const [questions, setQuestions] = useState<QuestionAccuracyItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!quizId) return;
+
+    const fetchAccuracy = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const response = await apiAdmin.get(`/api/analytics/question-insights?quizId=${quizId}`);
+        const items = (response.data?.questions || []).map((question: {
+          questionId: string;
+          text: string;
+          correctRate: number;
+        }) => ({
+          questionId: question.questionId,
+          text: question.text,
+          correctRate: Number(question.correctRate || 0)
+        }));
+
+        setQuestions(items);
+      } catch (err) {
+        console.error('Failed to load question accuracy:', err);
+        setError('Failed to load question accuracy');
+        setQuestions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccuracy();
+  }, [quizId]);
 
   const handleSort = () => {
     const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
     setSortOrder(newOrder);
-    const sorted = [...questions].sort((a, b) => 
-      newOrder === 'desc' ? b.correctRate - a.correctRate : a.correctRate - b.correctRate
-    );
-    setQuestions(sorted);
   };
+
+  const sortedQuestions = useMemo(() => {
+    return [...questions].sort((a, b) =>
+      sortOrder === 'desc' ? b.correctRate - a.correctRate : a.correctRate - b.correctRate
+    );
+  }, [questions, sortOrder]);
 
   return (
     <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
@@ -39,28 +76,38 @@ export default function QuestionAccuracyChart() {
         </button>
       </div>
       
-      <div className="space-y-3">
-        {questions.map((question, index) => (
-          <div key={question.id} className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 font-medium">Q{question.id}: {question.text}</span>
-              <span className="text-sm font-bold text-gray-900">{question.correctRate}%</span>
+      {loading ? (
+        <div className="text-sm text-gray-500">Loading accuracy...</div>
+      ) : error ? (
+        <div className="text-sm text-red-600">{error}</div>
+      ) : sortedQuestions.length === 0 ? (
+        <div className="text-sm text-gray-500">No question accuracy data available.</div>
+      ) : (
+        <div className="space-y-3">
+          {sortedQuestions.map((question, index) => (
+            <div key={question.questionId} className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700 font-medium">
+                  Q{index + 1}: {question.text}
+                </span>
+                <span className="text-sm font-bold text-gray-900">{question.correctRate}%</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    question.correctRate >= 75
+                      ? 'bg-green-500'
+                      : question.correctRate >= 50
+                      ? 'bg-yellow-500'
+                      : 'bg-red-500'
+                  }`}
+                  style={{ width: `${question.correctRate}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  question.correctRate >= 75
-                    ? 'bg-green-500'
-                    : question.correctRate >= 50
-                    ? 'bg-yellow-500'
-                    : 'bg-red-500'
-                }`}
-                style={{ width: `${question.correctRate}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
       
       <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-4 text-xs">
         <div className="flex items-center gap-2">

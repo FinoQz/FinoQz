@@ -40,8 +40,9 @@ export default function DeleteConfirmDialog({ quiz, onClose, onSuccess }: Delete
       } else {
         setError(response.data?.message || 'Failed to delete quiz');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred while deleting the quiz');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'An error occurred while deleting the quiz');
     } finally {
       setLoading(false);
     }

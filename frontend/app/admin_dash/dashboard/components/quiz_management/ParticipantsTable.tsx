@@ -47,31 +47,49 @@ export default function ParticipantsTable({
         setLoading(true);
         setError('');
         
-        const response = await apiAdmin.get(`/api/quiz-attempts/quiz/${quizId}`);
-        const attempts = response.data.attempts || [];
+        const [attemptsResponse, transactionsResponse] = await Promise.all([
+          apiAdmin.get(`/api/quiz-attempts/quiz/${quizId}`),
+          apiAdmin.get('/api/transactions/all?limit=200&dateRange=30')
+        ]);
+        const attempts = attemptsResponse.data.attempts || [];
+        const transactions = transactionsResponse.data?.transactions || [];
         
         // Transform backend data to match Participant interface
         interface AttemptData {
           _id: string;
-          userId?: { fullName: string; email: string; phone: string };
+          userId?: { _id?: string; fullName: string; email: string; phone: string };
           startedAt: string;
           status: string;
           totalScore: number;
+          percentage?: number;
           timeTaken?: number;
         }
-        const transformedParticipants: Participant[] = attempts.map((attempt: AttemptData) => ({
+        const transformedParticipants: Participant[] = attempts.map((attempt: AttemptData) => {
+          const attemptUserId = attempt.userId?._id ? String(attempt.userId._id) : '';
+          const matchedTxn = transactions.find((txn: { userId?: { _id?: string }; quizId?: { _id?: string } }) => {
+            const txnUserId = txn.userId?._id ? String(txn.userId._id) : '';
+            const txnQuizId = txn.quizId?._id ? String(txn.quizId._id) : '';
+            return txnUserId && txnQuizId && txnUserId === attemptUserId && txnQuizId === quizId;
+          });
+
+          const paymentStatus = matchedTxn?.status === 'success'
+            ? 'paid'
+            : matchedTxn?.status === 'pending'
+            ? 'pending'
+            : 'unpaid';
+
+          return {
           id: attempt._id,
           name: attempt.userId?.fullName || 'Unknown User',
           email: attempt.userId?.email || 'N/A',
           phone: attempt.userId?.phone || 'N/A',
           registrationDate: new Date(attempt.startedAt).toLocaleDateString('en-US'),
-          // TODO: Fetch actual payment status from transactions API
-          // For now defaulting to 'paid' - should be fetched from Transaction model
-          paymentStatus: 'paid' as const,
+          paymentStatus,
           attemptStatus: attempt.status || 'not-attempted',
-          score: attempt.totalScore,
+          score: typeof attempt.percentage === 'number' ? Math.round(attempt.percentage) : attempt.totalScore,
           timeTaken: attempt.timeTaken ? `${Math.floor(attempt.timeTaken / 60)} min` : null
-        }));
+        };
+        });
         
         setParticipants(transformedParticipants);
       } catch (err) {
