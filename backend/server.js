@@ -123,6 +123,8 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/insights', require('./routes/insightRoutes'));
+app.use('/api/finance-content', require('./routes/financeContentRoutes'));
 
 // ✅ Celebrate validation errors
 app.use(errors());

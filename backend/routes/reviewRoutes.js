@@ -3,21 +3,24 @@ const router = express.Router();
 
 const {
   createReview,
-  getReviews,
-  getFeaturedReviews,
-  updateReviewStatus
+  getPinnedReviews,
+  getAllReviews,
+  togglePinReview,
+  toggleApproveReview,
+  deleteReview
 } = require('../controllers/reviewController');
 
-// TODO: replace with your actual auth middleware paths
 const auth = require('../middlewares/authMiddleware');
 const admin = require('../middlewares/adminAuth');
 
-// Public
+// Public routes
 router.post('/', createReview);
-router.get('/featured', getFeaturedReviews);
+router.get('/pinned', getPinnedReviews);
 
-// Admin
-router.get('/', auth, admin, getReviews);
-router.patch('/:reviewId', auth, admin, updateReviewStatus);
+// Admin routes
+router.get('/admin/all', auth, admin, getAllReviews);
+router.patch('/admin/:id/pin', auth, admin, togglePinReview);
+router.patch('/admin/:id/approve', auth, admin, toggleApproveReview);
+router.delete('/admin/:id', auth, admin, deleteReview);
 
 module.exports = router;
