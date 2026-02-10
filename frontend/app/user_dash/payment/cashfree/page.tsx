@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiUser from '@/lib/apiUser';
 
-export default function CashfreeCallback() {
+function CashfreeCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState('Verifying payment...');
@@ -51,5 +51,19 @@ export default function CashfreeCallback() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CashfreeCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 max-w-md w-full text-center">
+          <p className="text-gray-700">Loading...</p>
+        </div>
+      </div>
+    }>
+      <CashfreeCallbackContent />
+    </Suspense>
   );
 }
