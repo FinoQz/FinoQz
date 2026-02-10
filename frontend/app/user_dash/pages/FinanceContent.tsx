@@ -51,8 +51,8 @@ export default function FinanceContent() {
   };
 
   const handleContentClick = (slug: string) => {
-    // TODO: Create detail page
-    alert(`Navigate to: /finance-content/${slug}`);
+    // Navigate to detail page (to be implemented)
+    router.push(`/finance-content/${slug}`);
   };
 
   if (isLoading) {

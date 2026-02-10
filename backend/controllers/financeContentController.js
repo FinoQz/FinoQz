@@ -122,11 +122,8 @@ const updateContent = async (req, res) => {
       return res.status(404).json({ message: 'Content not found' });
     }
     
-    if (title) {
-      financeContent.title = title;
-      // Reset slug to regenerate
-      financeContent.slug = undefined;
-    }
+    // Update fields - slug will be regenerated automatically by pre-save hook when title changes
+    if (title) financeContent.title = title;
     if (excerpt !== undefined) financeContent.excerpt = excerpt;
     if (content) financeContent.content = content;
     if (thumbnail !== undefined) financeContent.thumbnail = thumbnail;

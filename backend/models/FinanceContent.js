@@ -64,7 +64,8 @@ const financeContentSchema = new mongoose.Schema({
 
 // Auto-generate slug from title before saving
 financeContentSchema.pre('save', async function(next) {
-  if (this.isModified('title') && !this.slug) {
+  // Always regenerate slug when title is modified
+  if (this.isModified('title')) {
     let baseSlug = this.title
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
