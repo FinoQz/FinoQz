@@ -353,16 +353,6 @@ const getAttemptsByQuiz = async (req, res) => {
   }
 };
 
-module.exports = {
-  startAttempt,
-  saveAnswer,
-  submitAttempt,
-  getAttemptDetails,
-  getUserAttempts,
-  getAttemptsByQuiz,
-  getAttemptResult
-};
-
 /**
  * Get detailed result for a quiz attempt
  * @route GET /api/quiz-attempts/:attemptId/result
@@ -381,7 +371,7 @@ const getAttemptResult = async (req, res) => {
     }
 
     // Verify user owns this attempt
-    if (attempt.userId.toString() !== userId.toString()) {
+    if (!attempt.userId || attempt.userId.toString() !== userId.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -434,15 +424,15 @@ const getAttemptResult = async (req, res) => {
     const totalQuestions = enrichedAnswers.length;
 
     // Check if retake is allowed
-    const quiz = attempt.quizId;
-    const allowRetake = quiz.attemptLimit === 'unlimited' || 
-                        attempt.attemptNumber < parseInt(quiz.attemptLimit || '1');
+    const quizData = typeof attempt.quizId === 'object' ? attempt.quizId : { attemptLimit: '1' };
+    const allowRetake = quizData.attemptLimit === 'unlimited' || 
+                        attempt.attemptNumber < parseInt(quizData.attemptLimit || '1');
 
     const result = {
       attemptId: attempt._id,
-      quizTitle: quiz.quizTitle,
+      quizTitle: quizData.quizTitle || 'Quiz',
       totalScore: attempt.totalScore,
-      totalMarks: quiz.totalMarks || enrichedAnswers.reduce((sum, a) => sum + a.marksAllocated, 0),
+      totalMarks: quizData.totalMarks || enrichedAnswers.reduce((sum, a) => sum + a.marksAllocated, 0),
       percentage: attempt.percentage,
       timeTaken: attempt.timeTaken,
       totalQuestions,
@@ -467,4 +457,14 @@ const getAttemptResult = async (req, res) => {
     console.error('Get attempt result error:', error);
     res.status(500).json({ message: 'Failed to fetch result' });
   }
+};
+
+module.exports = {
+  startAttempt,
+  saveAnswer,
+  submitAttempt,
+  getAttemptDetails,
+  getUserAttempts,
+  getAttemptsByQuiz,
+  getAttemptResult
 };

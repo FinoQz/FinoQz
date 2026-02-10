@@ -41,18 +41,30 @@ export default function MyQuizes() {
         setLoading(true);
         setError('');
         
-        const response = await apiUser.get('/api/my-quizzes');
+        const response = await apiUser.get('/api/quizzes/my-quizzes');
         const quizzesData = response.data.data || [];
         
         // Transform backend data to match frontend QuizData interface
-        const transformedQuizzes: QuizData[] = quizzesData.map((quiz: any) => ({
+        const transformedQuizzes: QuizData[] = quizzesData.map((quiz: {
+          _id: string;
+          quizTitle: string;
+          category: string;
+          price?: number;
+          duration: number;
+          totalMarks?: number;
+          pricingType?: string;
+          attemptStatus: string;
+          latestAttempt?: { score: number; submittedAt: string };
+          bestScore?: number;
+          totalAttempts?: number;
+        }) => ({
           id: quiz._id,
           title: quiz.quizTitle,
           category: quiz.category,
           price: quiz.price || 0,
           duration: quiz.duration,
           questions: quiz.totalMarks || 0, // Using totalMarks as proxy for question count
-          isPaid: quiz.pricingType === 'paid' && quiz.price > 0,
+          isPaid: quiz.pricingType === 'paid' && (quiz.price ?? 0) > 0,
           isAttempted: quiz.attemptStatus !== 'not-started',
           score: quiz.latestAttempt?.score,
           totalQuestions: quiz.totalMarks || 0,
@@ -66,9 +78,10 @@ export default function MyQuizes() {
         }));
         
         setAllQuizzes(transformedQuizzes);
-      } catch (err: any) {
+      } catch (err) {
+        const error = err as { response?: { data?: { message?: string } } };
         console.error('Error fetching my quizzes:', err);
-        setError(err.response?.data?.message || 'Failed to load your quizzes');
+        setError(error.response?.data?.message || 'Failed to load your quizzes');
         setAllQuizzes([]);
       } finally {
         setLoading(false);

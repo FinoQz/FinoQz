@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Clock, CheckCircle, XCircle, Trophy, Play, Filter, TrendingUp, IndianRupee } from 'lucide-react';
-import api from '@/lib/api';
+import apiUser from '@/lib/apiUser';
 
 interface QuizAttempt {
   score: number;
@@ -59,13 +59,14 @@ export default function MyQuiz() {
     setLoading(true);
     setError('');
     try {
-      const response = await api.get('/api/quizzes/my-quizzes');
+      const response = await apiUser.get('/api/quizzes/my-quizzes');
       if (response.data && Array.isArray(response.data.data)) {
         setQuizzes(response.data.data);
         setFilteredQuizzes(response.data.data);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch your quizzes');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to fetch your quizzes');
     } finally {
       setLoading(false);
     }

@@ -52,18 +52,18 @@ export default function Quizes() {
         setError('');
         
         // Fetch all published quizzes
-        const response = await apiUser.get('/api/quizzes');
+        const response = await apiUser.get('/api/quizzes/quizzes');
         const quizzesData = response.data.data || [];
         
         // Fetch user's purchased quizzes to mark isPurchased
         try {
-          const purchasedResponse = await apiUser.get('/api/my-quizzes');
+          const purchasedResponse = await apiUser.get('/api/quizzes/my-quizzes');
           const purchased = purchasedResponse.data.data || [];
-          const purchasedIds = new Set(purchased.map((q: any) => String(q._id)));
+          const purchasedIds = new Set<string>(purchased.map((q: Quiz) => String(q._id)));
           setPurchasedQuizIds(purchasedIds);
           
           // Mark purchased quizzes
-          const enrichedQuizzes = quizzesData.map((quiz: any) => ({
+          const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
             ...quiz,
             isPurchased: quiz.pricingType === 'free' || purchasedIds.has(String(quiz._id))
           }));
@@ -71,7 +71,7 @@ export default function Quizes() {
           setQuizzes(enrichedQuizzes);
         } catch (err) {
           // If fetching purchased quizzes fails, just show all quizzes
-          const enrichedQuizzes = quizzesData.map((quiz: any) => ({
+          const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
             ...quiz,
             isPurchased: quiz.pricingType === 'free'
           }));
@@ -79,12 +79,13 @@ export default function Quizes() {
         }
         
         // Extract unique categories
-        const uniqueCategories = Array.from(new Set(quizzesData.map((q: any) => q.category).filter(Boolean)));
+        const uniqueCategories = Array.from(new Set(quizzesData.map((q: Quiz) => q.category).filter(Boolean))) as string[];
         setCategories(uniqueCategories);
         
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error fetching quizzes:', err);
-        setError(err.response?.data?.message || 'Failed to load quizzes');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load quizzes';
+        setError(errorMessage);
         setQuizzes([]);
       } finally {
         setLoading(false);
@@ -191,9 +192,10 @@ export default function Quizes() {
       //   gatewayResponse: gatewayResponse
       // });
       
-    } catch (err: any) {
+    } catch (err) {
       console.error('Payment error:', err);
-      alert(err.response?.data?.message || 'Payment failed. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
+      alert(errorMessage);
     }
   };
 

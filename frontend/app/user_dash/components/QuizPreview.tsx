@@ -49,8 +49,9 @@ export default function QuizPreview({ quizId, onClose, onPurchase, fetchPreviewD
     try {
       const data = await fetchPreviewData(quizId);
       setPreviewData(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load preview');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load preview';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ export default function QuizPreview({ quizId, onClose, onPurchase, fetchPreviewD
                 This is a limited preview
               </p>
               <p className="text-xs text-yellow-700 mt-1">
-                You're viewing {previewData.previewQuestions.length} out of {previewData.totalQuestions} questions. 
+                Youre viewing {previewData.previewQuestions.length} out of {previewData.totalQuestions} questions. 
                 Purchase the full quiz to access all questions, save your progress, and earn certificates.
               </p>
             </div>

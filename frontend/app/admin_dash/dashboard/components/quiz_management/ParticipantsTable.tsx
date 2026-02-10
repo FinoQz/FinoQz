@@ -38,42 +38,7 @@ export default function ParticipantsTable({
   // Fetch participants when quizId is provided
   useEffect(() => {
     if (!quizId) {
-      // Use dummy data if no quizId provided (for backward compatibility)
-      setParticipants([
-        {
-          id: '1',
-          name: 'Rahul Sharma',
-          email: 'rahul.sharma@email.com',
-          phone: '+91 98765 43210',
-          registrationDate: '2025-01-15',
-          paymentStatus: 'paid',
-          attemptStatus: 'submitted',
-          score: 85,
-          timeTaken: '42 min'
-        },
-        {
-          id: '2',
-          name: 'Priya Patel',
-          email: 'priya.patel@email.com',
-          phone: '+91 87654 32109',
-          registrationDate: '2025-01-14',
-          paymentStatus: 'paid',
-          attemptStatus: 'submitted',
-          score: 92,
-          timeTaken: '38 min'
-        },
-        {
-          id: '3',
-          name: 'Amit Kumar',
-          email: 'amit.kumar@email.com',
-          phone: '+91 76543 21098',
-          registrationDate: '2025-01-14',
-          paymentStatus: 'pending',
-          attemptStatus: 'in-progress',
-          score: null,
-          timeTaken: null
-        }
-      ]);
+      setParticipants([]);
       return;
     }
 
@@ -86,7 +51,15 @@ export default function ParticipantsTable({
         const attempts = response.data.attempts || [];
         
         // Transform backend data to match Participant interface
-        const transformedParticipants: Participant[] = attempts.map((attempt: any) => ({
+        interface AttemptData {
+          _id: string;
+          userId?: { fullName: string; email: string; phone: string };
+          startedAt: string;
+          status: string;
+          totalScore: number;
+          timeTaken?: number;
+        }
+        const transformedParticipants: Participant[] = attempts.map((attempt: AttemptData) => ({
           id: attempt._id,
           name: attempt.userId?.fullName || 'Unknown User',
           email: attempt.userId?.email || 'N/A',
@@ -101,9 +74,10 @@ export default function ParticipantsTable({
         }));
         
         setParticipants(transformedParticipants);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error fetching participants:', err);
-        setError(err.response?.data?.message || 'Failed to load participants');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load participants';
+        setError(errorMessage);
         setParticipants([]);
       } finally {
         setLoading(false);
@@ -192,141 +166,143 @@ export default function ParticipantsTable({
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="py-4 px-6 text-left">
-                <input
-                  type="checkbox"
-                  checked={selectedParticipants.length === participants.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="w-4 h-4 accent-[#253A7B] cursor-pointer"
-                />
-              </th>
-              <th className="py-4 px-6 text-left">
-                <button
-                  onClick={() => handleSort('name')}
-                  className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
-                >
-                  Name
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
-              <th className="py-4 px-6 text-left">
-                <button
-                  onClick={() => handleSort('registrationDate')}
-                  className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
-                >
-                  Registration
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-              <th className="py-4 px-6 text-left">
-                <button
-                  onClick={() => handleSort('score')}
-                  className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
-                >
-                  Score
-                  <ArrowUpDown className="w-3 h-3" />
-                </button>
-              </th>
-              <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-              <th className="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {participants.map((participant, index) => (
-              <tr
-                key={participant.id}
-                className={`border-b border-gray-100 hover:bg-gray-50 transition ${
-                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
-                }`}
-              >
-                <td className="py-4 px-6">
-                  <input
-                    type="checkbox"
-                    checked={selectedParticipants.includes(participant.id)}
-                    onChange={(e) => handleSelectOne(participant.id, e.target.checked)}
-                    className="w-4 h-4 accent-[#253A7B] cursor-pointer"
-                  />
-                </td>
-                <td className="py-4 px-6">
-                  <p className="font-medium text-gray-900">{participant.name}</p>
-                </td>
-                <td className="py-4 px-6 text-sm text-gray-600">{participant.email}</td>
-                <td className="py-4 px-6 text-sm text-gray-600">{participant.phone}</td>
-                <td className="py-4 px-6 text-sm text-gray-600">{participant.registrationDate}</td>
-                <td className="py-4 px-6">{getStatusBadge(participant.paymentStatus, 'payment')}</td>
-                <td className="py-4 px-6">{getStatusBadge(participant.attemptStatus, 'attempt')}</td>
-                <td className="py-4 px-6">
-                  {participant.score !== null ? (
-                    <span className="font-bold text-gray-900">{participant.score}%</span>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="py-4 px-6 text-sm text-gray-600">
-                  {participant.timeTaken || '—'}
-                </td>
-                <td className="py-4 px-6">
-                  <div className="flex items-center justify-center gap-2">
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="py-4 px-6 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedParticipants.length === participants.length}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 accent-[#253A7B] cursor-pointer"
+                    />
+                  </th>
+                  <th className="py-4 px-6 text-left">
                     <button
-                      onClick={() => onViewAttempt(participant)}
-                      disabled={participant.attemptStatus === 'not-attempted'}
-                      className="p-2 hover:bg-blue-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="View Attempt"
+                      onClick={() => handleSort('name')}
+                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
                     >
-                      <Eye className="w-4 h-4 text-blue-600" />
+                      Name
+                      <ArrowUpDown className="w-3 h-3" />
                     </button>
+                  </th>
+                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
+                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
+                  <th className="py-4 px-6 text-left">
                     <button
-                      className="p-2 hover:bg-purple-100 rounded-lg transition"
-                      title="Send Message"
+                      onClick={() => handleSort('registrationDate')}
+                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
                     >
-                      <Mail className="w-4 h-4 text-purple-600" />
+                      Registration
+                      <ArrowUpDown className="w-3 h-3" />
                     </button>
+                  </th>
+                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
+                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                  <th className="py-4 px-6 text-left">
                     <button
-                      className="p-2 hover:bg-green-100 rounded-lg transition"
-                      title="Mark as Paid"
+                      onClick={() => handleSort('score')}
+                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
                     >
-                      <CreditCard className="w-4 h-4 text-green-600" />
+                      Score
+                      <ArrowUpDown className="w-3 h-3" />
                     </button>
-                    <button
-                      className="p-2 hover:bg-red-100 rounded-lg transition"
-                      title="Refund"
-                    >
-                      <RefreshCw className="w-4 h-4 text-red-600" />
-                    </button>
-                    <button
-                      disabled={participant.attemptStatus !== 'submitted'}
-                      className="p-2 hover:bg-yellow-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Generate Certificate"
-                    >
-                      <Award className="w-4 h-4 text-yellow-600" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </th>
+                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
+                  <th className="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participants.map((participant, index) => (
+                  <tr
+                    key={participant.id}
+                    className={`border-b border-gray-100 hover:bg-gray-50 transition ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                    }`}
+                  >
+                    <td className="py-4 px-6">
+                      <input
+                        type="checkbox"
+                        checked={selectedParticipants.includes(participant.id)}
+                        onChange={(e) => handleSelectOne(participant.id, e.target.checked)}
+                        className="w-4 h-4 accent-[#253A7B] cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-4 px-6">
+                      <p className="font-medium text-gray-900">{participant.name}</p>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{participant.email}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{participant.phone}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">{participant.registrationDate}</td>
+                    <td className="py-4 px-6">{getStatusBadge(participant.paymentStatus, 'payment')}</td>
+                    <td className="py-4 px-6">{getStatusBadge(participant.attemptStatus, 'attempt')}</td>
+                    <td className="py-4 px-6">
+                      {participant.score !== null ? (
+                        <span className="font-bold text-gray-900">{participant.score}%</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-600">
+                      {participant.timeTaken || '—'}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => onViewAttempt(participant)}
+                          disabled={participant.attemptStatus === 'not-attempted'}
+                          className="p-2 hover:bg-blue-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="View Attempt"
+                        >
+                          <Eye className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-purple-100 rounded-lg transition"
+                          title="Send Message"
+                        >
+                          <Mail className="w-4 h-4 text-purple-600" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-green-100 rounded-lg transition"
+                          title="Mark as Paid"
+                        >
+                          <CreditCard className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-red-100 rounded-lg transition"
+                          title="Refund"
+                        >
+                          <RefreshCw className="w-4 h-4 text-red-600" />
+                        </button>
+                        <button
+                          disabled={participant.attemptStatus !== 'submitted'}
+                          className="p-2 hover:bg-yellow-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Generate Certificate"
+                        >
+                          <Award className="w-4 h-4 text-yellow-600" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
-        <p>Showing {participants.length} of {participants.length} participants</p>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-            Previous
-          </button>
-          <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-            Next
-          </button>
-        </div>
-      </div>
+          <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+            <p>Showing {participants.length} of {participants.length} participants</p>
+            <div className="flex gap-2">
+              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                Previous
+              </button>
+              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                Next
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
