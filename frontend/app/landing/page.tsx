@@ -4,6 +4,7 @@ import Features from "./components/Features";
 import TryQuizPreview from "./components/TryQuiz";
 import QuizCategories from "./components/QuizCategories";
 import Community from "./components/Community";
+import Reviews from "./components/Reviews";
 import CTA from "./components/CTA";
 import Footer from "./components/Footer";
 
@@ -15,6 +16,7 @@ export default function LandingPage() {
       <TryQuizPreview />
       <QuizCategories />
       <Features />
+      <Reviews />
       <Community />
       <CTA />
       <Footer />
