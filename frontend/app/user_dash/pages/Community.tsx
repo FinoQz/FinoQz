@@ -19,6 +19,8 @@ interface Insight {
   shareCount: number;
   createdAt: string;
   isPinned: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 interface Comment {
@@ -28,6 +30,7 @@ interface Comment {
   commentText: string;
   likeCount: number;
   createdAt: string;
+  canDelete?: boolean;
 }
 
 export default function Community() {
@@ -41,22 +44,10 @@ export default function Community() {
   const [likedInsights, setLikedInsights] = useState<Set<string>>(new Set());
   const [editingInsight, setEditingInsight] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   useEffect(() => {
     fetchInsights();
-    fetchCurrentUser();
   }, []);
-
-  const fetchCurrentUser = async () => {
-    try {
-      // Get current user ID from a profile endpoint or similar
-      // For now, we'll set it when we get insights and match authorId
-      // This is a simplified approach - in production you'd have a separate endpoint
-    } catch (error) {
-      console.error('Error fetching current user:', error);
-    }
-  };
 
   const fetchInsights = async () => {
     try {
@@ -316,23 +307,29 @@ export default function Community() {
                         {new Date(insight.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    {/* Note: Edit/Delete shown for demonstration - in production, match authorId with current user */}
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => startEditingInsight(insight)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        title="Edit insight"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteInsight(insight._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                        title="Delete insight"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {/* Show edit/delete only if user has permission */}
+                    {(insight.canEdit || insight.canDelete) && (
+                      <div className="flex items-center gap-2">
+                        {insight.canEdit && (
+                          <button 
+                            onClick={() => startEditingInsight(insight)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Edit insight"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                        {insight.canDelete && (
+                          <button 
+                            onClick={() => handleDeleteInsight(insight._id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Delete insight"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
                   {editingInsight === insight._id ? (
@@ -455,14 +452,16 @@ export default function Community() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold text-gray-900">{comment.userName}</h4>
-                          {/* Note: Delete button shown for demonstration - in production, match userId with current user */}
-                          <button
-                            onClick={() => handleDeleteComment(comment._id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition"
-                            title="Delete comment"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          {/* Show delete button only if user has permission */}
+                          {comment.canDelete && (
+                            <button
+                              onClick={() => handleDeleteComment(comment._id)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                              title="Delete comment"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 mt-1">{comment.commentText}</p>
                         <div className="flex items-center gap-4 mt-2">

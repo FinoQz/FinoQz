@@ -24,10 +24,21 @@ const getInsights = async (req, res) => {
       .skip((page - 1) * limit)
       .lean();
     
+    // Add canEdit and canDelete flags for each insight
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const currentUserRole = req.user?.role || req.role;
+    const isAdmin = currentUserRole === 'admin' || currentUserRole === 'moderator';
+    
+    const insightsWithPermissions = insights.map(insight => ({
+      ...insight,
+      canEdit: insight.authorId.toString() === currentUserId?.toString(),
+      canDelete: insight.authorId.toString() === currentUserId?.toString() || isAdmin
+    }));
+    
     const count = await CommunityInsight.countDocuments(query);
     
     res.json({
-      insights,
+      insights: insightsWithPermissions,
       totalPages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       total: count
@@ -48,11 +59,31 @@ const getInsightById = async (req, res) => {
       return res.status(404).json({ message: 'Insight not found' });
     }
     
+    // Add canEdit/canDelete for insight
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const currentUserRole = req.user?.role || req.role;
+    const isAdmin = currentUserRole === 'admin' || currentUserRole === 'moderator';
+    
+    const insightWithPermissions = {
+      ...insight,
+      canEdit: insight.authorId.toString() === currentUserId?.toString(),
+      canDelete: insight.authorId.toString() === currentUserId?.toString() || isAdmin
+    };
+    
     const comments = await InsightComment.find({ insightId: id })
       .sort({ createdAt: -1 })
       .lean();
     
-    res.json({ insight, comments });
+    // Add canDelete flag for each comment
+    const commentsWithPermissions = comments.map(comment => ({
+      ...comment,
+      canDelete: comment.userId.toString() === currentUserId?.toString() || isAdmin
+    }));
+    
+    res.json({ 
+      insight: insightWithPermissions, 
+      comments: commentsWithPermissions 
+    });
   } catch (error) {
     console.error('Get insight by ID error:', error);
     res.status(500).json({ message: 'Failed to fetch insight' });
