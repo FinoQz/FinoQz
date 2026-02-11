@@ -246,6 +246,46 @@ const likeComment = async (req, res) => {
   }
 };
 
+// PUT /api/insights/:id - Edit own insight (author only)
+const editInsight = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content, images, category, tags } = req.body;
+    const userId = req.user._id || req.user.id;
+    
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+    
+    const insight = await CommunityInsight.findById(id);
+    if (!insight) {
+      return res.status(404).json({ message: 'Insight not found' });
+    }
+    
+    // Check if user is author
+    const isAuthor = insight.authorId.toString() === userId.toString();
+    if (!isAuthor) {
+      return res.status(403).json({ message: 'Unauthorized to edit this insight' });
+    }
+    
+    // Update fields
+    insight.content = content;
+    if (images !== undefined) insight.images = images;
+    if (category !== undefined) insight.category = category;
+    if (tags !== undefined) insight.tags = tags;
+    
+    await insight.save();
+    
+    res.json({
+      message: 'Insight updated successfully',
+      insight
+    });
+  } catch (error) {
+    console.error('Edit insight error:', error);
+    res.status(500).json({ message: 'Failed to update insight' });
+  }
+};
+
 // DELETE /api/insights/:id - Delete own insight (author only)
 const deleteInsight = async (req, res) => {
   try {
@@ -276,6 +316,41 @@ const deleteInsight = async (req, res) => {
   }
 };
 
+// DELETE /api/insights/comments/:commentId - Delete own comment (author only)
+const deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const userId = req.user._id || req.user.id;
+    const userRole = req.user.role || 'user';
+    
+    const comment = await InsightComment.findById(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+    
+    // Check if user is comment author or admin
+    const isAuthor = comment.userId.toString() === userId.toString();
+    const isAdmin = userRole === 'admin' || userRole === 'moderator';
+    
+    if (!isAuthor && !isAdmin) {
+      return res.status(403).json({ message: 'Unauthorized to delete this comment' });
+    }
+    
+    // Update insight comment count
+    await CommunityInsight.findByIdAndUpdate(
+      comment.insightId,
+      { $inc: { commentCount: -1 } }
+    );
+    
+    await InsightComment.findByIdAndDelete(commentId);
+    
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ message: 'Failed to delete comment' });
+  }
+};
+
 // GET /api/insights/pinned - Get pinned insights for landing page
 const getPinnedInsights = async (req, res) => {
   try {
@@ -298,10 +373,12 @@ module.exports = {
   getInsights,
   getInsightById,
   createInsight,
+  editInsight,
   likeInsight,
   addComment,
   shareInsight,
   likeComment,
   deleteInsight,
+  deleteComment,
   getPinnedInsights
 };

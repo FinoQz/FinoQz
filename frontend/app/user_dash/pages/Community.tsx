@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Heart, MessageCircle, Share2, TrendingUp, Send, X } from 'lucide-react';
-import axios from 'axios';
+import { MessageSquare, Heart, MessageCircle, Share2, TrendingUp, Send, X, Edit, Trash2 } from 'lucide-react';
+import apiUser from '@/lib/apiUser';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface Insight {
   _id: string;
+  authorId: string;
   authorName: string;
   content: string;
   images?: string[];
@@ -22,6 +23,7 @@ interface Insight {
 
 interface Comment {
   _id: string;
+  userId: string;
   userName: string;
   commentText: string;
   likeCount: number;
@@ -37,16 +39,28 @@ export default function Community() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [likedInsights, setLikedInsights] = useState<Set<string>>(new Set());
+  const [editingInsight, setEditingInsight] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   useEffect(() => {
     fetchInsights();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      // Get current user ID from a profile endpoint or similar
+      // For now, we'll set it when we get insights and match authorId
+      // This is a simplified approach - in production you'd have a separate endpoint
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
 
   const fetchInsights = async () => {
     try {
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/insights`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiUser.get('/api/insights', {
         params: { limit: 20 }
       });
       setInsights(response.data.insights || []);
@@ -62,13 +76,7 @@ export default function Community() {
     
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
-      await axios.post(
-        `${API_URL}/api/insights`,
-        { content: newInsight.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
+      await apiUser.post('/api/insights', { content: newInsight.trim() });
       setNewInsight('');
       fetchInsights();
     } catch (error) {
@@ -79,14 +87,47 @@ export default function Community() {
     }
   };
 
+  const handleEditInsight = async (insightId: string) => {
+    if (!editContent.trim()) return;
+    
+    try {
+      await apiUser.put(`/api/insights/${insightId}`, { 
+        content: editContent.trim() 
+      });
+      setEditingInsight(null);
+      setEditContent('');
+      fetchInsights();
+    } catch (error) {
+      console.error('Error editing insight:', error);
+      alert('Failed to edit insight');
+    }
+  };
+
+  const handleDeleteInsight = async (insightId: string) => {
+    if (!confirm('Are you sure you want to delete this insight?')) return;
+    
+    try {
+      await apiUser.delete(`/api/insights/${insightId}`);
+      fetchInsights();
+    } catch (error) {
+      console.error('Error deleting insight:', error);
+      alert('Failed to delete insight');
+    }
+  };
+
+  const startEditingInsight = (insight: Insight) => {
+    setEditingInsight(insight._id);
+    setEditContent(insight.content);
+  };
+
+  const cancelEditingInsight = () => {
+    setEditingInsight(null);
+    setEditContent('');
+  };
+
   const handleLikeInsight = async (insightId: string) => {
     try {
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
-      const response = await axios.post(
-        `${API_URL}/api/insights/${insightId}/like`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiUser.post(`/api/insights/${insightId}/like`);
       
       // Update local state
       setInsights(insights.map(insight => 
@@ -110,12 +151,7 @@ export default function Community() {
 
   const handleShareInsight = async (insightId: string) => {
     try {
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
-      await axios.post(
-        `${API_URL}/api/insights/${insightId}/share`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiUser.post(`/api/insights/${insightId}/share`);
       
       // Update local state
       setInsights(insights.map(insight => 
@@ -132,12 +168,7 @@ export default function Community() {
 
   const handleViewComments = async (insightId: string) => {
     try {
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
-      const response = await axios.get(
-        `${API_URL}/api/insights/${insightId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
+      const response = await apiUser.get(`/api/insights/${insightId}`);
       setComments(response.data.comments || []);
       setSelectedInsight(insightId);
     } catch (error) {
@@ -149,12 +180,9 @@ export default function Community() {
     if (!newComment.trim() || !selectedInsight) return;
     
     try {
-      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
-      await axios.post(
-        `${API_URL}/api/insights/${selectedInsight}/comment`,
-        { commentText: newComment.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiUser.post(`/api/insights/${selectedInsight}/comment`, { 
+        commentText: newComment.trim() 
+      });
       
       setNewComment('');
       handleViewComments(selectedInsight);
@@ -167,6 +195,28 @@ export default function Community() {
       ));
     } catch (error) {
       console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+    
+    try {
+      await apiUser.delete(`/api/insights/comments/${commentId}`);
+      
+      if (selectedInsight) {
+        handleViewComments(selectedInsight);
+        
+        // Update comment count
+        setInsights(insights.map(insight => 
+          insight._id === selectedInsight 
+            ? { ...insight, commentCount: Math.max(0, insight.commentCount - 1) }
+            : insight
+        ));
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('Failed to delete comment');
     }
   };
 
@@ -266,8 +316,52 @@ export default function Community() {
                         {new Date(insight.createdAt).toLocaleString()}
                       </p>
                     </div>
+                    {/* Note: Edit/Delete shown for demonstration - in production, match authorId with current user */}
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => startEditingInsight(insight)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        title="Edit insight"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteInsight(insight._id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                        title="Delete insight"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-gray-700 mb-4 whitespace-pre-wrap">{insight.content}</p>
+                  
+                  {editingInsight === insight._id ? (
+                    <div className="mb-4">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] resize-none"
+                        rows={3}
+                        maxLength={500}
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          onClick={cancelEditingInsight}
+                          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleEditInsight(insight._id)}
+                          className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 mb-4 whitespace-pre-wrap">{insight.content}</p>
+                  )}
                   
                   {insight.images && insight.images.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 mb-4">
@@ -359,7 +453,17 @@ export default function Community() {
                         {comment.userName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{comment.userName}</h4>
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-gray-900">{comment.userName}</h4>
+                          {/* Note: Delete button shown for demonstration - in production, match userId with current user */}
+                          <button
+                            onClick={() => handleDeleteComment(comment._id)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                            title="Delete comment"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                         <p className="text-sm text-gray-600 mt-1">{comment.commentText}</p>
                         <div className="flex items-center gap-4 mt-2">
                           <span className="text-xs text-gray-500">

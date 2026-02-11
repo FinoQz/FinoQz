@@ -3,16 +3,8 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_API || "http://localhost:5000/api",
-  withCredentials: true,
+  withCredentials: true, // ✅ Rely on HTTP-only cookies for authentication
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("adminToken");
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
+// No need to manually set Authorization header - cookies are sent automatically
 export default api;

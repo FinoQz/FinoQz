@@ -5,11 +5,13 @@ const {
   getInsights,
   getInsightById,
   createInsight,
+  editInsight,
   likeInsight,
   addComment,
   shareInsight,
   likeComment,
   deleteInsight,
+  deleteComment,
   getPinnedInsights
 } = require('../controllers/insightController');
 
@@ -32,11 +34,13 @@ router.get('/pinned', getPinnedInsights);
 router.get('/', auth, getInsights);
 router.get('/:id', auth, getInsightById);
 router.post('/', auth, createInsight);
+router.put('/:id', auth, editInsight);
 router.post('/:id/like', auth, likeInsight);
 router.post('/:id/comment', auth, addComment);
 router.post('/:id/share', auth, shareInsight);
 router.post('/comments/:commentId/like', auth, likeComment);
 router.delete('/:id', auth, deleteInsight);
+router.delete('/comments/:commentId', auth, deleteComment);
 
 // Admin routes
 router.get('/admin/all', auth, admin, getAllInsights);
