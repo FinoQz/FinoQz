@@ -5,7 +5,7 @@ import {
   Plus, Search, MessageSquare, Heart, Share2, TrendingUp, 
   Eye, Edit2, Trash2, Pin, ToggleLeft, ToggleRight, BarChart 
 } from 'lucide-react';
-import axios from 'axios';
+import apiAdmin from '@/lib/apiAdmin';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -53,9 +53,7 @@ export default function InsightsManagement() {
 
   const fetchInsights = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/insights/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiAdmin.get('/api/insights/admin/all', {
         params: {
           filter: filter !== 'all' ? filter : undefined,
           search: searchQuery || undefined,
@@ -73,11 +71,7 @@ export default function InsightsManagement() {
 
   const fetchAnalytics = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/insights/admin/analytics`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const response = await apiAdmin.get('/api/insights/admin/analytics');
       setAnalytics(response.data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -89,12 +83,9 @@ export default function InsightsManagement() {
     
     setIsCreating(true);
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.post(
-        `${API_URL}/api/insights/admin/create`,
-        { content: newInsight.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiAdmin.post('/api/insights/admin/create', { 
+        content: newInsight.trim() 
+      });
       
       setNewInsight('');
       fetchInsights();
@@ -109,12 +100,7 @@ export default function InsightsManagement() {
 
   const handleTogglePin = async (id: string) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(
-        `${API_URL}/api/insights/admin/${id}/pin`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiAdmin.patch(`/api/insights/admin/${id}/pin`);
       fetchInsights();
     } catch (error) {
       console.error('Error toggling pin:', error);
@@ -124,12 +110,7 @@ export default function InsightsManagement() {
 
   const handleToggleStatus = async (id: string) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(
-        `${API_URL}/api/insights/admin/${id}/status`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiAdmin.patch(`/api/insights/admin/${id}/status`);
       fetchInsights();
     } catch (error) {
       console.error('Error toggling status:', error);
@@ -141,10 +122,7 @@ export default function InsightsManagement() {
     if (!confirm('Are you sure you want to delete this insight?')) return;
     
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`${API_URL}/api/insights/admin/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiAdmin.delete(`/api/insights/admin/${id}`);
       fetchInsights();
       fetchAnalytics();
     } catch (error) {

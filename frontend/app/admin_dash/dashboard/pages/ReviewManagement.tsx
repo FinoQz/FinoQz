@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Star, Search, Filter, ThumbsUp, ThumbsDown, Trash2, Pin, Check, X } from 'lucide-react';
-import axios from 'axios';
+import apiAdmin from '@/lib/apiAdmin';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -31,9 +31,7 @@ export default function ReviewManagement() {
 
   const fetchReviews = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/reviews/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await apiAdmin.get('/api/reviews/admin/all', {
         params: {
           filter: filter !== 'all' ? filter : undefined,
           search: searchQuery || undefined,
@@ -53,12 +51,7 @@ export default function ReviewManagement() {
 
   const handleTogglePin = async (id: string) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(
-        `${API_URL}/api/reviews/admin/${id}/pin`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiAdmin.patch(`/api/reviews/admin/${id}/pin`);
       fetchReviews();
     } catch (error) {
       console.error('Error toggling pin:', error);
@@ -68,12 +61,7 @@ export default function ReviewManagement() {
 
   const handleToggleApprove = async (id: string) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(
-        `${API_URL}/api/reviews/admin/${id}/approve`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiAdmin.patch(`/api/reviews/admin/${id}/approve`);
       fetchReviews();
     } catch (error) {
       console.error('Error toggling approve:', error);
@@ -85,10 +73,7 @@ export default function ReviewManagement() {
     if (!confirm('Are you sure you want to delete this review?')) return;
     
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`${API_URL}/api/reviews/admin/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiAdmin.delete(`/api/reviews/admin/${id}`);
       fetchReviews();
     } catch (error) {
       console.error('Error deleting review:', error);

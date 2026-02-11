@@ -37,32 +37,46 @@ The Community Engagement System adds three major features to the FinoQz platform
 **User Features:**
 - View community insights feed
 - Create new insights (up to 500 characters)
-- Like insights
+- **Edit own insights** (NEW)
+- **Delete own insights** (NEW)
+- Like/unlike insights
 - Comment on insights
+- **Delete own comments** (NEW)
 - Share insights (increments share count)
 - View comments in modal with real-time updates
+- See engagement metrics (likes, comments, shares)
 
 **Admin Features:**
 - Create admin insights
 - Pin/unpin insights for visibility
 - Activate/deactivate insights
-- Delete any insight
+- Delete any insight (including user insights)
+- Delete any comment (moderation)
 - View analytics dashboard:
   - Total insights, likes, comments, shares
   - Most engaged posts
   - Top contributors
+  - Engagement tracking
 
 **API Endpoints:**
 - `GET /api/insights` - Get active insights (authenticated)
 - `GET /api/insights/:id` - Get single insight with comments (authenticated)
 - `POST /api/insights` - Create insight (authenticated)
+- `PUT /api/insights/:id` - **Edit own insight (authenticated)** (NEW)
 - `POST /api/insights/:id/like` - Like/unlike insight (authenticated)
 - `POST /api/insights/:id/comment` - Add comment (authenticated)
 - `POST /api/insights/:id/share` - Share insight (authenticated)
 - `POST /api/insights/comments/:commentId/like` - Like comment (authenticated)
 - `DELETE /api/insights/:id` - Delete own insight (authenticated)
+- `DELETE /api/insights/comments/:commentId` - **Delete own comment (authenticated)** (NEW)
 - `GET /api/insights/pinned` - Get pinned insights (public)
 - Admin endpoints under `/api/insights/admin/*`
+
+**Authentication:**
+- **Cookie-based authentication** using HTTP-only cookies
+- No reliance on localStorage for token storage (more secure)
+- `withCredentials: true` in all API calls
+- Tokens stored in `userToken` and `adminToken` cookies
 
 ### 3. Finance Content
 
@@ -351,6 +365,82 @@ When contributing to the community engagement system:
 5. Test on both mobile and desktop
 6. Run security scans before submitting
 
+## Testing Guide
+
+### Testing User Features (Community Insights)
+
+1. **Create Insight**
+   - Navigate to User Dashboard → Community
+   - Enter text (up to 500 characters)
+   - Click "Post Insight"
+   - Verify insight appears in feed
+
+2. **Edit Insight**
+   - Find your own insight in the feed
+   - Click the Edit icon (pencil)
+   - Modify the content
+   - Click "Save Changes"
+   - Verify changes are reflected
+
+3. **Delete Insight**
+   - Find your own insight
+   - Click the Delete icon (trash)
+   - Confirm deletion
+   - Verify insight is removed
+
+4. **Like/Comment/Share**
+   - Click heart icon to like
+   - Click comment icon to open modal
+   - Add a comment and press Enter or Send
+   - Click share icon to increment share count
+
+5. **Delete Comment**
+   - Open comments modal
+   - Find your own comment
+   - Click delete icon next to comment
+   - Confirm deletion
+
+### Testing Admin Features
+
+1. **Review Management**
+   - Navigate to Admin Dashboard → Review Management
+   - View all guest reviews
+   - Toggle approval status
+   - Pin reviews for landing page
+   - Delete inappropriate reviews
+
+2. **Insights Management**
+   - Navigate to Admin Dashboard → Insights Management
+   - Create admin insights
+   - View analytics dashboard
+   - Pin/unpin any insight
+   - Activate/deactivate insights
+   - Delete any user insight
+   - Track engagement metrics
+
+3. **Guest Reviews (Landing Page)**
+   - Navigate to landing page
+   - Scroll to Reviews section
+   - Submit a review (no login required)
+   - Verify submission message
+   - Check admin panel for new review
+
+### Authentication Testing
+
+1. **Cookie-based Auth**
+   - Login as user/admin
+   - Open browser DevTools → Application → Cookies
+   - Verify `userToken` or `adminToken` cookie exists
+   - Verify HTTP-only flag is set
+   - Make API calls and verify authentication works
+   - Do NOT rely on localStorage for tokens
+
+2. **Session Persistence**
+   - Login and refresh page
+   - Verify you remain logged in
+   - Close and reopen browser
+   - Check if session persists (based on cookie expiry)
+
 ## License
 
 This feature is part of the FinoQz platform. See main project LICENSE.
@@ -365,6 +455,14 @@ For issues or questions:
 
 ---
 
-**Last Updated**: February 10, 2026  
-**Version**: 1.0.0  
+**Last Updated**: February 11, 2026  
+**Version**: 2.0.0  
 **Status**: Production Ready ✅
+
+### Recent Updates (v2.0.0)
+- ✅ Added edit/delete functionality for user insights
+- ✅ Added delete functionality for user comments
+- ✅ Migrated from localStorage to HTTP-only cookie authentication
+- ✅ Enhanced security with cookie-based token storage
+- ✅ Improved user experience with inline editing
+- ✅ Better moderation tools for admins
