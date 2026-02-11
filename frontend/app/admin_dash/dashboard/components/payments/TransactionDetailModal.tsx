@@ -176,7 +176,7 @@ export default function TransactionDetailModal({
             <div className="p-4 bg-red-50 rounded-xl border border-red-100">
               <label className="text-sm font-semibold text-red-900 mb-3 block">Refund History</label>
               {transaction.refundHistory.map((refund, index) => (
-                <div key={index} className="bg-white p-3 rounded-lg mb-2 last:mb-0">
+                <div key={`${refund.date}-${refund.amount}-${index}`} className="bg-white p-3 rounded-lg mb-2 last:mb-0">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-medium text-gray-900">₹{refund.amount.toLocaleString()}</p>
@@ -258,3 +258,4 @@ export default function TransactionDetailModal({
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const {
@@ -10,10 +11,20 @@ const {
   getAttemptResult
 } = require('../controllers/quizAttemptController');
 const { celebrate, Joi, Segments } = require('celebrate');
-
 // Middleware to verify JWT token
 const verifyToken = require('../middlewares/verifyToken');
 const requireAdmin = require('../middlewares/requireAdmin');
+
+// Get all attempts (Admin only, for reports/analytics)
+router.get('/all',
+  verifyToken(),
+  requireAdmin,
+  async (req, res, next) => {
+    // Defer to controller
+    const controller = require('../controllers/quizAttemptController');
+    return controller.getAllAttempts(req, res, next);
+  }
+);
 
 // Start a new quiz attempt
 router.post('/start',

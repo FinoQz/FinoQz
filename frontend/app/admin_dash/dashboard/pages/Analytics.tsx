@@ -12,7 +12,7 @@ import TopQuizzes from '../components/analytics/TopQuizzes';
 import EngagementHours from '../components/analytics/EngagementHours';
 import RecentEvents from '../components/analytics/RecentEvents';
 import Toast from '../components/analytics/Toast';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 // TypeScript interfaces for API responses
 interface DashboardStats {
@@ -76,10 +76,10 @@ export default function Analytics() {
 
         // Fetch all analytics data in parallel
         const [statsResponse, growthResponse, quizStatsResponse, categoryResponse] = await Promise.all([
-          api.get<DashboardStats>('/analytics/dashboard-stats'),
-          api.get<UserGrowthData[]>(`/analytics/user-growth?dateRange=${dateRange}`),
-          api.get('/analytics/quiz-stats'),
-          api.get('/analytics/category-performance')
+          apiAdmin.get<DashboardStats>('api/analytics/dashboard-stats'),
+          apiAdmin.get<UserGrowthData[]>(`api/analytics/user-growth?dateRange=${dateRange}`),
+          apiAdmin.get('api/analytics/quiz-stats'),
+          apiAdmin.get('api/analytics/category-performance')
         ]);
 
         setDashboardStats(statsResponse.data);

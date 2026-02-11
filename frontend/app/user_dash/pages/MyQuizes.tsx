@@ -6,7 +6,7 @@ import FilterTabs from '../components/myquizes/FilterTabs';
 import QuizCard, { QuizData } from '../components/myquizes/QuizCard';
 import EmptyState from '../components/myquizes/EmptyState';
 import ResultModal from '../components/myquizes/ResultModal';
-import RetakeConfirmationModal from '../components/myquizes/RetakeConfirmationModal';
+import RetakeConfirmationModal from '../components/RetakeConfirmationModal';
 import StartQuizConfirmationModal from '../components/myquizes/StartQuizConfirmationModal';
 import UserQuizAttempt from '../components/UserQuizAttempt';
 import apiUser from '@/lib/apiUser';

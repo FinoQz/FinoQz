@@ -24,30 +24,31 @@ const {
   deleteAnyInsight
 } = require('../controllers/adminInsightController');
 
-const auth = require('../middlewares/authMiddleware');
-const admin = require('../middlewares/adminAuth');
+
+const verifyToken = require('../middlewares/verifyToken');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Public routes
 router.get('/pinned', getPinnedInsights);
 
 // Authenticated user routes
-router.get('/', auth, getInsights);
-router.get('/:id', auth, getInsightById);
-router.post('/', auth, createInsight);
-router.put('/:id', auth, editInsight);
-router.post('/:id/like', auth, likeInsight);
-router.post('/:id/comment', auth, addComment);
-router.post('/:id/share', auth, shareInsight);
-router.post('/comments/:commentId/like', auth, likeComment);
-router.delete('/:id', auth, deleteInsight);
-router.delete('/comments/:commentId', auth, deleteComment);
+router.get('/', verifyToken(), getInsights);
+router.get('/:id', verifyToken(), getInsightById);
+router.post('/', verifyToken(), createInsight);
+router.put('/:id', verifyToken(), editInsight);
+router.post('/:id/like', verifyToken(), likeInsight);
+router.post('/:id/comment', verifyToken(), addComment);
+router.post('/:id/share', verifyToken(), shareInsight);
+router.post('/comments/:commentId/like', verifyToken(), likeComment);
+router.delete('/:id', verifyToken(), deleteInsight);
+router.delete('/comments/:commentId', verifyToken(), deleteComment);
 
 // Admin routes
-router.get('/admin/all', auth, admin, getAllInsights);
-router.get('/admin/analytics', auth, admin, getInsightsAnalytics);
-router.post('/admin/create', auth, admin, createAdminInsight);
-router.patch('/admin/:id/pin', auth, admin, togglePinInsight);
-router.patch('/admin/:id/status', auth, admin, toggleInsightStatus);
-router.delete('/admin/:id', auth, admin, deleteAnyInsight);
+router.get('/admin/all', verifyToken(), requireAdmin, getAllInsights);
+router.get('/admin/analytics', verifyToken(), requireAdmin, getInsightsAnalytics);
+router.post('/admin/create', verifyToken(), requireAdmin, createAdminInsight);
+router.patch('/admin/:id/pin', verifyToken(), requireAdmin, togglePinInsight);
+router.patch('/admin/:id/status', verifyToken(), requireAdmin, toggleInsightStatus);
+router.delete('/admin/:id', verifyToken(), requireAdmin, deleteAnyInsight);
 
 module.exports = router;

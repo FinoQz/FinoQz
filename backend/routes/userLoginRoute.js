@@ -1,34 +1,32 @@
 const express = require('express');
-const {
-  login,
-  verifyLoginOtp,
-  logout,
-  refreshToken,
-  resendOtp
-} = require('../controllers/userLoginController');
+const {login,verifyLoginOtp,logout,refreshToken,resendOtp} = require('../controllers/userLoginController');
 const { getUserPanel } = require('../controllers/userPanelController');
 const validateLogin = require('../middlewares/validateLogin');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-// Step 1: Initiate login
-router.post('/initiate', validateLogin, login);
+const rateLimit = require('express-rate-limit');
 
-// Step 2: Verify OTP
-router.post('/verify', verifyLoginOtp);
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: "Too many login attempts. Try later."
+});
 
-// Step 3: User Panel (Protected)
+
+router.post('/initiate', loginLimiter, validateLogin, login);
+
+router.post('/verify', loginLimiter, verifyLoginOtp);
+
+router.post('/resend-otp', loginLimiter, resendOtp);
+
 router.get('/user_dash', authMiddleware(), getUserPanel);
 
-// Step 4: Logout
 router.post('/logout', authMiddleware(), logout);
 
-// Step 5: Refresh Token
 router.post('/refresh-token', refreshToken);
 
-// Step 6: Resend OTP
-router.post('/resend-otp', resendOtp);
 
 
 module.exports = router;

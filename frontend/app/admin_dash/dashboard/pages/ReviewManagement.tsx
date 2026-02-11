@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Star, Search, Filter, ThumbsUp, ThumbsDown, Trash2, Pin, Check, X } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
 interface Review {
   _id: string;
   name: string;

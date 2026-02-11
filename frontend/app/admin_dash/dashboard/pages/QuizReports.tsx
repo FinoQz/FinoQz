@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import apiAdmin from '@/lib/apiAdmin';
 import { Award, Percent, Users, Clock, Calendar } from 'lucide-react';
 import KpiCard from '../components/reports/KpiCard';
 import FiltersBar from '../components/reports/FiltersBar';
@@ -11,6 +12,7 @@ import Leaderboard from '../components/reports/Leaderboard';
 import ExportControls from '../components/reports/ExportControls';
 import ScheduleReportModal, { ScheduleConfig } from '../components/reports/ScheduleReportModal';
 import Toast from '../components/reports/Toast';
+import { link } from 'fs';
 
 // TypeScript interfaces for backend data
 interface QuizAttempt {
@@ -118,37 +120,28 @@ export default function QuizReports() {
     const fetchAttempts = async () => {
       setLoading(true);
       setError(null);
-      
       try {
-        const params = new URLSearchParams();
-        
-        // Add filters
-        if (currentPage) params.append('page', currentPage.toString());
-        if (status !== 'all') params.append('status', status);
+        const params: Record<string, string | number | undefined> = {};
+        if (currentPage) params.page = currentPage;
+        if (status !== 'all') params.status = status;
         if (dateRange !== 'all') {
           const days = parseInt(dateRange);
           if (!isNaN(days)) {
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - days);
-            params.append('startDate', startDate.toISOString());
+            params.startDate = startDate.toISOString();
           }
         }
-        if (searchQuery) params.append('search', searchQuery);
+        if (searchQuery) params.search = searchQuery;
 
         // Determine API endpoint
-        let url = '/api/quiz-attempts';
+        let url = '/api/quiz-attempts/all';
         if (selectedQuiz && selectedQuiz !== 'all') {
           url = `/api/quiz-attempts/quiz/${selectedQuiz}`;
         }
-        
-        const response = await fetch(`${url}?${params.toString()}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch attempts');
-        }
-        
-        const data: AttemptsResponse = await response.json();
-        
+
+        const { data } = await apiAdmin.get(url, { params });
+
         // Transform backend data to match UI format
         const transformedAttempts = data.attempts.map((attempt: QuizAttempt) => {
           const statusLabel = getStatusLabel(attempt.status, attempt.percentage);
@@ -166,13 +159,14 @@ export default function QuizReports() {
             type: (attempt.quizId?.type || 'Free') as 'Free' | 'Paid'
           };
         });
-        
+
         setAttempts(transformedAttempts);
         setStats(data.stats);
         setTotalPages(data.totalPages);
       } catch (err) {
+        const error = err as { response?: { data?: { message?: string } }; message?: string };
         console.error('Error fetching attempts:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load attempts');
+        setError(error?.response?.data?.message || error?.message || 'Failed to load attempts');
         setAttempts([]);
       } finally {
         setLoading(false);

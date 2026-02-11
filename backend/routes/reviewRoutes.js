@@ -10,17 +10,17 @@ const {
   deleteReview
 } = require('../controllers/reviewController');
 
-const auth = require('../middlewares/authMiddleware');
-const admin = require('../middlewares/adminAuth');
+const verifyToken = require('../middlewares/verifyToken');
+const requireAdmin = require('../middlewares/requireAdmin');
 
 // Public routes
 router.post('/', createReview);
 router.get('/pinned', getPinnedReviews);
 
 // Admin routes
-router.get('/admin/all', auth, admin, getAllReviews);
-router.patch('/admin/:id/pin', auth, admin, togglePinReview);
-router.patch('/admin/:id/approve', auth, admin, toggleApproveReview);
-router.delete('/admin/:id', auth, admin, deleteReview);
+router.get('/admin/all', verifyToken(), requireAdmin, getAllReviews);
+router.patch('/admin/:id/pin', verifyToken(), requireAdmin, togglePinReview);
+router.patch('/admin/:id/approve', verifyToken(), requireAdmin, toggleApproveReview);
+router.delete('/admin/:id', verifyToken(), requireAdmin, deleteReview);
 
 module.exports = router;

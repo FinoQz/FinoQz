@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface Insight {
   _id: string;
@@ -23,6 +22,12 @@ interface Insight {
   createdAt: string;
 }
 
+interface Contributor {
+  authorName: string;
+  postCount: number;
+  totalLikes: number;
+}
+
 interface Analytics {
   overview: {
     totalInsights: number;
@@ -32,8 +37,8 @@ interface Analytics {
     totalComments: number;
     totalShares: number;
   };
-  mostEngaged: any[];
-  topContributors: any[];
+  mostEngaged: unknown[];
+  topContributors: Contributor[];
 }
 
 export default function InsightsManagement() {

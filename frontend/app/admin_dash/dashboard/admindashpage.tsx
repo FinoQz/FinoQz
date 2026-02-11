@@ -5,12 +5,15 @@ import DashboardOverview from './pages/DashboardOverview';
 import UserManagement from './pages/UserManagement';
 import QuizManagement from './pages/QuizManagement';
 import EditLandingPage from './pages/EditLandingPage';
-import FinanceContent from './pages/FinanceContent';   
+import FinanceContent from './pages/FinanceContent';
+import FianaceContentManagement from './pages/FinanceContentAdmin';
 import PaymentsRevenue from './pages/PaymentsRevenue';
 import CommunityPosts from './pages/CommunityPosts';
 import QuizReports from './pages/QuizReports';
 import Analytics from './pages/Analytics';
 import ActivityLogsPage from './pages/ActivityLogsPage';
+import ReviewManagement from './pages/ReviewManagement';
+import InsightsManagement from './pages/InsightsManagement';
 
 export default function AdminDashPage() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -27,6 +30,8 @@ export default function AdminDashPage() {
         return <EditLandingPage />;
       case 'content':
         return <FinanceContent />;
+      case 'financeContent':
+        return <FianaceContentManagement />;
       case 'revenue':
         return <PaymentsRevenue />;
       case 'community':
@@ -37,6 +42,10 @@ export default function AdminDashPage() {
         return <Analytics/>;
       case 'activity':
         return <ActivityLogsPage />;
+      case 'reviews':
+        return <ReviewManagement />;
+      case 'insights':
+        return <InsightsManagement />;
       default:
         return <DashboardOverview />;
     }

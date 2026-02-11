@@ -14,7 +14,8 @@ import {
   TrendingUp,
   LogOut,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Star
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,8 +31,11 @@ const menuItems = [
   { id: 'quiz', label: 'Quiz Management', icon: BookOpen },
   { id: 'landing', label: 'Landing Page', icon: ImageIcon },
   { id: 'content', label: 'Finance Content', icon: FileText },
+  {id: 'financeContent', label: 'Finance Management', icon: FileText },
   { id: 'revenue', label: 'Payments & Revenue', icon: DollarSign },
   { id: 'community', label: 'Community Posts', icon: MessageSquare },
+  { id: 'reviews', label: 'Review Management', icon: Star },
+  { id: 'insights', label: 'Insights', icon: FileText },
   { id: 'reports', label: 'Quiz Reports', icon: BarChart3 },
   { id: 'analytics', label: 'Analytics', icon: TrendingUp },
   { id: 'activity', label: 'Activity Logs', icon: FileText },

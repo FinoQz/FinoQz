@@ -23,42 +23,68 @@ const getLoginId = (req) =>
 // ✅ Login: Generate OTP, store in Redis, send email
 exports.login = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    let { identifier, password } = req.body;
+
     if (!identifier || !password) {
-      return res.status(400).json({ message: 'Identifier and password required' });
+      return res.status(400).json({
+        message: 'Identifier and password required',
+      });
     }
 
-    const admin = await Admin.findOne({
-      $or: [{ email: identifier.toLowerCase() }, { username: identifier }],
-    });
+    identifier = identifier.trim();
+
+    // Email lowercase, username unchanged
+    const query = identifier.includes('@')
+      ? { email: identifier.toLowerCase() }
+      : { username: identifier };
+
+    const admin = await Admin.findOne(query);
 
     if (!admin || !(await bcrypt.compare(password, admin.password))) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // ✅ Generate OTP
     const otp = generateOTP();
-    await redis.set(`admin:otp:${admin._id}`, otp, 'EX', 300); // 5 min
 
+    await redis.set(
+      `admin:otp:${admin._id}`,
+      otp,
+      'EX',
+      300 // 5 minutes
+    );
+
+    // ✅ Send OTP email
     await emailQueue.add('sendOtp', {
       to: admin.email,
       subject: 'FinoQz Admin OTP',
       html: otpTemplate(otp),
     });
 
-    res.cookie('pendingAdminEmail', identifier, {
+    // ✅ Cookie options unified
+    const cookieOptions = {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'None' : 'Lax',
       path: '/',
       maxAge: 5 * 60 * 1000,
+      domain: isProd ? '.finoqz.com' : undefined,
+    };
+
+    // ✅ ALWAYS store real email (never masked)
+    res.cookie('pendingAdminEmail', admin.email, cookieOptions);
+
+    res.json({
+      message: 'OTP sent to email',
+      success: true,
     });
 
-    res.json({ message: 'OTP sent to email' });
   } catch (err) {
     console.error('❌ Admin login error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 // ✅ Verify OTP, issue tokens, set cookies, log activity, track live user
 exports.verifyOtp = async (req, res) => {
@@ -78,12 +104,15 @@ exports.verifyOtp = async (req, res) => {
       return res.status(404).json({ message: 'Admin not found' });
     }
 
-    const storedOtp = await redis.get(`admin:otp:${admin._id}`);
+    const redisKey = `admin:otp:${admin._id}`;
+    const storedOtp = await redis.get(redisKey);
+
     if (!storedOtp || storedOtp !== otp) {
       return res.status(403).json({ message: 'Invalid or expired OTP' });
     }
 
-    await redis.del(`admin:otp:${admin._id}`);
+    await redis.del(redisKey);
+
     admin.lastLoginAt = new Date();
     await admin.save();
 
@@ -108,16 +137,23 @@ exports.verifyOtp = async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    await redis.set(`session:${admin._id}`, accessToken, 'EX', 30 * 60);
-    await redis.set(`admin:refresh:${admin._id}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
-    await redis.incr('liveUserCount');
+    await Promise.all([
+      redis.set(`session:${admin._id}`, accessToken, 'EX', 30 * 60),
+      redis.set(
+        `admin:refresh:${admin._id}`,
+        refreshToken,
+        'EX',
+        7 * 24 * 60 * 60
+      ),
+      redis.incr('liveUserCount'),
+    ]);
 
     const cookieOptions = {
-      secure: true, // ✅ always true for cross-origin cookies
-      sameSite: 'None', // ✅ required for cross-origin + credentials
+      secure: isProd,
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
+      domain: isProd ? '.finoqz.com' : undefined,
     };
-
 
     res.cookie('adminToken', accessToken, {
       ...cookieOptions,
@@ -131,17 +167,16 @@ exports.verifyOtp = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.cookie('adminSessionVisible', 'true', { httpOnly: false, secure: true, sameSite: 'None', path: '/', domain: isProd ? '.finoqz.com' : 'localhost', maxAge: 30 * 60 * 1000, });
-
-    console.log('✅ Cookie set: adminSessionVisible', res.getHeader('Set-Cookie'));
-
-
-
+    // UI-visible cookie
+    res.cookie('adminSessionVisible', 'true', {
+      ...cookieOptions,
+      httpOnly: false,
+      maxAge: 30 * 60 * 1000,
+    });
 
     res.clearCookie('pendingAdminEmail', {
       ...cookieOptions,
       httpOnly: true,
-      domain: '.finoqz.com',
     });
 
     await emitDashboardStats(req);
@@ -153,12 +188,15 @@ exports.verifyOtp = async (req, res) => {
       action: 'login_success',
       meta: { loginId },
     });
+
     try {
       const html = loginAlertTemplate({
         name: admin.name || admin.username,
         ip,
         userAgent,
-        time: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        time: new Date().toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+        }),
       });
 
       await emailQueue.add('loginAlert', {
@@ -166,24 +204,20 @@ exports.verifyOtp = async (req, res) => {
         subject: '🔐 Admin Login Alert',
         html,
       });
-
-      console.log('📨 Login alert job added to queue for:', admin.email);
     } catch (emailErr) {
-      console.error('❌ Failed to queue login alert email:', emailErr);
+      console.error('Login alert queue error:', emailErr);
     }
-
 
     res.json({
       message: 'OTP verified',
-      token: accessToken,
-      refreshToken,
       success: true,
     });
   } catch (err) {
-    console.error('❌ Verify OTP error:', err);
+    console.error('Verify OTP error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 
 // ✅ Refresh token → issue new access token
@@ -198,7 +232,7 @@ exports.refreshToken = async (req, res) => {
     try {
       decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
     } catch (err) {
-      console.warn('❌ Invalid refresh token:', err.message);
+      console.warn('Invalid refresh token:', err.message);
       return res.status(401).json({ message: 'Invalid or expired refresh token' });
     }
 
@@ -207,43 +241,67 @@ exports.refreshToken = async (req, res) => {
       return res.status(403).json({ message: 'Refresh token expired or invalid' });
     }
 
+    // Optional: confirm admin still exists
+    const admin = await Admin.findById(decoded._id).select('_id role email');
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin no longer exists' });
+    }
+
     const ip = req.ip || req.connection?.remoteAddress || '';
     const userAgent = req.get('user-agent') || '';
-    const fingerprint = sha256Hex(ip + '|' + userAgent);
+    const fingerprint = sha256Hex(`${ip}|${userAgent}`);
 
     const newAccessToken = jwt.sign(
       {
-        _id: decoded._id,
-        role: 'admin',
+        _id: admin._id,
+        role: admin.role,
+        email: admin.email,
         fingerprint,
       },
       process.env.JWT_SECRET,
       { expiresIn: '30m' }
     );
 
-    await redis.set(`session:${decoded._id}`, newAccessToken, 'EX', 30 * 60);
+    await redis.set(
+      `session:${admin._id}`,
+      newAccessToken,
+      'EX',
+      30 * 60
+    );
 
-    res.cookie('adminToken', newAccessToken, {
-      httpOnly: true,
+    const cookieOptions = {
       secure: isProd,
       sameSite: isProd ? 'None' : 'Lax',
       path: '/',
+      domain: isProd ? '.finoqz.com' : undefined,
+    };
+
+    res.cookie('adminToken', newAccessToken, {
+      ...cookieOptions,
+      httpOnly: true,
       maxAge: 30 * 60 * 1000,
     });
 
-    res.json({ message: 'Token refreshed', token: newAccessToken });
+    res.json({
+      message: 'Token refreshed',
+      success: true,
+    });
   } catch (err) {
-    console.error('❌ Refresh token error:', err);
+    console.error('Refresh token error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
+
 // 📧 Get pending email from cookie
 exports.getPendingEmail = (req, res) => {
   const email = req.cookies?.pendingAdminEmail;
+
   if (!email) {
     return res.status(404).json({ message: 'No pending email found' });
   }
+
+  // Send real email, mask frontend par karo
   return res.json({ email });
 };
 
@@ -293,49 +351,66 @@ exports.logout = async (req, res) => {
           ignoreExpiration: true,
         });
 
-        // 🔐 Clear session and refresh tokens from Redis
-        await Promise.all([
-          redis.del(`admin:refresh:${decoded._id}`),
-          redis.del(`session:${decoded._id}`),
-        ]);
+        if (decoded?._id) {
+          // remove tokens
+          await Promise.allSettled([
+            redis.del(`admin:refresh:${decoded._id}`),
+            redis.del(`session:${decoded._id}`),
+          ]);
 
-        // 📉 Safely decrement live user count
-        const currentCount = parseInt(await redis.get('liveUserCount')) || 0;
-        if (currentCount > 0) {
-          await redis.set('liveUserCount', currentCount - 1);
+          // safe decrement
+          const count = await redis.decr('liveUserCount');
+          if (count < 0) {
+            await redis.set('liveUserCount', 0);
+          }
         }
       } catch (err) {
-        console.warn('⚠️ Failed to decode token during logout:', err.message);
+        console.warn(
+          '⚠️ Token decode failed during logout:',
+          err.message
+        );
       }
     }
 
     const isProd = process.env.NODE_ENV === 'production';
 
-    // 🧹 Clear all relevant cookies
-    res.clearCookie('adminToken', {
-      httpOnly: true,
+    const cookieOptions = {
       secure: isProd,
       sameSite: isProd ? 'None' : 'Lax',
       path: '/',
+      domain: isProd ? '.finoqz.com' : undefined,
+    };
+
+    // clear cookies safely
+    res.clearCookie('adminToken', {
+      ...cookieOptions,
+      httpOnly: true,
     });
 
     res.clearCookie('adminRefresh', {
+      ...cookieOptions,
       httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'None' : 'Lax',
-      path: '/',
     });
 
     res.clearCookie('pendingAdminEmail', {
+      ...cookieOptions,
       httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'None' : 'Lax',
-      path: '/',
     });
 
-    res.status(200).json({ message: 'Logged out successfully' });
+    res.clearCookie('adminSessionVisible', {
+      ...cookieOptions,
+      httpOnly: false,
+    });
+
+    return res.status(200).json({
+      message: 'Logged out successfully',
+      success: true,
+    });
   } catch (err) {
     console.error('❌ Logout error:', err);
-    res.status(500).json({ message: 'Logout failed' });
+    return res.status(500).json({
+      message: 'Logout failed',
+      success: false,
+    });
   }
 };

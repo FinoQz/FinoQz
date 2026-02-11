@@ -726,10 +726,12 @@ export default function PaymentsRevenue() {
                         </td>
                       </tr>
                     ) : (
-                      transactions.map((txn) => {
+                      transactions.map((txn, idx) => {
                         const user = getTransactionUser(txn);
+                        // Use txn.id if present and unique, otherwise fallback to index for uniqueness
+                        const rowKey = txn.id && txn.id !== 'N/A' ? txn.id : `${user.name}-${user.email}-${idx}`;
                         return (
-                          <tr key={txn.id} className="hover:bg-gray-50 transition">
+                          <tr key={rowKey} className="hover:bg-gray-50 transition">
                             <td className="px-4 py-3">
                               <input
                                 type="checkbox"
@@ -800,7 +802,7 @@ export default function PaymentsRevenue() {
                     const pageNum = i + 1;
                     return (
                       <button 
-                        key={pageNum}
+                        key={`page-btn-${pageNum}`}
                         onClick={() => setCurrentPage(pageNum)}
                         disabled={loading}
                         className={`px-3 py-1.5 rounded-lg font-medium text-sm transition ${
@@ -840,7 +842,7 @@ export default function PaymentsRevenue() {
               </div>
               <div className="h-32 flex items-end justify-between gap-1">
                 {[40, 65, 45, 80, 60, 90, 75].map((height, i) => (
-                  <div key={i} className="flex-1 bg-[#253A7B] rounded-t-lg opacity-80 hover:opacity-100 transition" style={{ height: `${height}%` }} />
+                  <div key={`bar-${height}-${i}`} className="flex-1 bg-[#253A7B] rounded-t-lg opacity-80 hover:opacity-100 transition" style={{ height: `${height}%` }} />
                 ))}
               </div>
               <div className="mt-3 text-center">
@@ -852,8 +854,8 @@ export default function PaymentsRevenue() {
             <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
               <h3 className="font-semibold text-gray-900 mb-4">Payment Methods</h3>
               <div className="space-y-3">
-                {revenueBreakdown.map((item, i) => (
-                  <div key={i}>
+                {revenueBreakdown.map((item) => (
+                  <div key={item.method}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-gray-700">{item.method}</span>
                       <span className="text-sm font-semibold text-gray-900">{item.percentage}%</span>

@@ -477,6 +477,88 @@ const getAttemptResult = async (req, res) => {
   }
 };
 
+/**
+ * Get all quiz attempts (Admin only, for reports/analytics)
+ * @route GET /api/quiz-attempts/all
+ */
+const getAllAttempts = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      dateRange,
+      quizId,
+      userId,
+      search
+    } = req.query;
+
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (quizId && quizId !== 'all') query.quizId = quizId;
+    if (userId && userId !== 'all') query.userId = userId;
+
+    // Date range filter (on submittedAt)
+    if (dateRange && dateRange !== 'all') {
+      const days = parseInt(dateRange);
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - days);
+      query.submittedAt = { $gte: fromDate };
+    }
+
+    // Search by user name or email (populate and filter in-memory)
+    let attemptsQuery = QuizAttempt.find(query)
+      .populate('userId', 'fullName email')
+      .populate('quizId', 'quizTitle type totalMarks')
+      .sort({ submittedAt: -1 });
+
+    // Pagination
+    attemptsQuery = attemptsQuery.limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
+
+    let attempts = await attemptsQuery.exec();
+    let total = await QuizAttempt.countDocuments(query);
+
+    // In-memory search filter (if search param provided)
+    if (search) {
+      const searchLower = search.toLowerCase();
+      attempts = attempts.filter(a =>
+        (a.userId?.fullName && a.userId.fullName.toLowerCase().includes(searchLower)) ||
+        (a.userId?.email && a.userId.email.toLowerCase().includes(searchLower)) ||
+        (a.quizId?.quizTitle && a.quizId.quizTitle.toLowerCase().includes(searchLower))
+      );
+      total = attempts.length;
+    }
+
+    // Stats (basic)
+    const statsAgg = await QuizAttempt.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          avgScore: { $avg: '$totalScore' },
+          avgPercentage: { $avg: '$percentage' },
+          maxScore: { $max: '$totalScore' },
+          minScore: { $min: '$totalScore' },
+          totalAttempts: { $sum: 1 },
+          passedAttempts: { $sum: { $cond: [{ $gte: ['$percentage', 50] }, 1, 0] } },
+          avgTimeTaken: { $avg: '$timeTaken' }
+        }
+      }
+    ]);
+
+    res.json({
+      attempts,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
+      total,
+      stats: statsAgg[0] || {}
+    });
+  } catch (error) {
+    console.error('Get all attempts (admin) error:', error);
+    res.status(500).json({ message: 'Failed to fetch attempts' });
+  }
+};
+
 module.exports = {
   startAttempt,
   saveAnswer,
@@ -484,5 +566,6 @@ module.exports = {
   getAttemptDetails,
   getUserAttempts,
   getAttemptsByQuiz,
-  getAttemptResult
+  getAttemptResult,
+  getAllAttempts
 };

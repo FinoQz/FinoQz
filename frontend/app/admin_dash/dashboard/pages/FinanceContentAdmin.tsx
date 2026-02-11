@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Search, Edit, Trash2, Eye, EyeOff, BookOpen, 
-  FileText, Calendar, Tag, TrendingUp 
+import Image from 'next/image';
+import {
+  Plus, Search, Edit, Trash2, Eye, EyeOff, BookOpen,
+  FileText, Calendar, Tag, TrendingUp
 } from 'lucide-react';
-import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface FinanceContent {
   _id: string;
@@ -25,9 +24,15 @@ interface FinanceContent {
   publishedAt?: string;
 }
 
+interface Analytics {
+  totalPublished: number;
+  totalDrafts: number;
+  totalViews: number;
+}
+
 export default function FinanceContentManagement() {
   const [contents, setContents] = useState<FinanceContent[]>([]);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,16 +45,18 @@ export default function FinanceContentManagement() {
 
   const fetchContents = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await axios.get(`${API_URL}/api/finance-content/admin/all`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          filter: filter !== 'all' ? filter : undefined,
-          search: searchQuery || undefined,
-          limit: 50
+      const response = await apiAdmin.get(
+        `/api/finance-content/admin/all`,
+        {
+          params: {
+            filter: filter !== "all" ? filter : undefined,
+            search: searchQuery || undefined,
+            limit: 50,
+          },
         }
-      });
-      
+      );
+
+
       setContents(response.data.content || []);
       setAnalytics(response.data.analytics);
     } catch (error) {
@@ -61,12 +68,7 @@ export default function FinanceContentManagement() {
 
   const handleTogglePublish = async (id: string) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.patch(
-        `${API_URL}/api/finance-content/admin/${id}/publish`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiAdmin.patch(`/api/finance-content/admin/${id}/publish`);
       fetchContents();
     } catch (error) {
       console.error('Error toggling publish:', error);
@@ -76,12 +78,10 @@ export default function FinanceContentManagement() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this content?')) return;
-    
+
     try {
-      const token = localStorage.getItem('adminToken');
-      await axios.delete(`${API_URL}/api/finance-content/admin/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+
+      await apiAdmin.delete(`/api/finance-content/admin/${id}`);
       fetchContents();
     } catch (error) {
       console.error('Error deleting content:', error);
@@ -151,31 +151,28 @@ export default function FinanceContentManagement() {
           <div className="flex gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === 'all'
+              className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'all'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               All
             </button>
             <button
               onClick={() => setFilter('published')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === 'published'
+              className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'published'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Published
             </button>
             <button
               onClick={() => setFilter('draft')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === 'draft'
+              className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'draft'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Drafts
             </button>
@@ -201,10 +198,10 @@ export default function FinanceContentManagement() {
             <div key={content._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Thumbnail */}
               {content.thumbnail ? (
-                <img 
-                  src={content.thumbnail} 
-                  alt={content.title} 
-                  className="w-full h-48 object-cover" 
+                <img
+                  src={content.thumbnail}
+                  alt={content.title}
+                  className="w-full h-48 object-cover"
                 />
               ) : (
                 <div className="w-full h-48 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
@@ -271,11 +268,10 @@ export default function FinanceContentManagement() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleTogglePublish(content._id)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition ${
-                      content.isPublished
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition ${content.isPublished
                         ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
                         : 'bg-green-100 text-green-600 hover:bg-green-200'
-                    }`}
+                      }`}
                   >
                     {content.isPublished ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     {content.isPublished ? 'Unpublish' : 'Publish'}

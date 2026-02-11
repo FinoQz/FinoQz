@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart, MessageCircle, Share2, TrendingUp, Send, X, Edit, Trash2 } from 'lucide-react';
 import apiUser from '@/lib/apiUser';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 interface Insight {
   _id: string;
