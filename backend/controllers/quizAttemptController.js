@@ -14,61 +14,31 @@ const getRequestUserId = (req) => {
  * @route POST /api/quiz-attempts/start
  */
 const startAttempt = async (req, res) => {
-  try {
-    const { quizId } = req.body;
-    const userId = getRequestUserId(req);
-    if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
+  const { quizId } = req.body;
+  const userId = req.user._id;
 
-    // Validate quiz exists and is accessible
-    const quiz = await Quiz.findById(quizId);
-    if (!quiz) {
-      return res.status(404).json({ message: 'Quiz not found' });
-    }
+  // 1. Quiz fetch karo
+  const quiz = await Quiz.findById(quizId);
+  if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
 
-    // Check if quiz is active
-    const now = new Date();
-    if (now < new Date(quiz.startAt) || now > new Date(quiz.endAt)) {
-      return res.status(400).json({ message: 'Quiz is not currently active' });
-    }
+  // 2. User ke previous attempts count karo
+  const attemptsCount = await QuizAttempt.countDocuments({ quizId, userId });
 
-    // Check attempt limit
-    if (quiz.attemptLimit !== 'unlimited') {
-      const previousAttempts = await QuizAttempt.countDocuments({
-        userId,
-        quizId,
-        status: { $in: ['submitted', 'abandoned'] }
-      });
-
-      if (previousAttempts >= parseInt(quiz.attemptLimit)) {
-        return res.status(400).json({ message: 'Attempt limit reached' });
-      }
-    }
-
-    // Get attempt number
-    const attemptCount = await QuizAttempt.countDocuments({ userId, quizId });
-    const attemptNumber = attemptCount + 1;
-
-    // Create new attempt
-    const attempt = await QuizAttempt.create({
-      userId,
-      quizId,
-      attemptNumber,
-      startedAt: new Date(),
-      status: 'in_progress'
-    });
-
-    res.status(201).json({
-      message: 'Quiz attempt started',
-      attemptId: attempt._id,
-      attemptNumber: attempt.attemptNumber,
-      startedAt: attempt.startedAt
-    });
-  } catch (error) {
-    console.error('Start attempt error:', error);
-    res.status(500).json({ message: 'Failed to start quiz attempt' });
+  // 3. Max attempts check karo
+  if (quiz.maxAttempts && attemptsCount >= quiz.maxAttempts) {
+    return res.status(400).json({ message: 'Maximum attempts reached' });
   }
+
+  // 4. Naya attempt create karo
+  const attempt = await QuizAttempt.create({
+    quizId,
+    userId,
+    status: 'in_progress', // Correct value as per model
+    startedAt: new Date(),
+    answers: []
+  });
+
+  res.json({ attemptId: attempt._id });
 };
 
 /**
@@ -111,7 +81,7 @@ const saveAnswer = async (req, res) => {
         : [String(selectedAnswer)];
       isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(selectedAnswers);
     } else {
-      isCorrect = selectedAnswer === question.correct;
+      isCorrect = String(selectedAnswer) === String(question.correct);
     }
     marksAwarded = isCorrect ? question.marks : 0;
 

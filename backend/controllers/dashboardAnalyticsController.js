@@ -3,14 +3,36 @@ const db = require('../config/db');
 const Category = require('../models/Category');
 const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
+const Transaction = require('../models/Transaction');
 
 // Example: You should replace these with real DB queries
 exports.getDailyRevenue = async (req, res) => {
-  // TODO: Replace with real aggregation
-  res.json({
-    revenueData: [3200, 4100, 3800, 5200, 6300, 5800, 7100, 6800, 7800, 8200, 7500, 8900, 9200, 8450],
-    days: ['Jan 5', 'Jan 6', 'Jan 7', 'Jan 8', 'Jan 9', 'Jan 10', 'Jan 11', 'Jan 12', 'Jan 13', 'Jan 14', 'Jan 15', 'Jan 16', 'Jan 17', 'Jan 18']
-  });
+  try {
+    const days = [];
+    const revenueData = [];
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayStr = date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      days.push(dayStr);
+
+      const start = new Date(date.setHours(0, 0, 0, 0));
+      const end = new Date(date.setHours(23, 59, 59, 999));
+      const total = await Transaction.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: start, $lte: end },
+            status: 'success'
+          }
+        },
+        { $group: { _id: null, sum: { $sum: '$amount' } } }
+      ]);
+      revenueData.push(total[0]?.sum || 0);
+    }
+    res.json({ revenueData, days });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching daily revenue' });
+  }
 };
 
 exports.getQuizCompletion = async (req, res) => {
@@ -24,10 +46,10 @@ exports.getQuizCompletion = async (req, res) => {
 
 exports.getCategoryParticipation = async (req, res) => {
   try {
-    // Get all categories
+    // 1. Get all categories
     const categories = await Category.find().lean();
 
-    // Get all quizzes, grouped by category
+    // 2. Get all quizzes, grouped by category
     const quizzes = await Quiz.find().lean();
     const quizMap = {};
     quizzes.forEach(q => {
@@ -36,10 +58,10 @@ exports.getCategoryParticipation = async (req, res) => {
       quizMap[catId].push(q._id.toString());
     });
 
-    // Get all quiz attempts
+    // 3. Get all quiz attempts
     const attempts = await QuizAttempt.find().lean();
 
-    // Build result for each category
+    // 4. Build result for each category
     const palette = [
       '#a78bfa', '#f472b6', '#facc15', '#34d399', '#60a5fa', '#fb7185', '#fbbf24', '#10b981'
     ];
@@ -87,16 +109,45 @@ exports.getCategoryParticipation = async (req, res) => {
 };
 
 exports.getTopUsers = async (req, res) => {
-  // TODO: Replace with real aggregation
-  res.json({
-    users: [
-      { name: 'Rahul Sharma', attempts: 24, badge: 'Top Performer' },
-      { name: 'Priya Patel', attempts: 21, badge: 'High Activity' },
-      { name: 'Amit Kumar', attempts: 19, badge: 'Consistent' },
-      { name: 'Sneha Singh', attempts: 17, badge: 'Rising Star' },
-      { name: 'Vikram Reddy', attempts: 15, badge: 'Active' }
-    ]
-  });
+  try {
+    const { quizId, limit = 5 } = req.query;
+    if (!quizId) return res.status(400).json({ message: 'quizId required' });
+
+    // Aggregate top performers by average percentage
+    const top = await QuizAttempt.aggregate([
+      { $match: { quizId: require('mongoose').Types.ObjectId(quizId), status: 'submitted' } },
+      {
+        $group: {
+          _id: '$userId',
+          avgPercentage: { $avg: '$percentage' },
+          totalAttempts: { $sum: 1 }
+        }
+      },
+      { $sort: { avgPercentage: -1 } },
+      { $limit: Number(limit) },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $project: {
+          userId: '$_id',
+          fullName: '$user.fullName',
+          email: '$user.email',
+          avgPercentage: 1,
+          totalAttempts: 1
+        }
+      }
+    ]);
+    res.json(top);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching leaderboard' });
+  }
 };
 
 exports.getUpcomingQuizzes = async (req, res) => {
