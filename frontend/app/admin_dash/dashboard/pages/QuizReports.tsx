@@ -12,7 +12,6 @@ import Leaderboard from '../components/reports/Leaderboard';
 import ExportControls from '../components/reports/ExportControls';
 import ScheduleReportModal, { ScheduleConfig } from '../components/reports/ScheduleReportModal';
 import Toast from '../components/reports/Toast';
-import { link } from 'fs';
 
 // TypeScript interfaces for backend data
 interface QuizAttempt {

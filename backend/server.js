@@ -126,6 +126,9 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/insights', require('./routes/insightRoutes'));
 app.use('/api/finance-content', require('./routes/financeContentRoutes'));
 
+// ✅ Dashboard Analytics Routes
+app.use('/api/admin/panel/analytics', require('./routes/dashboardAnalytics'));
+
 // ✅ Celebrate validation errors
 app.use(errors());
 
