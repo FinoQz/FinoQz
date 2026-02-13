@@ -2,9 +2,8 @@
 // Requires: npm i multer pdf-parse
 
 const multer = require('multer');
-const pdfParseLib = require('pdf-parse');
-const pdfParse = pdfParseLib.default || pdfParseLib; // ✅ This handles both cases!
-const { extractQuestionsFromText } = require('../services/llmService');
+const pdfParse = require('pdf-parse');
+// const { extractQuestionsFromText } = require('../services/llmService');
 const Question = require('../models/Question');
 const Quiz = require('../models/Quiz');
 const XLSX = require('xlsx');
@@ -21,17 +20,22 @@ exports.uploadPdf = [
       const buffer = req.file.buffer;
       const parsed = await pdfParse(buffer);
       const text = parsed.text || '';
+      console.log('--- Extracted PDF Text Start ---');
+      console.log(text);
+      console.log('--- Extracted PDF Text End ---');
       if (!text || text.trim().length < 20) {
         console.warn('⚠️ PDF too short or empty');
         return res.status(400).json({ message: 'Unable to parse PDF or document too short' });
       }
 
+
+      // Use custom parser for this PDF format
       let extracted = [];
       try {
-        extracted = await extractQuestionsFromText(text);
+        extracted = parseQuestionsFromText(text);
       } catch (err) {
-        console.error('❌ LLM extraction failed:', err);
-        return res.status(500).json({ message: 'AI extraction failed', error: err.message });
+        console.error('❌ Parsing failed:', err);
+        return res.status(500).json({ message: 'Parsing failed', error: err.message });
       }
 
       const normalized = Array.isArray(extracted)
@@ -166,3 +170,50 @@ exports.uploadExcel = [
     }
   },
 ];
+
+function parseQuestionsFromText(text) {
+  const questionBlocks = text.split(/\n\s*\d+\.\s+/).filter(Boolean);
+  const questions = [];
+
+  questionBlocks.forEach(block => {
+    // Re-add question number if missing (for first question)
+    const lines = block.trim().split('\n').filter(Boolean);
+    if (lines.length < 3) return;
+
+    // Question text (may be multi-line)
+    let qText = lines[0];
+    let i = 1;
+    // If question text is multi-line, join until we hit an option
+    while (i < lines.length && !lines[i].match(/^A\./)) {
+      qText += ' ' + lines[i];
+      i++;
+    }
+
+    // Options
+    const options = [];
+    for (let opt = 0; opt < 4 && i < lines.length; opt++, i++) {
+      options.push(lines[i].replace(/^[A-D]\.\s*/, '').trim());
+    }
+
+    // Correct Answer
+    let correct = 0;
+    let explanation = '';
+    for (; i < lines.length; i++) {
+      if (lines[i].startsWith('Correct Answer:')) {
+        const ans = lines[i].split(':')[1].trim();
+        correct = ['A', 'B', 'C', 'D'].indexOf(ans);
+      } else if (lines[i].startsWith('Explanation:')) {
+        explanation = lines[i].replace('Explanation:', '').trim();
+      }
+    }
+
+    questions.push({
+      text: qText,
+      options,
+      correct: correct >= 0 ? correct : 0,
+      explanation,
+    });
+  });
+
+  return questions;
+}

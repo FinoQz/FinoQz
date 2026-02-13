@@ -6,10 +6,13 @@ import apiAdmin from '@/lib/apiAdmin';
 import CreateQuizButton from '../components/quiz_management/CreateQuizButton';
 import QuizFilters from '../components/quiz_management/QuizFilters';
 import QuizCard from '../components/quiz_management/QuizCard';
+import AdminQuizPreviewModal from '../components/quiz_management/AdminQuizPreviewModal';
+// You may want to create a QuizPreviewModal component for full quiz preview
 import StatusMessage from '../components/quiz_management/StatusMessage';
 import CreateQuizForm from '../components/quiz_management/CreateQuizForm';
 import ParticipantsDrawer from '../components/quiz_management/ParticipantsDrawer';
 import EditQuizModal from '../components/quiz_management/EditQuizModal';
+import EditQuestionModal from '../components/quiz_management/EditQuestionModal';
 import DeleteConfirmDialog from '../components/quiz_management/DeleteConfirmDialog';
 
 interface Quiz {
@@ -34,6 +37,18 @@ interface ApiResponse {
   message?: string;
 }
 
+interface QuestionEditData {
+  _id: string;
+  questionText?: string;
+  text: string;
+  options: string[];
+  correctAnswer?: string;
+  correct: number | null;
+  marks?: number;
+  type?: string;
+  [key: string]: unknown;
+}
+
 const QUIZZES_API = '/api/quizzes/admin/quizzes';
 
 export default function QuizManagement() {
@@ -51,6 +66,11 @@ export default function QuizManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [quizToEdit, setQuizToEdit] = useState<Quiz | null>(null);
   const [quizToDelete, setQuizToDelete] = useState<Quiz | null>(null);
+  const [quizToPreview, setQuizToPreview] = useState<Quiz | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [questionToEdit, setQuestionToEdit] = useState<string | null>(null);
+  const [showQuestionEditModal, setShowQuestionEditModal] = useState(false);
+  const [questionEditData, setQuestionEditData] = useState<QuestionEditData | null>(null);
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -117,42 +137,24 @@ export default function QuizManagement() {
     setShowDeleteDialog(true);
   };
 
-  const handleDuplicate = async (quizId: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      // First, get the quiz details
-      const getRes = await apiAdmin.get(`${QUIZZES_API}/${quizId}`);
-      const originalQuiz = getRes.data.data;
-      
-      // Create a copy with modified title
-      const duplicateData = {
-        ...originalQuiz,
-        quizTitle: `${originalQuiz.quizTitle} (Copy)`,
-        status: 'draft',
-        saveAsDraft: true
-      };
-      
-      // Remove fields that shouldn't be duplicated
-      delete duplicateData._id;
-      delete duplicateData.createdAt;
-      delete duplicateData.updatedAt;
-      delete duplicateData.participantCount;
-      
-      const res = await apiAdmin.post(QUIZZES_API, duplicateData);
-      if (res.status >= 200 && res.status < 300) {
-        setActionStatus('Quiz duplicated successfully!');
-        setTimeout(() => setActionStatus(''), 3000);
-        await fetchQuizzes();
-      } else {
-        setError(res.data?.message || 'Failed to duplicate quiz');
-      }
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Failed to duplicate quiz');
-    } finally {
-      setLoading(false);
+
+  // Preview handler
+  const handlePreview = (quizId: string) => {
+    const quiz = quizzes.find(q => q._id === quizId);
+    if (quiz) {
+      setQuizToPreview(quiz);
+      setShowPreviewModal(true);
     }
+  };
+
+  // Handler for editing a question from preview
+  const handleEditQuestion = (questionId: string) => {
+    setQuestionToEdit(questionId);
+    setShowQuestionEditModal(true);
+    // Fetch question data for editing
+    apiAdmin.get(`/api/questions/questions/${questionId}`).then(res => {
+      setQuestionEditData(res.data);
+    });
   };
 
   const handleEditSuccess = async () => {
@@ -225,7 +227,7 @@ export default function QuizManagement() {
       />
 
       <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
-        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 pb-4 mb-4 border-b border-gray-200">
+        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-1 pb-4 mb-4 border-b border-gray-200">
           <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title</div>
           <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Duration</div>
           <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Price</div>
@@ -251,9 +253,41 @@ export default function QuizManagement() {
                 onViewParticipants={handleViewParticipants}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                onDuplicate={handleDuplicate}
+                onPreview={handlePreview}
               />
             ))}
+                {/* Admin Quiz Preview Modal with all questions */}
+                {showPreviewModal && quizToPreview && (
+                  <AdminQuizPreviewModal
+                    quizId={quizToPreview._id}
+                    onClose={() => {
+                      setShowPreviewModal(false);
+                      setQuizToPreview(null);
+                    }}
+                    onEditQuestion={handleEditQuestion}
+                  />
+                )}
+
+                {showQuestionEditModal && questionToEdit && questionEditData && (
+                  <EditQuestionModal
+                    question={{
+                      ...questionEditData,
+                      marks: questionEditData.marks ?? 0,
+                      type: questionEditData.type ?? 'multiple-choice',
+                    }}
+                    onClose={() => {
+                      setShowQuestionEditModal(false);
+                      setQuestionToEdit(null);
+                      setQuestionEditData(null);
+                    }}
+                    onSuccess={() => {
+                      setShowQuestionEditModal(false);
+                      setQuestionToEdit(null);
+                      setQuestionEditData(null);
+                      fetchQuizzes();
+                    }}
+                  />
+                )}
           </div>
         )}
       </div>

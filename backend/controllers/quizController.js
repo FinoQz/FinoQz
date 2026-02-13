@@ -530,19 +530,29 @@ exports.getQuizPreview = async (req, res) => {
       }
     }
 
+
     const questionMap = new Map(questions.map(q => [String(q._id), q]));
-    const orderedQuestions = questionIds
+    let orderedQuestions = questionIds
       .map(id => questionMap.get(id))
-      .filter(Boolean)
-      .slice(0, 3);
+      .filter(Boolean);
 
     // Remove correct answer information
+    // If all questions have marks=1 but quiz.totalMarks and question count > 0, calculate marks per question
+    let marksToShow = 1;
+    if (
+      quiz.totalMarks &&
+      orderedQuestions.length > 0 &&
+      orderedQuestions.every(q => !q.marks || q.marks === 1)
+    ) {
+      marksToShow = Math.round(quiz.totalMarks / orderedQuestions.length);
+    }
+
     const previewQuestions = orderedQuestions.map(q => ({
       id: String(q._id),
       text: q.text,
       options: q.options || [],
       type: q.type || 'mcq',
-      marks: q.marks
+      marks: (q.marks && q.marks > 1) ? q.marks : marksToShow
     }));
 
     return res.json({

@@ -29,9 +29,10 @@ interface PreviewData {
 interface AdminQuizPreviewModalProps {
   quizId: string;
   onClose: () => void;
+  onEditQuestion?: (questionId: string) => void;
 }
 
-export default function AdminQuizPreviewModal({ quizId, onClose }: AdminQuizPreviewModalProps) {
+export default function AdminQuizPreviewModal({ quizId, onClose, onEditQuestion }: AdminQuizPreviewModalProps) {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -149,10 +150,21 @@ export default function AdminQuizPreviewModal({ quizId, onClose }: AdminQuizPrev
                   <div className="text-sm text-gray-500">No preview questions available.</div>
                 ) : (
                   preview.previewQuestions.map((question, index) => (
-                    <div key={question.id} className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                    <div key={question.id} className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900">Question {index + 1}</h4>
-                        <span className="text-xs text-gray-600">{question.marks || 1} mark</span>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900">Question {index + 1}</h4>
+                          <span className="text-xs text-gray-600">{question.marks || 1} mark</span>
+                        </div>
+                        {onEditQuestion && (
+                          <button
+                            className="text-blue-600 hover:underline text-xs font-medium"
+                            onClick={() => onEditQuestion(question.id)}
+                            title="Edit Question"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                       <p className="text-gray-800 mb-3">{question.text}</p>
                       <div className="space-y-2">

@@ -135,6 +135,14 @@ export default function MyQuiz() {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const initiatePayment = async (quizId: string, amount: number) => {
+    await apiUser.post('/api/transactions/initiate', {
+      quizId,
+      amount,
+      paymentMethod: 'phonepe'
+    });
+  };
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen">

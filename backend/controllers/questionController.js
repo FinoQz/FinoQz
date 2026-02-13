@@ -44,12 +44,22 @@ exports.bulkCreateAndAttach = async (req, res, next) => {
       return res.status(400).json({ message: 'Valid quizId required in path' });
     }
 
+    // Calculate marks per question if quiz totalMarks and numberOfQuestions are provided
+    let marksPerQuestion = 1;
+    if (req.body.quizTotalMarks && req.body.numberOfQuestions) {
+      const totalMarks = Number(req.body.quizTotalMarks);
+      const numQuestions = Number(req.body.numberOfQuestions);
+      if (totalMarks > 0 && numQuestions > 0) {
+        marksPerQuestion = Math.round(totalMarks / numQuestions);
+      }
+    }
+
     const docs = questions.map(q => ({
       type: q.type || 'mcq',
       text: q.text,
       options: Array.isArray(q.options) ? q.options : undefined,
       correct: q.correct ?? null,
-      marks: q.marks || 1,
+      marks: q.marks !== undefined ? q.marks : marksPerQuestion,
       confidence: q.confidence || 'medium',
       status: q.status || 'accepted',
       createdBy: req.userId || null,

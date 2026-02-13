@@ -20,7 +20,7 @@ router.post('/initiate',
     [Segments.BODY]: Joi.object({
       quizId: Joi.string().required(),
       amount: Joi.number().positive().required(),
-      paymentMethod: Joi.string().valid('razorpay', 'stripe', 'offline', 'wallet', 'cashfree').required()
+      paymentMethod: Joi.string().valid('razorpay', 'stripe', 'offline', 'wallet', 'cashfree', 'phonepe').required()
     })
   }),
   initiatePayment

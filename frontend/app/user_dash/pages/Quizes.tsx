@@ -198,7 +198,8 @@ export default function Quizes() {
     if (!selectedPaymentMethod || !selectedQuizToBuy) return;
 
     try {
-      const mappedMethod = selectedPaymentMethod === 'wallet' ? 'wallet' : 'cashfree';
+      // Map both UPI and Card to 'phonepe'
+      const mappedMethod = selectedPaymentMethod === 'wallet' ? 'wallet' : 'phonepe';
       const response = await apiUser.post('/api/transactions/initiate', {
         quizId: selectedQuizToBuy._id,
         amount: selectedQuizToBuy.price,
@@ -219,12 +220,12 @@ export default function Quizes() {
       }
 
       const orderData = response.data?.orderData;
-      if (!orderData?.checkoutUrl) {
-        throw new Error('Cashfree checkout URL missing');
+      if (!orderData?.checkoutPageUrl) {
+        throw new Error('PhonePe checkout URL missing');
       }
 
       handleClosePaymentModal();
-      window.location.href = orderData.checkoutUrl;
+      window.location.href = orderData.checkoutPageUrl;
     } catch (err) {
       console.error('Payment error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Payment failed. Please try again.';
@@ -364,7 +365,7 @@ export default function Quizes() {
                     <Smartphone className="w-5 h-5 text-purple-600" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-900">Cashfree UPI</p>
+                    <p className="font-semibold text-gray-900">PhonePe UPI</p>
                     <p className="text-xs text-gray-600">Google Pay, PhonePe, Paytm</p>
                   </div>
                   {selectedPaymentMethod === 'upi' && (
@@ -372,7 +373,7 @@ export default function Quizes() {
                   )}
                 </button>
 
-                {/* Cashfree (Card) */}
+                {/* Card */}
                 <button
                   onClick={() => handlePaymentMethodSelect('card')}
                   className={`w-full p-4 rounded-xl border-2 transition flex items-center gap-3 ${
@@ -385,8 +386,8 @@ export default function Quizes() {
                     <CreditCard className="w-5 h-5 text-blue-600" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold text-gray-900">Cashfree Card</p>
-                    <p className="text-xs text-gray-600">Credit/Debit Card via Cashfree</p>
+                    <p className="font-semibold text-gray-900">PhonePe Card</p>
+                    <p className="text-xs text-gray-600">Credit/Debit Card via PhonePe</p>
                   </div>
                   {selectedPaymentMethod === 'card' && (
                     <CheckCircle className="w-5 h-5 text-[#253A7B]" />

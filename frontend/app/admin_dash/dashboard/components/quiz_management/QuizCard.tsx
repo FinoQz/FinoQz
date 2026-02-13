@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, IndianRupee, Users, Edit2, Trash2, Copy } from 'lucide-react';
+import { Clock, IndianRupee, Users, Edit2, Trash2, Eye } from 'lucide-react';
 
 interface Quiz {
   _id: string;
@@ -20,16 +20,16 @@ interface QuizCardProps {
   onEnroll?: (quizId: string) => void;
   onEdit?: (quiz: Quiz) => void;
   onDelete?: (quiz: Quiz) => void;
-  onDuplicate?: (quizId: string) => void;
+  onPreview?: (quizId: string) => void;
 }
 
-export default function QuizCard({ 
+export default function QuizCard({
   quiz, 
   onViewParticipants, 
   onEnroll,
   onEdit,
   onDelete,
-  onDuplicate
+  onPreview
 }: QuizCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -97,14 +97,14 @@ export default function QuizCard({
             </button>
           )}
 
-          {onDuplicate && (
+          {onPreview && (
             <button
-              onClick={() => onDuplicate(quiz._id)}
+              onClick={() => onPreview(quiz._id)}
               className="flex items-center gap-1 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition text-sm font-medium"
-              title="Duplicate quiz"
+              title="Preview quiz"
             >
-              <Copy className="w-4 h-4" />
-              <span className="hidden sm:inline">Duplicate</span>
+              <Eye className="w-4 h-4" />
+              <span className="hidden sm:inline">Preview</span>
             </button>
           )}
 
