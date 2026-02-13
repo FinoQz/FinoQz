@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function PhonePeCallback() {
+function PhonePeCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState('Verifying payment...');
@@ -55,5 +55,13 @@ export default function PhonePeCallback() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PhonePeCallback() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="text-blue-700">Loading...</div></div>}>
+      <PhonePeCallbackInner />
+    </Suspense>
   );
 }
