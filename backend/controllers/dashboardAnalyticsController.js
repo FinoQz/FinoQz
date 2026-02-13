@@ -6,7 +6,7 @@ const QuizAttempt = require('../models/QuizAttempt');
 const Transaction = require('../models/Transaction');
 
 // Example: You should replace these with real DB queries
-exports.getDailyRevenue = async (req, res) => {
+const getDailyRevenue = async (req, res) => {
   try {
     const days = [];
     const revenueData = [];
@@ -35,16 +35,34 @@ exports.getDailyRevenue = async (req, res) => {
   }
 };
 
-exports.getQuizCompletion = async (req, res) => {
-  // TODO: Replace with real aggregation
-  res.json({
-    completed: 68,
-    nonCompleted: 32,
-    totalAttempts: 1248
-  });
+const getQuizCompletion = async (req, res) => {
+  try {
+    const QuizAttempt = require('../models/QuizAttempt');
+    // Use aggregation for accurate counts
+    const agg = await QuizAttempt.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    let completed = 0, nonCompleted = 0, totalAttempts = 0;
+    agg.forEach(row => {
+      totalAttempts += row.count;
+      if (row._id === 'submitted') {
+        completed = row.count;
+      } else {
+        nonCompleted += row.count;
+      }
+    });
+    res.json({ completed, nonCompleted, totalAttempts });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching quiz completion stats' });
+  }
 };
 
-exports.getCategoryParticipation = async (req, res) => {
+const getCategoryParticipation = async (req, res) => {
   try {
     // 1. Get all categories
     const categories = await Category.find().lean();
@@ -108,7 +126,7 @@ exports.getCategoryParticipation = async (req, res) => {
   }
 };
 
-exports.getTopUsers = async (req, res) => {
+const getTopUsers = async (req, res) => {
   try {
     const { quizId, limit = 5 } = req.query;
     if (!quizId) return res.status(400).json({ message: 'quizId required' });
@@ -150,7 +168,7 @@ exports.getTopUsers = async (req, res) => {
   }
 };
 
-exports.getUpcomingQuizzes = async (req, res) => {
+const getUpcomingQuizzes = async (req, res) => {
   // TODO: Replace with real aggregation
   res.json({
     quizzes: [
@@ -161,7 +179,7 @@ exports.getUpcomingQuizzes = async (req, res) => {
   });
 };
 
-exports.getRecentAdminActions = async (req, res) => {
+const getRecentAdminActions = async (req, res) => {
   // TODO: Replace with real aggregation
   res.json({
     actions: [
@@ -174,19 +192,79 @@ exports.getRecentAdminActions = async (req, res) => {
   });
 };
 
-exports.getActiveQuizzes = async (req, res) => {
-  // TODO: Replace with real aggregation
-  res.json({
-    activeQuizzes: 15,
-    sparkline: [8, 10, 9, 12, 14, 13, 16, 15]
-  });
-};
-
-exports.getTodayRevenue = async (req, res) => {
+const getTodayRevenue = async (req, res) => {
   // TODO: Replace with real aggregation
   res.json({
     todayRevenue: 8450,
     percentageIncrease: 18,
     sparkline: [3200, 4100, 3800, 5200, 6300, 7100, 7800, 8450]
   });
+};
+
+const getQuizAdminDashboard = async (req, res) => {
+  try {
+    const Quiz = require('../models/Quiz');
+    const QuizAttempt = require('../models/QuizAttempt');
+
+    // Total quizzes
+    const totalQuizzes = await Quiz.countDocuments();
+
+    // Total attempts
+    const totalAttempts = await QuizAttempt.countDocuments();
+
+    // Active quizzes (status: published, startAt <= now, endAt >= now)
+    const now = new Date();
+    const activeQuizzes = await Quiz.countDocuments({
+      status: 'published',
+      startAt: { $lte: now },
+      endAt: { $gte: now }
+    });
+
+    // Most attempted quiz
+    const mostAttempted = await QuizAttempt.aggregate([
+      { $group: { _id: '$quizId', attempts: { $sum: 1 } } },
+      { $sort: { attempts: -1 } },
+      { $limit: 1 }
+    ]);
+    let mostAttemptedQuiz = null;
+    if (mostAttempted.length) {
+      const quiz = await Quiz.findById(mostAttempted[0]._id).select('quizTitle');
+      mostAttemptedQuiz = {
+        quizTitle: quiz ? quiz.quizTitle : 'N/A',
+        attempts: mostAttempted[0].attempts
+      };
+    }
+
+    // Quizzes today
+    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+    const quizzesToday = await Quiz.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    // Avg attempts per quiz
+    const avgAttemptsPerQuiz = totalQuizzes > 0 ? (totalAttempts / totalQuizzes) : 0;
+
+    res.json({
+      totalQuizzes,
+      totalAttempts,
+      activeQuizzes,
+      mostAttemptedQuiz,
+      quizzesToday,
+      avgAttemptsPerQuiz
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching quiz admin dashboard stats' });
+  }
+};
+
+module.exports = {
+  getDailyRevenue,
+  getQuizCompletion,
+  getCategoryParticipation,
+  getTopUsers,
+  getUpcomingQuizzes,
+  getRecentAdminActions,
+  getTodayRevenue,
+  getQuizAdminDashboard
 };

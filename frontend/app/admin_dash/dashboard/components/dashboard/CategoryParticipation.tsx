@@ -56,7 +56,7 @@ export default function CategoryParticipation() {
                   className="
                     min-w-[130px] max-w-[180px] w-full
                     rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1
-                    flex-shrink-0
+                    flex-shrink-0 min-h-[80px]
                   "
                   style={{ borderTop: `3px solid ${cat.color}` }}
                 >

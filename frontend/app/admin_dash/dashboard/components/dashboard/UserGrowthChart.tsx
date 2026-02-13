@@ -23,26 +23,44 @@ const UserGrowthChart: React.FC<UserGrowthChartProps> = ({ userData, days, loadi
     );
   }
 
-  const minUsers = Math.min(...userData) - 5;
+  // Always start y-axis at zero, never negative
+  const minUsers = 0;
   const maxUsers = Math.max(...userData);
   const range = maxUsers - minUsers || 1;
-  const yTicks = 5;
-  const yLabels = Array.from({ length: yTicks + 1 }, (_, i) =>
-    Math.round(minUsers + (range * (yTicks - i)) / yTicks)
-  );
+  // Y-axis labels: show all integers from maxUsers to 0, up to a practical limit for density
+  let yLabels: number[] = [];
+  const maxDenseTicks = 100;
+  if (maxUsers <= maxDenseTicks) {
+    yLabels = Array.from({ length: maxUsers + 1 }, (_, i) => maxUsers - i);
+  } else {
+    // For very large maxUsers, fallback to 100 ticks for performance
+    const step = Math.ceil(maxUsers / maxDenseTicks);
+    for (let v = maxUsers; v >= 0; v -= step) {
+      yLabels.push(v);
+    }
+    if (yLabels[yLabels.length - 1] !== 0) yLabels.push(0);
+  }
   const labelWidth = 48; // gap kam kar diya
   const width = days.length * labelWidth;
-  const height = 200;
+  const height = 120;
 
   return (
-    <div className="h-full flex flex-col">
-      <div
-        className="flex-1"
-        style={{ overflowX: 'auto' }}
-      >
+    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 h-80 flex flex-col">
+      <div className="flex items-center gap-3 mb-3 sm:mb-4">
+        <div className="p-2 sm:p-2 bg-[#e6eafd] rounded-lg">
+          {/* User/group icon instead of calendar */}
+          <svg className="w-5 h-5 sm:w-5 sm:h-5 text-[#253A7B]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <circle cx="9" cy="7" r="4" />
+            <path d="M17 11a4 4 0 1 1 0 8" />
+            <path d="M3 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />
+          </svg>
+        </div>
+        <h3 className="text-base sm:text-lg font-bold text-gray-800">User Growth Overview</h3>
+      </div>
+      <div className="flex-1 w-full overflow-x-auto flex items-end">
         <div
-          className="relative border-b-2 border-l-2 border-gray-300 pl-10 pb-2"
-          style={{ minWidth: `${width + 60}px`, width: `${width + 60}px`, height: `${height + 40}px` }}
+          className="relative border-b-2 border-l-2 border-gray-300 pl-10 pb-0"
+          style={{ minWidth: `${width + 60}px`, width: `${width + 60}px`, height: `${height + 40}px`, marginBottom: 0 }}
         >
           {/* Y-axis labels */}
           <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-gray-400 py-2 pr-1">
@@ -93,9 +111,8 @@ const UserGrowthChart: React.FC<UserGrowthChartProps> = ({ userData, days, loadi
             />
             {/* Dots */}
             {userData.map((users, index) => {
-              const cx = `${(index / (userData.length - 1)) * width}`;
-              const baseY = height - ((users - minUsers) / range) * height;
-              const cy = users === 0 ? height : baseY + 6;
+              const cx = (index / (userData.length - 1)) * width;
+              const cy = height - ((users - minUsers) / range) * height;
               const color = users === 0 ? '#22c55e' : '#ef4444';
               return (
                 <g key={index}>

@@ -112,6 +112,7 @@ app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/questions', require('./routes/questionRoutes'));
 app.use('/api/admin/landing', require('./routes/adminLanding'));
 app.use('/api/admin/demo-quiz', require('./routes/demoQuiz'));
+app.use('/api/admin/panel/analytics', require('./routes/dashboardAnalytics'));
 
 // ✅ New Production Routes
 app.use('/api/quiz-attempts', require('./routes/quizAttemptRoutes'));

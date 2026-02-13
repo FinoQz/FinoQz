@@ -15,7 +15,10 @@ const getRequestUserId = (req) => {
  */
 const startAttempt = async (req, res) => {
   const { quizId } = req.body;
-  const userId = req.user._id;
+  const userId = getRequestUserId(req);
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 
   // 1. Quiz fetch karo
   const quiz = await Quiz.findById(quizId);
