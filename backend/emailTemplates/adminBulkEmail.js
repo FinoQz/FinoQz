@@ -1,4 +1,4 @@
-module.exports = function adminBulkEmailTemplate(message) {
+const adminBulkEmailTemplate = function (message) {
   return `
   <div style="background:#f4f6fb; padding:40px 0; font-family:Arial, sans-serif;">
     <div style="
@@ -77,3 +77,5 @@ module.exports = function adminBulkEmailTemplate(message) {
   </div>
   `;
 };
+
+export default adminBulkEmailTemplate;

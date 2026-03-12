@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, HelpCircle } from 'lucide-react';
-import DrawerHeader from './DrawerHeader';
+import DrawerHeader  from './DrawerHeader';
 import KPICards from './KPICards';
 import SecondaryMetrics from './SecondaryMetrics';
 import RevenueChart from './RevenueChart';
@@ -158,7 +158,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
           <div className="p-6 space-y-6">
             {activeTab === 'participants' ? (
               <>
-                <KPICards />
+                <KPICards quizId={quizId} />
                 <SecondaryMetrics quizId={quizId} />
 
                 {/* Charts Section */}

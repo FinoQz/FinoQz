@@ -1,40 +1,35 @@
-// controllers/uploadController.js
-// Requires: npm i multer pdf-parse
 
-const multer = require('multer');
-const pdfParse = require('pdf-parse');
-// const { extractQuestionsFromText } = require('../services/llmService');
-const Question = require('../models/Question');
-const Quiz = require('../models/Quiz');
-const XLSX = require('xlsx');
+// controllers/uploadController.js
+// PDF upload, JSON, manual, and Excel uploads are supported.
+
+
+import multer from 'multer';
+import pdfParse from 'pdf-parse';
+import Question from '../models/Question.js';
+import Quiz from '../models/Quiz.js';
+import XLSX from 'xlsx';
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB
 
 // POST /api/upload/pdf (multipart/form-data, field name "pdf")
-exports.uploadPdf = [
+export const uploadPdf = [
   upload.single('pdf'),
-  async (req, res, next) => {
+  async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
       const buffer = req.file.buffer;
       const parsed = await pdfParse(buffer);
       const text = parsed.text || '';
-      console.log('--- Extracted PDF Text Start ---');
-      console.log(text);
-      console.log('--- Extracted PDF Text End ---');
       if (!text || text.trim().length < 20) {
-        console.warn('⚠️ PDF too short or empty');
         return res.status(400).json({ message: 'Unable to parse PDF or document too short' });
       }
-
 
       // Use custom parser for this PDF format
       let extracted = [];
       try {
         extracted = parseQuestionsFromText(text);
       } catch (err) {
-        console.error('❌ Parsing failed:', err);
         return res.status(500).json({ message: 'Parsing failed', error: err.message });
       }
 
@@ -50,23 +45,20 @@ exports.uploadPdf = [
         : [];
 
       if (normalized.length === 0) {
-        console.warn('⚠️ No questions found in PDF');
         return res.json({
           data: [],
           warning: 'No questions found. Please add questions manually.'
         });
       }
 
-      return res.json({ data: normalized, text }); // <-- text bhi bhejo
+      return res.json({ data: normalized });
     } catch (err) {
-      console.error('❌ PDF upload error:', err);
       return res.status(500).json({ message: 'PDF upload failed', error: err.message });
     }
   }
 ];
-
-// POST /api/upload/json (application/json: { questions: [...] })
-exports.uploadJson = async (req, res) => {
+      // PDF upload and parsing removed. Only JSON, manual, and Excel uploads are supported.
+export const uploadJson = async (req, res) => {
   try {
     const { questions } = req.body;
     if (!Array.isArray(questions)) {
@@ -90,7 +82,7 @@ exports.uploadJson = async (req, res) => {
 };
 
 // POST /api/upload/manual (application/json: { quizId, questions: [...] })
-exports.uploadManual = async (req, res) => {
+export const uploadManual = async (req, res) => {
   try {
     const { quizId, questions } = req.body;
 
@@ -98,8 +90,8 @@ exports.uploadManual = async (req, res) => {
       return res.status(400).json({ message: 'quizId required' });
     }
     // Validate quizId as a valid ObjectId
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+    const mongoose = await import('mongoose');
+    if (!mongoose.default.Types.ObjectId.isValid(quizId)) {
       return res.status(400).json({ message: 'Invalid quizId. Please create/save the quiz first.' });
     }
 
@@ -136,12 +128,10 @@ exports.uploadManual = async (req, res) => {
 // Format: [{"text": "...", "options": ["..."], "correct": 0, "explanation": "..."}]
 
 // POST /api/upload/excel (multipart/form-data, field name "file")
-exports.uploadExcel = [
+export const uploadExcel = [
   upload.single('file'),
   async (req, res) => {
     try {
-      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-
       const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
@@ -168,7 +158,7 @@ exports.uploadExcel = [
       console.error('❌ Excel upload error:', err);
       return res.status(500).json({ message: 'Excel upload failed', error: err.message });
     }
-  },
+  }
 ];
 
 function parseQuestionsFromText(text) {

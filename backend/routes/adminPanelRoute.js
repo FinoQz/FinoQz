@@ -1,6 +1,6 @@
-const express = require('express');
 
-const {
+import express from 'express';
+import {
   getPendingUsers,
   approveUser,
   rejectUser,
@@ -22,12 +22,11 @@ const {
   deleteGroup,
   getUserGrowthData,
   getLiveUsers
-} = require('../controllers/adminPanelController');
-
-const authMiddleware = require('../middlewares/authMiddleware');
-const requireAdmin = require('../middlewares/requireAdmin');
-const verifyToken = require("../middlewares/verifyToken");
-const upload = require('../utils/upload');
+} from '../controllers/adminPanelController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
+import verifyToken from "../middlewares/verifyToken.js";
+import upload from '../utils/upload.js';
 
 const router = express.Router();
 
@@ -68,4 +67,4 @@ router.get('/analytics/user-growth', authMiddleware('admin'), requireAdmin, getU
 
 router.get('/analytics/live-users', authMiddleware('admin'), requireAdmin, getLiveUsers);
 
-module.exports = router;
+export default router;

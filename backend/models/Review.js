@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const reviewSchema = new mongoose.Schema({
   name: { type: String, default: 'Anonymous', trim: true },
   email: { type: String, trim: true },
@@ -12,4 +11,4 @@ const reviewSchema = new mongoose.Schema({
 // Indexes for performance
 reviewSchema.index({ isPinned: -1, isApproved: -1, createdAt: -1 });
 
-module.exports = mongoose.model('Review', reviewSchema);
+export default mongoose.model('Review', reviewSchema);

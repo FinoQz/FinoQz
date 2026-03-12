@@ -1,8 +1,8 @@
-const Certificate = require('../models/Certificate');
-const QuizAttempt = require('../models/QuizAttempt');
-const Quiz = require('../models/Quiz');
-const User = require('../models/User');
-const crypto = require('crypto');
+import Certificate from '../models/Certificate.js';
+import QuizAttempt from '../models/QuizAttempt.js';
+import Quiz from '../models/Quiz.js';
+import User from '../models/User.js';
+import crypto from 'crypto';
 
 /**
  * Generate a unique certificate number
@@ -240,7 +240,7 @@ const getAllCertificates = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   generateCertificate,
   getUserCertificates,
   verifyCertificate,

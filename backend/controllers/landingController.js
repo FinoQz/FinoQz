@@ -1,53 +1,46 @@
-const path = require('path');
-const fs = require('fs').promises;
-const { saveUploadedFile } = require('../utils/fileStorage');
 
-const LANDING_JSON = path.join(process.cwd(), 'data', 'landing.json');
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-async function getLanding(req, res) {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LANDING_JSON = path.join(__dirname, '../data/landing.json');
+
+
+export async function getLanding(req, res) {
   try {
-    const raw = await fs.readFile(LANDING_JSON, 'utf8');
-    const data = JSON.parse(raw);
-    return res.json(data);
+    const data = await fs.readFile(LANDING_JSON, 'utf8');
+    const json = JSON.parse(data);
+    return res.json(json);
   } catch (err) {
-    return res.json({});
+    console.error('getLanding error', err);
+    return res.status(500).json({ error: 'Failed to load landing content' });
   }
 }
 
-async function saveLanding(req, res) {
+
+export async function saveLanding(req, res) {
   try {
-    const payloadText = req.body && req.body.payload;
-    if (!payloadText) return res.status(400).json({ error: 'Missing payload form field' });
+    const payload = req.body;
 
-    let payload;
-    try {
-      payload = JSON.parse(payloadText);
-    } catch (err) {
-      return res.status(400).json({ error: 'Invalid JSON payload' });
-    }
-
-    // Load existing landing.json if it exists
+    // Load existing data
     let existing = {};
     try {
-      const raw = await fs.readFile(LANDING_JSON, 'utf8');
-      existing = JSON.parse(raw);
-    } catch (_) {
-      existing = {};
+      const data = await fs.readFile(LANDING_JSON, 'utf8');
+      existing = JSON.parse(data);
+    } catch (err) {
+      // File may not exist yet
     }
 
-    // Merge existing with new payload
-    payload = {
-      ...existing,
-      ...payload,
-      hero: {
-        ...existing.hero,
-        ...payload.hero,
-      },
+    // Merge hero
+    payload.hero = {
+      ...existing.hero,
+      ...payload.hero,
     };
 
     // Ensure hero object exists
     payload.hero = payload.hero || {};
-
 
     // Validate hero.stats
     if (Array.isArray(payload.hero.stats)) {
@@ -91,9 +84,3 @@ async function saveLanding(req, res) {
     return res.status(500).json({ error: 'Failed to save landing content' });
   }
 }
-
-
-module.exports = {
-  getLanding,
-  saveLanding,
-};

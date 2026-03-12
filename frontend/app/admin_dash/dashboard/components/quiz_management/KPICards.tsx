@@ -4,13 +4,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Users, UserCheck, CreditCard, IndianRupee } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
-export default function KPICards() {
+
+interface KPICardsProps {
+  quizId: string;
+}
+
+export default function KPICards({ quizId }: KPICardsProps) {
   const [stats, setStats] = useState<{
     totalUsers: number;
     totalAttempts: number;
     totalRevenue: number;
+    paidUsers: number;
   } | null>(null);
-  const [paidCount, setPaidCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -20,34 +25,45 @@ export default function KPICards() {
         setLoading(true);
         setError('');
 
-        const [dashboardRes, revenueRes] = await Promise.all([
-          apiAdmin.get('/api/analytics/dashboard-stats'),
-          apiAdmin.get('/api/transactions/revenue-stats?dateRange=30')
+        // Fetch quiz-specific stats
+        const [attemptsRes, revenueRes, paidRes] = await Promise.all([
+          apiAdmin.get(`/api/quiz-attempts/quiz/${quizId}`),
+          apiAdmin.get(`/api/analytics/quiz-revenue?quizId=${quizId}`),
+          apiAdmin.get(`/api/analytics/quiz-paid-users?quizId=${quizId}`)
         ]);
 
-        const dashboard = dashboardRes.data || {};
-        const revenueStats = revenueRes.data || {};
-        const statusBreakdown = Array.isArray(revenueStats.statusBreakdown) ? revenueStats.statusBreakdown : [];
-        const successRow = statusBreakdown.find((row: { _id?: string }) => row._id === 'success');
+        // Total users = unique users in attempts
+        interface AttemptRecord {
+          userId: string | { _id: string };
+        }
+        const attempts = Array.isArray(attemptsRes.data.attempts) ? attemptsRes.data.attempts : [];
+        const userSet = new Set(attempts.map((a: AttemptRecord) => (typeof a.userId === 'string' ? a.userId : a.userId?._id)));
+        const totalUsers = userSet.size;
+        const totalAttempts = attempts.length;
+
+        // Revenue
+        const totalRevenue = Number(revenueRes.data?.totalRevenue || 0);
+
+        // Paid users
+        const paidUsers = Number(paidRes.data?.paidUsers || 0);
 
         setStats({
-          totalUsers: Number(dashboard.totalUsers || 0),
-          totalAttempts: Number(dashboard.totalAttempts || 0),
-          totalRevenue: Number(dashboard.totalRevenue || 0)
+          totalUsers,
+          totalAttempts,
+          totalRevenue,
+          paidUsers
         });
-        setPaidCount(Number(successRow?.count || 0));
       } catch (err) {
         console.error('Failed to load KPI stats:', err);
         setError('Failed to load KPI stats');
         setStats(null);
-        setPaidCount(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
-  }, []);
+    if (quizId) fetchStats();
+  }, [quizId]);
 
   const kpiData = useMemo(() => [
     {
@@ -66,7 +82,7 @@ export default function KPICards() {
     },
     {
       label: 'Paid users',
-      value: paidCount !== null ? paidCount.toLocaleString() : '—',
+      value: stats ? stats.paidUsers.toLocaleString() : '—',
       icon: CreditCard,
       bgColor: 'bg-purple-100',
       iconColor: 'text-purple-600'
@@ -78,7 +94,7 @@ export default function KPICards() {
       bgColor: 'bg-orange-100',
       iconColor: 'text-orange-600'
     }
-  ], [stats, paidCount]);
+  ], [stats]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

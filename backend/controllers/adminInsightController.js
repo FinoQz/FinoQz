@@ -1,6 +1,6 @@
-const CommunityInsight = require('../models/CommunityInsight');
-const InsightComment = require('../models/InsightComment');
-const Admin = require('../models/Admin');
+import CommunityInsight from '../models/CommunityInsight.js';
+import InsightComment from '../models/InsightComment.js';
+import Admin from '../models/Admin.js';
 
 // GET /api/admin/insights - Get all insights with full details
 const getAllInsights = async (req, res) => {
@@ -196,7 +196,7 @@ const deleteAnyInsight = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getAllInsights,
   getInsightsAnalytics,
   createAdminInsight,

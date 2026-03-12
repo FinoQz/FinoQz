@@ -1,10 +1,10 @@
-const Transaction = require('../models/Transaction');
-const Quiz = require('../models/Quiz');
-const Wallet = require('../models/Wallet');
-const User = require('../models/User');
-const mongoose = require('mongoose');
-const { StandardCheckoutClient, Env, StandardCheckoutPayRequest } = require('pg-sdk-node');
-const { v4: uuid } = require('uuid');
+import Transaction from '../models/Transaction.js';
+import Quiz from '../models/Quiz.js';
+import Wallet from '../models/Wallet.js';
+import User from '../models/User.js';
+import mongoose from 'mongoose';
+import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from 'pg-sdk-node';
+import { v4 as uuid } from 'uuid';
 
 const getRequestUserId = (req) => {
   return req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
@@ -334,7 +334,7 @@ const getRevenueStats = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   initiatePayment,
   verifyPayment,
   getTransactionHistory,

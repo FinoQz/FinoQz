@@ -1,10 +1,10 @@
-// routes/quizRoutes.js
-const express = require('express');
-const rateLimit = require('express-rate-limit');
-const { celebrate, Joi, errors } = require('celebrate');
-const adminAuth = require('../middlewares/adminAuth');
-const authMiddleware = require('../middlewares/authMiddleware');
-const c = require('../controllers/quizController');
+
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { celebrate, Joi, errors } from 'celebrate';
+import adminAuth from '../middlewares/adminAuth.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import * as c from '../controllers/quizController.js';
 
 const router = express.Router();
 
@@ -138,7 +138,7 @@ router.delete('/admin/quizzes/:id', adminAuth, writeLimiter, c.deleteQuiz);
 // AI description generator
 router.post('/admin/generate-description', adminAuth, celebrate({
   body: Joi.object({ quizTitle: Joi.string().min(3).required() })
-}), c.generateDescription);
+}), c.generateDescriptionHandler);
 
 // AI quiz question generator
 router.post('/admin/generate-questions', adminAuth, c.generateQuestions);
@@ -157,4 +157,4 @@ router.post('/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
 // Celebrate error handler
 router.use(errors());
 
-module.exports = router;
+export default router;

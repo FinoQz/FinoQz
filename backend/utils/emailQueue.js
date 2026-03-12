@@ -1,6 +1,4 @@
-// utils/emailQueue.js
-
-const { Queue } = require('bullmq');
+import { Queue } from 'bullmq';
 
 const isSecure = process.env.REDIS_URL?.startsWith('rediss://');
 
@@ -17,4 +15,4 @@ const emailQueue = new Queue('emailQueue', {
   },
 });
 
-module.exports = emailQueue;
+export default emailQueue;

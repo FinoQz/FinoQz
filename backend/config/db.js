@@ -1,5 +1,6 @@
-const mongoose = require('mongoose');
-const winston = require('winston');
+
+import mongoose from 'mongoose';
+import winston from 'winston';
 
 // --- Structured Logger ---
 const logger = winston.createLogger({
@@ -75,4 +76,4 @@ const dbHealth = () => {
   };
 };
 
-module.exports = { connectDB, dbHealth, logger };
+export { connectDB, dbHealth, logger };

@@ -14,7 +14,7 @@ export default function ActiveQuizzesWidget() {
         const res = await (await import('@/lib/apiAdmin')).default.get('/api/admin/panel/analytics/active-quizzes');
         setActiveQuizzes(res.data.activeQuizzes);
         setSparklineData(res.data.sparkline || []);
-      } catch (err) {
+      } catch {
         setActiveQuizzes(0);
         setSparklineData([]);
       } finally {

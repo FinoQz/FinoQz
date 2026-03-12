@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const financeContentSchema = new mongoose.Schema({
   title: {
@@ -96,4 +96,4 @@ financeContentSchema.pre('save', async function(next) {
 financeContentSchema.index({ isPublished: 1, publishedAt: -1 });
 financeContentSchema.index({ category: 1, isPublished: 1, publishedAt: -1 });
 
-module.exports = mongoose.model('FinanceContent', financeContentSchema);
+export default mongoose.model('FinanceContent', financeContentSchema);

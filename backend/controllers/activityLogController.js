@@ -1,6 +1,6 @@
-const ActivityLog = require('../models/ActivityLog');
+import ActivityLog from '../models/ActivityLog.js';
 
-exports.getActivityLogs = async (req, res) => {
+export const getActivityLogs = async (req, res) => {
   try {
     const logs = await ActivityLog.find()
       .sort({ createdAt: -1 })
@@ -13,7 +13,7 @@ exports.getActivityLogs = async (req, res) => {
   }
 };
 
-exports.clearAllLogs = async (req, res) => {
+export const clearAllLogs = async (req, res) => {
   try {
     await ActivityLog.deleteMany({});
     res.json({ message: "All logs cleared successfully" });

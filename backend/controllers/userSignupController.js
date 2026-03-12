@@ -1,25 +1,22 @@
 // controllers/userSignupController.js
 
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
-const axios = require('axios');
-
-const generateOTP = require('../utils/generateOTP');
-const getDeviceInfo = require('../utils/getDeviceInfo');
-
-const redis = require('../utils/redis');
-const emailQueue = require('../utils/emailQueue');
-const logActivity = require('../utils/logActivity');
-
-const userOtpTemplate = require('../emailTemplates/userOtpTemplate');
-const awaitingApprovalTemplate = require('../emailTemplates/userAwaitingApprovalTemplate');
-const approvalRequestTemplate = require('../emailTemplates/adminApprovalRequestTemplate');
-const approvalSuccessTemplate = require('../emailTemplates/userApprovalSuccessTemplate');
-const rejectionTemplate = require('../emailTemplates/userRejectionTemplate');
+import User from '../models/User.js';
+import bcrypt from 'bcrypt';
+import axios from 'axios';
+import generateOTP from '../utils/generateOTP.js';
+import getDeviceInfo from '../utils/getDeviceInfo.js';
+import redis from '../utils/redis.js';
+import emailQueue from '../utils/emailQueue.js';
+import logActivity from '../utils/logActivity.js';
+import userOtpTemplate from '../emailTemplates/userOtpTemplate.js';
+import awaitingApprovalTemplate from '../emailTemplates/userAwaitingApprovalTemplate.js';
+import approvalRequestTemplate from '../emailTemplates/adminApprovalRequestTemplate.js';
+import approvalSuccessTemplate from '../emailTemplates/userApprovalSuccessTemplate.js';
+import rejectionTemplate from '../emailTemplates/userRejectionTemplate.js';
 
 
 // ✅ STEP 1: Initiate Signup (Email OTP)
-exports.initiateSignup = async (req, res) => {
+export const initiateSignup = async (req, res) => {
   try {
     const { fullName, email } = req.body;
 
@@ -88,7 +85,7 @@ exports.initiateSignup = async (req, res) => {
 };
 
 
-exports.verifyEmailOtp = async (req, res) => {
+export const verifyEmailOtp = async (req, res) => {
   try {
     const email =
       req.cookies?.userEmail || req.body.email || req.query.email || req.headers["x-signup-email"];
@@ -167,7 +164,7 @@ exports.verifyEmailOtp = async (req, res) => {
 };
 
 
-exports.resendEmailOtp = async (req, res) => {
+export const resendEmailOtp = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email;
 
@@ -226,7 +223,7 @@ exports.resendEmailOtp = async (req, res) => {
 
 
 
-exports.submitMobilePassword = async (req, res) => {
+export const submitMobilePassword = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email || req.headers["x-signup-email"];
     const { mobile, password } = req.body;
@@ -303,7 +300,7 @@ exports.submitMobilePassword = async (req, res) => {
 };
 
 
-exports.verifyMobileOtp = async (req, res) => {
+export const verifyMobileOtp = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email || req.headers["x-signup-email"];
     const { otp } = req.body;
@@ -423,7 +420,7 @@ exports.verifyMobileOtp = async (req, res) => {
 
 
 
-exports.resendMobileOtp = async (req, res) => {
+export const resendMobileOtp = async (req, res) => {
   try {
     const email = req.cookies?.userEmail || req.body.email;
 
@@ -487,7 +484,7 @@ exports.resendMobileOtp = async (req, res) => {
 
 
 // ✅ STEP 7: Get Signup Status
-exports.getSignupStatus = async (req, res) => {
+export const getSignupStatus = async (req, res) => {
   try {
     const email =
       req.cookies?.userEmail || req.query.email || req.body.email || req.headers["x-signup-email"];
@@ -558,7 +555,7 @@ exports.getSignupStatus = async (req, res) => {
 
 
 //✅ STEP 8: Admin Approves User
-exports.approveUser = async (req, res) => {
+export const approveUser = async (req, res) => {
   try {
     const { userId } = req.params;
     console.log("➡️ Admin approving user:", userId);
@@ -611,7 +608,7 @@ exports.approveUser = async (req, res) => {
 
 
 // ✅ STEP 9: Admin Rejects User
-exports.rejectUser = async (req, res) => {
+export const rejectUser = async (req, res) => {
   try {
     const { userId } = req.params;
 

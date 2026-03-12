@@ -1,7 +1,5 @@
-const express = require('express');
-const router = express.Router();
-
-const {
+import express from 'express';
+import {
   getPublishedContent,
   getContentBySlug,
   createContent,
@@ -9,12 +7,11 @@ const {
   deleteContent,
   togglePublishContent,
   getAllContent
-} = require('../controllers/financeContentController');
+} from '../controllers/financeContentController.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-
-const requireAdmin = require('../middlewares/requireAdmin');
-const authMiddleware = require('../middlewares/authMiddleware');
-
+const router = express.Router();
 
 router.get('/', getPublishedContent);
 router.get('/:slug', getContentBySlug);
@@ -26,4 +23,4 @@ router.put('/admin/:id', authMiddleware('admin'), requireAdmin, updateContent);
 router.delete('/admin/:id', authMiddleware('admin'), requireAdmin, deleteContent);
 router.patch('/admin/:id/publish', authMiddleware('admin'), requireAdmin, togglePublishContent);
 
-module.exports = router;
+export default router;

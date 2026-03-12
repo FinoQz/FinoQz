@@ -1,12 +1,13 @@
-const QuizAttempt = require('../models/QuizAttempt');
-const Quiz = require('../models/Quiz');
-const Question = require('../models/Question');
-const Certificate = require('../models/Certificate');
-const Notification = require('../models/Notification');
-const mongoose = require('mongoose');
+import QuizAttempt from '../models/QuizAttempt.js';
+import Quiz from '../models/Quiz.js';
+import Question from '../models/Question.js';
+import Certificate from '../models/Certificate.js';
+import Notification from '../models/Notification.js';
+import mongoose from 'mongoose';
 
 const getRequestUserId = (req) => {
-  return req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
+  // Prioritize userId from query param for admin/user-specific analytics
+  return req.query.userId || req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
 };
 
 /**
@@ -532,7 +533,7 @@ const getAllAttempts = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   startAttempt,
   saveAnswer,
   submitAttempt,

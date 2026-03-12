@@ -1,4 +1,4 @@
-module.exports = ({ ip, device, time, location }) => `
+const loginAlertTemplate = ({ ip, device, time, location }) => `
   <div style="font-family: 'Segoe UI', Roboto, sans-serif; background-color: #f9f9ff; padding: 32px; border-radius: 16px; border: 1px solid #e0e0e0; max-width: 600px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
     
     <div style="text-align: center; margin-bottom: 24px;">
@@ -39,3 +39,5 @@ module.exports = ({ ip, device, time, location }) => `
     </p>
   </div>
 `;
+
+export default loginAlertTemplate;

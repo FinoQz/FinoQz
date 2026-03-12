@@ -1,15 +1,17 @@
-const express = require('express');
-const router = express.Router();
-const {
+
+import express from 'express';
+import {
   generateCertificate,
   getUserCertificates,
   verifyCertificate,
   downloadCertificate,
   getAllCertificates
-} = require('../controllers/certificateController');
-const { celebrate, Joi, Segments } = require('celebrate');
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
+} from '../controllers/certificateController.js';
+import { celebrate, Joi, Segments } from 'celebrate';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
+
+const router = express.Router();
 
 // Generate certificate
 router.post('/generate',
@@ -49,4 +51,4 @@ router.get('/:certificateId/download',
 // Get all certificates (Admin only)
 router.get('/all', verifyToken(), requireAdmin, getAllCertificates);
 
-module.exports = router;
+export default router;

@@ -24,6 +24,7 @@ interface AllUser {
   status: "Active" | "Inactive" | "Blocked";
   registrationDate: string;
   lastLogin: string;
+  walletBalance?: number;
 }
 
 type ModalType = "view" | "edit" | "block" | "unblock" | "delete" | null;
@@ -171,6 +172,7 @@ function ActionModal({
 
 export default function AllUsersTable() {
   const [users, setUsers] = useState<AllUser[]>([]);
+  const [walletBalances, setWalletBalances] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "All" | "Active" | "Inactive" | "Blocked"
@@ -193,98 +195,131 @@ export default function AllUsersTable() {
   const socketRef = useRef<Socket | null>(null);
 
   // ✅ WebSocket-based real-time user sync
-useEffect(() => {
-  setLoading(true);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-  if (!backendUrl) return;
+  useEffect(() => {
+    setLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (!backendUrl) return;
 
-  if (!socketRef.current) {
-    socketRef.current = io(backendUrl, { withCredentials: true });
-  }
-  const socket = socketRef.current;
-
-  socket.on("connect", () => {
-    console.log("✅ Connected to WebSocket:", socket.id);
-  });
-
-  socket.on("users:update", (data) => {
-    console.log("📡 Received users:update:", data);
-    if (Array.isArray(data?.approved)) {
-      type BackendUser = {
-        _id: string;
-        fullName: string;
-        email: string;
-        mobile?: string;
-        createdAt?: string;
-        lastLoginAt?: string;
-      };
-      const formatted = data.approved.map((u: BackendUser) => ({
-        _id: u._id,
-        fullName: u.fullName,
-        email: u.email,
-        mobile: u.mobile || "N/A",
-        status: "Active",
-        registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
-        lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
-          ? u.lastLoginAt
-          : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
-      }));
-      setUsers(formatted);
+    if (!socketRef.current) {
+      socketRef.current = io(backendUrl, { withCredentials: true });
     }
-    setLoading(false);
-  });
+    const socket = socketRef.current;
 
-  socket.on("disconnect", (reason) => {
-    console.warn("❌ WebSocket disconnected:", reason);
-  });
+    socket.on("connect", () => {
+      console.log("✅ Connected to WebSocket:", socket.id);
+    });
 
-  // ✅ Parallel API call
-  const fallbackTimer = setTimeout(async () => {
-    try {
-      const res = await apiAdmin.get("/api/admin/panel/all-users", {
-        headers: { "Cache-Control": "no-store" },
-      });
-      // Fallback API mapping:
-      if (Array.isArray(res.data)) {
-        type ApiUser = {
+    socket.on("users:update", (data) => {
+      console.log("📡 Received users:update:", data);
+      if (Array.isArray(data?.approved)) {
+        type BackendUser = {
           _id: string;
           fullName: string;
           email: string;
           mobile?: string;
-          status?: "Active" | "Inactive" | "Blocked";
           createdAt?: string;
           lastLoginAt?: string;
         };
-        const formatted = (res.data as ApiUser[]).map((u) => ({
+        const formatted = data.approved.map((u: BackendUser) => ({
           _id: u._id,
           fullName: u.fullName,
           email: u.email,
           mobile: u.mobile || "N/A",
-          status: u.status || "Active",
+          status: "Active",
           registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
           lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
             ? u.lastLoginAt
             : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
         }));
         setUsers(formatted);
-      } else {
+        // Fetch wallet balances for these users
+        fetchWalletBalances(formatted);
+      }
+      setLoading(false);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.warn("❌ WebSocket disconnected:", reason);
+    });
+
+    // ✅ Parallel API call (no delay)
+    let fallbackCalled = false;
+    const fallbackFetch = async () => {
+      if (fallbackCalled) return;
+      fallbackCalled = true;
+      try {
+        const res = await apiAdmin.get("/api/admin/panel/all-users", {
+          headers: { "Cache-Control": "no-store" },
+        });
+        // Fallback API mapping:
+        if (Array.isArray(res.data)) {
+          type ApiUser = {
+            _id: string;
+            fullName: string;
+            email: string;
+            mobile?: string;
+            status?: "Active" | "Inactive" | "Blocked";
+            createdAt?: string;
+            lastLoginAt?: string;
+          };
+          const formatted = (res.data as ApiUser[]).map((u) => ({
+            _id: u._id,
+            fullName: u.fullName,
+            email: u.email,
+            mobile: u.mobile || "N/A",
+            status: u.status || "Active",
+            registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
+            lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
+              ? u.lastLoginAt
+              : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
+          }));
+          setUsers(formatted);
+          // Fetch wallet balances for these users
+          fetchWalletBalances(formatted);
+        } else {
+          setUsers([]);
+        }
+      } catch (err) {
+        console.error("❌ Fallback API failed:", err);
         setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // If no users:update event in 500ms, fetch via API
+    const fallbackTimer = setTimeout(fallbackFetch, 500);
+
+    return () => {
+      socket.off("users:update");
+      socket.off("connect");
+      socket.off("disconnect");
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  // Fetch wallet balances for users
+  const fetchWalletBalances = async (userList: AllUser[]) => {
+    try {
+      const res = await apiAdmin.get('/api/wallet/all-balances', {
+        params: { limit: userList.length, page: 1 },
+      });
+      interface WalletBalance {
+        userId: string;
+        balance: number;
+      }
+      if (Array.isArray(res.data.balances)) {
+        const balancesMap: Record<string, number> = {};
+        res.data.balances.forEach((b: WalletBalance) => {
+          balancesMap[b.userId] = b.balance;
+        });
+        setWalletBalances(balancesMap);
+        setUsers((prev) => prev.map(u => ({ ...u, walletBalance: balancesMap[u._id] ?? 0 })));
       }
     } catch (err) {
-      console.error("❌ Fallback API failed:", err);
-      setUsers([]);
-    } finally {
-      setLoading(false);
+      console.error('❌ Failed to fetch wallet balances:', err);
     }
-  }, 2000);
-
-  return () => {
-    socket.off("users:update");
-    socket.off("connect");
-    socket.off("disconnect");
-    clearTimeout(fallbackTimer);
   };
-}, []);
 
 
 
@@ -526,6 +561,9 @@ useEffect(() => {
                     Last Login
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                    Wallet Balance
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -581,6 +619,11 @@ useEffect(() => {
                       {formatDateTime(user.lastLogin)}
                     </td>
 
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-semibold text-blue-700">
+                        ₹{user.walletBalance ?? 0}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       <button
                         onClick={(e) => handleActionClick(user._id, e)}

@@ -1,7 +1,6 @@
-const express = require('express');
-const router = express.Router();
 
-const {
+import express from 'express';
+import {
   createPost,
   updatePost,
   deletePost,
@@ -13,18 +12,17 @@ const {
   sharePost,
   featurePost,
   flagPost
-} = require('../controllers/communityController');
-
-const {
+} from '../controllers/communityController.js';
+import {
   addComment,
   getComments,
   deleteComment,
   likeComment
-} = require('../controllers/commentController');
+} from '../controllers/commentController.js';
+import auth from '../middlewares/authMiddleware.js';
+import admin from '../middlewares/adminAuth.js';
 
-// TODO: replace with your actual auth middleware paths
-const auth = require('../middlewares/authMiddleware');
-const admin = require('../middlewares/adminAuth');
+const router = express.Router();
 
 // Public
 router.get('/posts', getPosts);
@@ -48,4 +46,4 @@ router.post('/comments/:commentId/like', auth, likeComment);
 router.patch('/posts/:postId/pin', auth, admin, togglePin);
 router.patch('/posts/:postId/feature', auth, admin, featurePost);
 
-module.exports = router;
+export default router;

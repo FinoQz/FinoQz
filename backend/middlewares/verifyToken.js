@@ -1,12 +1,12 @@
 
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 function sha256Hex(input) {
   return crypto.createHash("sha256").update(String(input || "")).digest("hex");
 }
 
-module.exports = (requiredRole = null) => {
+const verifyToken = (requiredRole = null) => {
   return (req, res, next) => {
     try {
       const token =
@@ -53,3 +53,5 @@ module.exports = (requiredRole = null) => {
     }
   };
 };
+
+export default verifyToken;

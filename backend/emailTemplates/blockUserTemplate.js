@@ -1,4 +1,4 @@
-module.exports = function blockUserTemplate(name) {
+const blockUserTemplate = function (name) {
   return `
   <div style="font-family: 'Segoe UI', Arial, sans-serif; background:#f4f6fb; padding:40px;">
     <div style="max-width:520px; margin:auto; background:white; border-radius:18px; padding:30px; box-shadow:0 4px 20px rgba(0,0,0,0.08);">
@@ -39,3 +39,5 @@ module.exports = function blockUserTemplate(name) {
   </div>
   `;
 };
+
+export default blockUserTemplate;

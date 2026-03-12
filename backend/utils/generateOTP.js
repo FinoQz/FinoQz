@@ -1,5 +1,5 @@
 // utils/generateOTP.js
-module.exports = function generateOTP(length = 6) {
+const generateOTP = function (length = 6) {
   const digits = '0123456789';
   let otp = '';
   for (let i = 0; i < length; i++) {
@@ -7,3 +7,5 @@ module.exports = function generateOTP(length = 6) {
   }
   return otp;
 };
+
+export default generateOTP;

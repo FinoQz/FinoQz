@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const quizSchema = new mongoose.Schema({
   category: { type: String, required: true },
@@ -36,4 +36,4 @@ const quizSchema = new mongoose.Schema({
 
 quizSchema.index({ quizTitle: "text", category: 1, status: 1 });
 
-module.exports = mongoose.model("Quiz", quizSchema);
+export default mongoose.model("Quiz", quizSchema);

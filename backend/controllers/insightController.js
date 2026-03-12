@@ -1,7 +1,7 @@
-const CommunityInsight = require('../models/CommunityInsight');
-const InsightComment = require('../models/InsightComment');
-const User = require('../models/User');
-const Admin = require('../models/Admin');
+import CommunityInsight from '../models/CommunityInsight.js';
+import InsightComment from '../models/InsightComment.js';
+import User from '../models/User.js';
+import Admin from '../models/Admin.js';
 
 // GET /api/insights - Get all active insights (paginated)
 const getInsights = async (req, res) => {
@@ -400,7 +400,7 @@ const getPinnedInsights = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getInsights,
   getInsightById,
   createInsight,

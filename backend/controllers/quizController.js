@@ -7,15 +7,17 @@
 // - enroll uses req.params.quizId to match common route naming
 // - basic input checks and numeric normalizations
 
-const Quiz = require('../models/Quiz');
-const Question = require('../models/Question');
-const Transaction = require('../models/Transaction');
-const QuizAttempt = require('../models/QuizAttempt');
-const cloudinary = require('../utils/cloudinary');
-const mongoose = require('mongoose');
-const generatorService = require('../services/generatorService');
-const User = require('../models/User');
-const Group = require('../models/Group');
+
+import Quiz from '../models/Quiz.js';
+import Question from '../models/Question.js';
+import Transaction from '../models/Transaction.js';
+import QuizAttempt from '../models/QuizAttempt.js';
+import cloudinary from '../utils/cloudinary.js';
+import mongoose from 'mongoose';
+import { generateDescription, generateFromPrompt } from '../services/generatorService.js';
+import User from '../models/User.js';
+import Group from '../models/Group.js';
+import QuizActivityLog from '../models/QuizActivityLog.js';
 
 const ACTIVE_USER_STATUSES = new Set(['approved', 'active']);
 const DEFAULT_LIVE_END_DAYS = 3650; // 10 years
@@ -81,7 +83,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
 ]);
 
 // Create quiz
-exports.createQuiz = async (req, res) => {
+export const createQuiz = async (req, res) => {
   try {
     const {
       category,
@@ -169,6 +171,21 @@ exports.createQuiz = async (req, res) => {
     });
 
     await quiz.save();
+
+    // Log quiz creation (admin only)
+    if (req.adminId) {
+      await QuizActivityLog.create({
+        adminId: req.adminId,
+        action: 'create_quiz',
+        quizId: quiz._id,
+        meta: { quizTitle, description },
+        status: 'success',
+        ip: req.ip,
+        device: req.device || {},
+        userAgent: req.headers['user-agent']
+      });
+    }
+
     return res.status(201).json({ message: "Quiz created successfully", data: quiz });
   } catch (err) {
     console.error("❌ createQuiz error:", err);
@@ -177,11 +194,11 @@ exports.createQuiz = async (req, res) => {
 };
 
 // AI description generator
-exports.generateDescription = async (req, res) => {
+export const generateDescriptionHandler = async (req, res) => {
   try {
     const { quizTitle } = req.body;
     if (!quizTitle) return res.status(400).json({ message: 'quizTitle required' });
-    const result = await generatorService.generateDescription(quizTitle);
+    const result = await generateDescription(quizTitle);
     return res.json({ description: result });
   } catch (err) {
     return res.status(500).json({ message: 'AI description generation failed' });
@@ -189,7 +206,7 @@ exports.generateDescription = async (req, res) => {
 };
 
 // Update quiz (partial, whitelisted)
-exports.updateQuiz = async (req, res) => {
+export const updateQuiz = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
@@ -234,6 +251,20 @@ exports.updateQuiz = async (req, res) => {
     const quiz = await Quiz.findByIdAndUpdate(id, update, { new: true, runValidators: true });
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
+    // Log quiz update (admin only)
+    if (req.adminId && id) {
+      await QuizActivityLog.create({
+        adminId: req.adminId,
+        action: 'update_quiz',
+        quizId: id,
+        meta: { updates: req.body },
+        status: 'success',
+        ip: req.ip,
+        device: req.device || {},
+        userAgent: req.headers['user-agent']
+      });
+    }
+
     return res.json({ message: "Quiz updated", data: quiz });
   } catch (err) {
     console.error("❌ updateQuiz error:", err);
@@ -245,13 +276,28 @@ exports.updateQuiz = async (req, res) => {
 };
 
 // Publish/unpublish
-exports.setStatus = async (req, res) => {
+export const setStatus = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
     const { status } = req.body; // 'draft' | 'published'
     const quiz = await Quiz.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+
+    // Log status change (admin only)
+    if (req.adminId && id) {
+      await QuizActivityLog.create({
+        adminId: req.adminId,
+        action: status === 'published' ? 'publish_quiz' : 'unpublish_quiz',
+        quizId: id,
+        meta: { status },
+        status: 'success',
+        ip: req.ip,
+        device: req.device || {},
+        userAgent: req.headers['user-agent']
+      });
+    }
+
     return res.json({ message: "Status updated", data: quiz });
   } catch (err) {
     console.error("❌ setStatus error:", err);
@@ -260,11 +306,24 @@ exports.setStatus = async (req, res) => {
 };
 
 // Admin list (with filters + pagination)
-exports.listAdmin = async (req, res) => {
+export const listAdmin = async (req, res) => {
   try {
     const { status, category, search, page = 1, limit = 20 } = req.query;
     const filter = {};
     if (status) filter.status = status;
+      // Log quiz update (admin only)
+      if (req.adminId && req.params.id) {
+        await QuizActivityLog.create({
+          adminId: req.adminId,
+          action: 'update_quiz',
+          quizId: req.params.id,
+          meta: { updates: req.body },
+          status: 'success',
+          ip: req.ip,
+          device: req.device || {},
+          userAgent: req.headers['user-agent']
+        });
+      }
     if (category) filter.category = category;
     if (search) filter.$text = { $search: search };
 
@@ -290,14 +349,19 @@ exports.listAdmin = async (req, res) => {
 };
 
 // Public list (user panel)
-exports.listPublic = async (req, res) => {
+export const listPublic = async (req, res) => {
   try {
-    const user = await ensureActiveUser(req, res);
-    if (!user) return;
+    // Allow admin to fetch for any user via ?userId=...
+    let userId = req.userId;
+    if (req.adminId && req.query.userId) {
+      userId = req.query.userId;
+    }
+    const user = await User.findById(userId).select('status').lean();
+    if (!user) return res.status(401).json({ message: 'User not found or not authenticated' });
 
     const { category, search, page = 1, limit = 20, upcoming } = req.query;
     const now = new Date();
-    const userGroupTokens = await getUserGroupTokens(req.userId);
+    const userGroupTokens = await getUserGroupTokens(userId);
     const visibilityFilter = [{ visibility: 'public' }];
     if (userGroupTokens.length > 0) {
       visibilityFilter.push({ visibility: 'private', assignedGroups: { $in: userGroupTokens } });
@@ -338,7 +402,7 @@ exports.listPublic = async (req, res) => {
 };
 
 // Get by id (user or admin) - consistent response shape
-exports.getById = async (req, res) => {
+export const getById = async (req, res) => {
   try {
     const user = await ensureActiveUser(req, res);
     if (!user) return;
@@ -367,7 +431,7 @@ exports.getById = async (req, res) => {
 };
 
 // Admin get by id (no visibility/time restrictions)
-exports.getAdminById = async (req, res) => {
+export const getAdminById = async (req, res) => {
   try {
     const id = req.params.id || req.params.quizId;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -383,12 +447,27 @@ exports.getAdminById = async (req, res) => {
 };
 
 // Delete quiz
-exports.deleteQuiz = async (req, res) => {
+export const deleteQuiz = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
     const del = await Quiz.findByIdAndDelete(id);
     if (!del) return res.status(404).json({ message: "Quiz not found" });
+
+    // Log quiz deletion (admin only)
+    if (req.adminId && id) {
+      await QuizActivityLog.create({
+        adminId: req.adminId,
+        action: 'delete_quiz',
+        quizId: id,
+        meta: {},
+        status: 'success',
+        ip: req.ip,
+        device: req.device || {},
+        userAgent: req.headers['user-agent']
+      });
+    }
+
     return res.json({ message: "Quiz deleted" });
   } catch (err) {
     console.error("❌ deleteQuiz error:", err);
@@ -397,7 +476,7 @@ exports.deleteQuiz = async (req, res) => {
 };
 
 // Enroll (increment participantCount) — user panel action
-exports.enroll = async (req, res) => {
+export const enroll = async (req, res) => {
   try {
     const user = await ensureActiveUser(req, res);
     if (!user) return;
@@ -473,10 +552,10 @@ exports.enroll = async (req, res) => {
 };
 
 // Generate questions from prompt
-exports.generateQuestions = async (req, res) => {
+export const generateQuestions = async (req, res) => {
   try {
     const { prompt, numQuestions, topic } = req.body;
-    const result = await require('../services/generatorService').generateFromPrompt(prompt, numQuestions, topic);
+    const result = await generateFromPrompt(prompt, numQuestions, topic);
     // Normalize for frontend
     const normalized = Array.isArray(result.questions)
       ? result.questions.map(q => ({
@@ -493,7 +572,7 @@ exports.generateQuestions = async (req, res) => {
 };
 
 // Get quiz preview (2-3 sample questions for paid quizzes)
-exports.getQuizPreview = async (req, res) => {
+export const getQuizPreview = async (req, res) => {
   try {
     const { quizId } = req.params;
     
@@ -501,6 +580,19 @@ exports.getQuizPreview = async (req, res) => {
       return res.status(400).json({ message: 'Invalid quiz ID' });
     }
 
+    // Log status change (admin only)
+    if (req.adminId && req.params.id) {
+      await QuizActivityLog.create({
+        adminId: req.adminId,
+        action: req.body.status === 'published' ? 'publish_quiz' : 'unpublish_quiz',
+        quizId: req.params.id,
+        meta: { status: req.body.status },
+        status: 'success',
+        ip: req.ip,
+        device: req.device || {},
+        userAgent: req.headers['user-agent']
+      });
+    }
     const quiz = await Quiz.findById(quizId)
       .select('quizTitle description duration totalMarks pricingType price difficultyLevel category questions')
       .lean();
@@ -545,6 +637,19 @@ exports.getQuizPreview = async (req, res) => {
       orderedQuestions.every(q => !q.marks || q.marks === 1)
     ) {
       marksToShow = Math.round(quiz.totalMarks / orderedQuestions.length);
+      // Log quiz deletion (admin only)
+      if (req.adminId && req.params.id) {
+        await QuizActivityLog.create({
+          adminId: req.adminId,
+          action: 'delete_quiz',
+          quizId: req.params.id,
+          meta: {},
+          status: 'success',
+          ip: req.ip,
+          device: req.device || {},
+          userAgent: req.headers['user-agent']
+        });
+      }
     }
 
     const previewQuestions = orderedQuestions.map(q => ({
@@ -578,7 +683,7 @@ exports.getQuizPreview = async (req, res) => {
 };
 
 // Get full quiz questions for attempt
-exports.getQuizQuestions = async (req, res) => {
+export const getQuizQuestions = async (req, res) => {
   try {
     const user = await ensureActiveUser(req, res);
     if (!user) return;
@@ -668,16 +773,18 @@ exports.getQuizQuestions = async (req, res) => {
 };
 
 // Get user's purchased/enrolled quizzes
-exports.getMyQuizzes = async (req, res) => {
+export const getMyQuizzes = async (req, res) => {
   try {
-    const userId = req.userId;
-    
+    // Allow admin to fetch for any user via ?userId=...
+    let userId = req.userId;
+    if (req.adminId && req.query.userId) {
+      userId = req.query.userId;
+    }
     if (!userId) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
     // Get purchased quizzes from transactions
-    const Transaction = require('../models/Transaction');
     const purchasedTransactions = await Transaction.find({
       userId,
       status: 'success',
@@ -690,7 +797,6 @@ exports.getMyQuizzes = async (req, res) => {
       .map(id => String(id));
 
     // Get quiz attempts to find enrolled/attempted quizzes
-    const QuizAttempt = require('../models/QuizAttempt');
     const attempts = await QuizAttempt.find({ userId })
       .select('quizId status totalScore percentage submittedAt attemptNumber')
       .sort({ submittedAt: -1 })

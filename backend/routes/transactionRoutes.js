@@ -1,15 +1,16 @@
-const express = require('express');
-const {
+
+import express from 'express';
+import {
   initiatePayment,
   verifyPayment,
   getTransactionHistory,
   getAllTransactions,
   processRefund,
   getRevenueStats
-} = require('../controllers/transactionController');
-const { celebrate, Joi, Segments } = require('celebrate');
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
+} from '../controllers/transactionController.js';
+import { celebrate, Joi, Segments } from 'celebrate';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
 
 const router = express.Router();
 
@@ -64,4 +65,4 @@ router.post('/:transactionId/refund',
 // Get revenue statistics (Admin only)
 router.get('/revenue-stats', verifyToken(), requireAdmin, getRevenueStats);
 
-module.exports = router;
+export default router;

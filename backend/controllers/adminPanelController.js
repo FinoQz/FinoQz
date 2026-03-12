@@ -1,19 +1,19 @@
-const User = require('../models/User');
-const Group = require('../models/Group');
-const bcrypt = require("bcrypt");
-const sendEmail = require('../utils/sendEmail');
-const approvalSuccessTemplate = require('../emailTemplates/userApprovalSuccessTemplate');
-const newUserWelcomeTemplate = require("../emailTemplates/newUserWelcomeTemplate");
-const rejectionTemplate = require('../emailTemplates/userRejectionTemplate');
-const unblockUserTemplate = require("../emailTemplates/unblockUserTemplate");
-const blockUserTemplate = require("../emailTemplates/blockUserTemplate");
-const adminBulkEmailTemplate = require("../emailTemplates/adminBulkEmail");
-const logActivity = require('../utils/logActivity');
-const emailQueue = require('../utils/emailQueue');
-const userDeletedTemplate = require("../emailTemplates/userDeletedTemplate");
-const cloudinary = require('../utils/cloudinary');
-const redis = require('../utils/redis');
-const mongoose = require('mongoose');
+import User from '../models/User.js';
+import Group from '../models/Group.js';
+import bcrypt from "bcrypt";
+import sendEmail from '../utils/sendEmail.js';
+import approvalSuccessTemplate from '../emailTemplates/userApprovalSuccessTemplate.js';
+import newUserWelcomeTemplate from "../emailTemplates/newUserWelcomeTemplate.js";
+import rejectionTemplate from '../emailTemplates/userRejectionTemplate.js';
+import unblockUserTemplate from "../emailTemplates/unblockUserTemplate.js";
+import blockUserTemplate from "../emailTemplates/blockUserTemplate.js";
+import adminBulkEmailTemplate from "../emailTemplates/adminBulkEmail.js";
+import logActivity from '../utils/logActivity.js';
+import emailQueue from '../utils/emailQueue.js';
+import userDeletedTemplate from "../emailTemplates/userDeletedTemplate.js";
+import cloudinary from '../utils/cloudinary.js';
+import redis from '../utils/redis.js';
+import mongoose from 'mongoose';
 
 
 const buildDashboardStats = async () => {
@@ -71,9 +71,9 @@ async function emitDashboardStats(req) {
   }
 }
 
-exports.emitDashboardStats = emitDashboardStats;
+export { emitDashboardStats };
 
-exports.getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (req, res) => {
   try {
     const cached = await redis.get("dashboard:stats");
     if (cached) {
@@ -89,11 +89,11 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
-const { emitLiveUserStats, emitAnalyticsUpdate, emitUsersUpdate} = require('../utils/emmiters');
-const userApprovalSuccessTemplate = require('../emailTemplates/userApprovalSuccessTemplate');
+import { emitLiveUserStats, emitAnalyticsUpdate, emitUsersUpdate } from '../utils/emmiters.js';
+import userApprovalSuccessTemplate from '../emailTemplates/userApprovalSuccessTemplate.js';
 
 // ✅ Get monthly user registrations (current & last month)
-exports.getMonthlyUsers = async (req, res) => {
+export const getMonthlyUsers = async (req, res) => {
   try {
     const io = req.app.get('io');
     const now = new Date();
@@ -149,7 +149,7 @@ exports.getMonthlyUsers = async (req, res) => {
 };
 
 
-exports.getUserGrowthData = async (req, res) => {
+export const getUserGrowthData = async (req, res) => {
   try {
     const io = req.app.get('io');
     const today = new Date();
@@ -233,7 +233,7 @@ exports.getUserGrowthData = async (req, res) => {
 
 
 
-exports.getLiveUsers = async (req, res) => {
+export const getLiveUsers = async (req, res) => {
   try {
     // ✅ Get count from Redis Set
     const liveUserCount = await redis.scard('liveUsers');
@@ -267,7 +267,7 @@ exports.getLiveUsers = async (req, res) => {
 
 // ✅ Get all users
 
-exports.getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({})
       .select('_id fullName email mobile status createdAt lastLoginAt')
@@ -294,7 +294,7 @@ exports.getAllUsers = async (req, res) => {
 };
 
 
-exports.approveUser = async (req, res) => {
+export const approveUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -370,7 +370,7 @@ exports.approveUser = async (req, res) => {
 
 
 // ✅ Reject a user
-exports.rejectUser = async (req, res) => {
+export const rejectUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -423,7 +423,7 @@ exports.rejectUser = async (req, res) => {
 };
 
 // ✅ Get all users awaiting admin approval
-exports.getPendingUsers = async (req, res) => {
+export const getPendingUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'awaiting_admin_approval' })
       .select('_id fullName email mobile createdAt status emailVerified mobileVerified')
@@ -438,7 +438,7 @@ exports.getPendingUsers = async (req, res) => {
 
 
 //  ✅ Get approved users
-exports.getApprovedUsers = async (req, res) => {
+export const getApprovedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'approved' })
       .select('_id fullName email mobile createdAt approvedBy approvedAt') // ✅ added approvedAt
@@ -452,7 +452,7 @@ exports.getApprovedUsers = async (req, res) => {
 };
 
 //  ✅ Get rejected users
-exports.getRejectedUsers = async (req, res) => {
+export const getRejectedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'rejected' })
       .select('_id fullName email mobile createdAt');
@@ -466,7 +466,7 @@ exports.getRejectedUsers = async (req, res) => {
 
 // ✅ GET USER BY ID
 
-exports.getUserById = async (req, res) => {
+export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
       .select('-passwordHash -emailOtp -mobileOtp');
@@ -489,7 +489,7 @@ exports.getUserById = async (req, res) => {
 };
 
 // ✅ UPDATE USER DETAILS
-exports.updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   try {
     const updates = req.body;
 
@@ -522,7 +522,7 @@ exports.updateUser = async (req, res) => {
 };
 
 // ✅ DELETE USER
-exports.deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
 
@@ -567,7 +567,7 @@ exports.deleteUser = async (req, res) => {
 };
 
 // ✅ ADD NEW USER (Admin-created)
-exports.addNewUser = async (req, res) => {
+export const addNewUser = async (req, res) => {
   try {
     const { fullName, email, mobile, gender, address, role, password } = req.body;
 
@@ -646,7 +646,7 @@ exports.addNewUser = async (req, res) => {
 };
 
 // ✅ BLOCK USER
-exports.blockUser = async (req, res) => {
+export const blockUser = async (req, res) => {
   try {
     const userId = req.params.userId;
 
@@ -677,7 +677,7 @@ exports.blockUser = async (req, res) => {
 };
 
 // ✅ UNBLOCK USER
-exports.unblockUser = async (req, res) => {
+export const unblockUser = async (req, res) => {
   try {
     const userId = req.params.userId;
 
@@ -709,7 +709,7 @@ exports.unblockUser = async (req, res) => {
 };
 
 // GROUP MANAGEMENT
-exports.createGroup = async (req, res) => {
+export const createGroup = async (req, res) => {
   try {
     const { name, members } = req.body;
     if (!name || !members || members.length === 0) {
@@ -730,7 +730,7 @@ exports.createGroup = async (req, res) => {
 };
 
 // Get all groups
-exports.getGroups = async (req, res) => {
+export const getGroups = async (req, res) => {
   try {
     const groups = await Group.find()
       .populate('members', '_id fullName email');
@@ -742,7 +742,7 @@ exports.getGroups = async (req, res) => {
 };
 
 // Update group
-exports.updateGroup = async (req, res) => {
+export const updateGroup = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, members } = req.body;
@@ -761,7 +761,7 @@ exports.updateGroup = async (req, res) => {
 };
 
 // Delete group
-exports.deleteGroup = async (req, res) => {
+export const deleteGroup = async (req, res) => {
   try {
     const { id } = req.params;
     const del = await Group.findByIdAndDelete(id);
@@ -774,7 +774,7 @@ exports.deleteGroup = async (req, res) => {
 };
 
 // ✅ Send bulk email to users
-exports.sendBulkEmail = async (req, res) => {
+export const sendBulkEmail = async (req, res) => {
   try {
     const { recipients, subject, body } = req.body;
 

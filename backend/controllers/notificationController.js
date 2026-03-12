@@ -1,4 +1,4 @@
-const Notification = require('../models/Notification');
+import Notification from '../models/Notification.js';
 
 /**
  * Get user notifications
@@ -152,7 +152,7 @@ const getNotificationsWithDetails = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getUserNotifications,
   markAsRead,
   markAllAsRead,

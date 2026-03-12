@@ -1,11 +1,11 @@
-const Wallet = require('../models/Wallet');
-const Transaction = require('../models/Transaction');
+import Wallet from '../models/Wallet.js';
+import Transaction from '../models/Transaction.js';
 
 /**
  * Get user wallet balance
  * @route GET /api/wallet/balance
  */
-const getWalletBalance = async (req, res) => {
+export const getWalletBalance = async (req, res) => {
   try {
     const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -33,7 +33,7 @@ const getWalletBalance = async (req, res) => {
  * Add funds to wallet
  * @route POST /api/wallet/add-funds
  */
-const addFunds = async (req, res) => {
+export const addFunds = async (req, res) => {
   try {
     const { amount, reason, referenceId } = req.body;
     const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
@@ -75,10 +75,63 @@ const addFunds = async (req, res) => {
 };
 
 /**
+ * Get all users' wallet balances (Admin only)
+ * @route GET /api/wallet/all-balances
+ */
+export const getAllWalletBalances = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search } = req.query;
+
+    // Find users (with optional search)
+    const userQuery = {};
+    if (search) {
+      userQuery.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+    const User = (await import('../models/User.js')).default;
+    const users = await User.find(userQuery)
+      .select('fullName email')
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    // Get wallet balances for these users
+    const Wallet = (await import('../models/Wallet.js')).default;
+    const userIds = users.map(u => u._id);
+    const wallets = await Wallet.find({ userId: { $in: userIds } });
+
+    // Map user info + balance
+    const balances = users.map(user => {
+      const wallet = wallets.find(w => w.userId.toString() === user._id.toString());
+      return {
+        userId: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        balance: wallet ? wallet.balance : 0,
+        updatedAt: wallet ? wallet.updatedAt : null
+      };
+    });
+
+    const total = await User.countDocuments(userQuery);
+
+    res.json({
+      balances,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
+      total
+    });
+  } catch (error) {
+    console.error('Get all wallet balances (admin) error:', error);
+    res.status(500).json({ message: 'Failed to fetch wallet balances' });
+  }
+};
+
+/**
  * Deduct funds from wallet
  * @route POST /api/wallet/deduct-funds
  */
-const deductFunds = async (req, res) => {
+export const deductFunds = async (req, res) => {
   try {
     const { amount, reason, referenceId } = req.body;
     const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
@@ -127,7 +180,7 @@ const deductFunds = async (req, res) => {
  * Get wallet transaction history
  * @route GET /api/wallet/transactions
  */
-const getWalletTransactions = async (req, res) => {
+export const getWalletTransactions = async (req, res) => {
   try {
     const userId = req.userId || req.user?._id || req.user?.id || req.user?.userId;
     if (!userId) {
@@ -170,13 +223,8 @@ const getWalletTransactions = async (req, res) => {
     });
   } catch (error) {
     console.error('Get wallet transactions error:', error);
-    res.status(500).json({ message: 'Failed to fetch transactions' });
+      // ...existing code...
   }
 };
 
-module.exports = {
-  getWalletBalance,
-  addFunds,
-  deductFunds,
-  getWalletTransactions
-};
+

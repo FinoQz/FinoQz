@@ -1,8 +1,7 @@
 // routes/userSignupRoute.js
 
-const express = require('express');
-
-const {
+import express from 'express';
+import {
   initiateSignup,
   verifyEmailOtp,
   resendEmailOtp,
@@ -12,12 +11,11 @@ const {
   approveUser,
   rejectUser,
   getSignupStatus
-} = require('../controllers/userSignupController');
-
-const validateSignUp = require('../middlewares/validateSignup');
-const validateOtp = require('../middlewares/validateOtp');
-const authMiddleware = require('../middlewares/authMiddleware');
-const requireAdmin = require('../middlewares/requireAdmin');
+} from '../controllers/userSignupController.js';
+import validateSignUp from '../middlewares/validateSignup.js';
+import validateOtp from '../middlewares/validateOtp.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
 
 const router = express.Router();
 
@@ -46,4 +44,4 @@ router.get('/status', getSignupStatus);
 // router.post('/approve/:userId', authMiddleware(), requireAdmin, approveUser);
 // router.post('/reject/:userId', authMiddleware(), requireAdmin, rejectUser);
 
-module.exports = router;
+export default router;

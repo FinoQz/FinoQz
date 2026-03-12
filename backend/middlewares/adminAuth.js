@@ -1,7 +1,7 @@
-// middleware/adminAuth.js
-const jwt = require('jsonwebtoken');
 
-module.exports = (req, res, next) => {
+import jwt from 'jsonwebtoken';
+
+const adminAuth = (req, res, next) => {
   try {
     const token =
       req.cookies?.adminToken ||
@@ -25,3 +25,5 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ message: 'Unauthorized: Invalid token' });
   }
 };
+
+export default adminAuth;

@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true, trim: true },
 
@@ -58,4 +57,4 @@ const userSchema = new mongoose.Schema({
   mobileVerified: { type: Boolean, default: false }
 });
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

@@ -1,4 +1,4 @@
-module.exports = function requireAdmin(req, res, next) {
+const requireAdmin = function (req, res, next) {
   const user = req.user;
 
   if (!user || typeof user.role !== 'string' || user.role.toLowerCase() !== 'admin') {
@@ -9,3 +9,5 @@ module.exports = function requireAdmin(req, res, next) {
   req.adminId = user.id || user._id;
   next();
 };
+
+export default requireAdmin;

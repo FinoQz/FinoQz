@@ -1,10 +1,6 @@
-const express = require("express");
-const authMiddleware = require("../middlewares/authMiddleware");
-const {
-  getMe,
-  updateMe,
-  uploadProfileImage
-} = require("../controllers/userProfileController");
+import express from "express";
+import authMiddleware from "../middlewares/authMiddleware.js";
+import { getMe, updateMe, uploadProfileImage } from "../controllers/userProfileController.js";
 
 const router = express.Router();
 
@@ -17,4 +13,4 @@ router.patch("/me", authMiddleware(), updateMe);
 // Upload profile image
 router.post("/me/profile-image", authMiddleware(), uploadProfileImage);
 
-module.exports = router;
+export default router;

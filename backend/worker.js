@@ -67,9 +67,10 @@
 // }
 
 // startWorker();
-require("dotenv").config();
-const Redis = require("ioredis");
-const { handleEmailJob } = require("./utils/emailWorker");
+import dotenv from 'dotenv';
+dotenv.config();
+import Redis from 'ioredis';
+import { handleEmailJob } from './utils/emailWorker.js';
 
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);

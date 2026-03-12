@@ -25,7 +25,7 @@ export default function RecentAdminActions() {
         <Activity className="w-5 h-5 text-[#253A7B]" />
         <h3 className="text-lg font-semibold text-gray-900">Recent Admin Actions</h3>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl animate-pulse border border-gray-200">

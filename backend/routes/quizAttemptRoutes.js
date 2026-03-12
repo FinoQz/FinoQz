@@ -1,7 +1,6 @@
 
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   startAttempt,
   saveAnswer,
   submitAttempt,
@@ -9,21 +8,20 @@ const {
   getUserAttempts,
   getAttemptsByQuiz,
   getAttemptResult
-} = require('../controllers/quizAttemptController');
-const { celebrate, Joi, Segments } = require('celebrate');
-// Middleware to verify JWT token
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
+} from '../controllers/quizAttemptController.js';
+import { celebrate, Joi, Segments } from 'celebrate';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
+
+const router = express.Router();
 
 // Get all attempts (Admin only, for reports/analytics)
+
+import { getAllAttempts } from '../controllers/quizAttemptController.js';
 router.get('/all',
   verifyToken(),
   requireAdmin,
-  async (req, res, next) => {
-    // Defer to controller
-    const controller = require('../controllers/quizAttemptController');
-    return controller.getAllAttempts(req, res, next);
-  }
+  getAllAttempts
 );
 
 // Start a new quiz attempt
@@ -104,4 +102,4 @@ router.get('/quiz/:quizId',
   getAttemptsByQuiz
 );
 
-module.exports = router;
+export default router;

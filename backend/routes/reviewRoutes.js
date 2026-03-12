@@ -1,17 +1,16 @@
-const express = require('express');
-const router = express.Router();
-
-const {
+import express from 'express';
+import {
   createReview,
   getPinnedReviews,
   getAllReviews,
   togglePinReview,
   toggleApproveReview,
   deleteReview
-} = require('../controllers/reviewController');
+} from '../controllers/reviewController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
 
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
+const router = express.Router();
 
 // Public routes
 router.post('/', createReview);
@@ -23,4 +22,4 @@ router.patch('/admin/:id/pin', verifyToken(), requireAdmin, togglePinReview);
 router.patch('/admin/:id/approve', verifyToken(), requireAdmin, toggleApproveReview);
 router.delete('/admin/:id', verifyToken(), requireAdmin, deleteReview);
 
-module.exports = router;
+export default router;

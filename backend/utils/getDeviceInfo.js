@@ -40,10 +40,10 @@
 //     rawGeo: geo || null,
 //   };
 // };
-const geoip = require('geoip-lite');
-const UAParser = require('ua-parser-js');
+import geoip from 'geoip-lite';
+import { UAParser } from 'ua-parser-js';
 
-module.exports = function getDeviceInfo(req) {
+const getDeviceInfo = function (req) {
   let ip =
     req.headers['x-client-ip'] ||
     req.headers['x-real-ip'] ||
@@ -87,3 +87,5 @@ module.exports = function getDeviceInfo(req) {
     rawGeo: geo || null,
   };
 };
+
+export default getDeviceInfo;

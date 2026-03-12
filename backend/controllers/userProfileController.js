@@ -1,7 +1,7 @@
-const User = require("../models/User");
+import User from "../models/User.js";
 
 // ✅ Get current user profile
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.userId)
       .select('-password -otp -__v') // hide sensitive fields
@@ -18,7 +18,7 @@ exports.getMe = async (req, res) => {
 
 
 // ✅ Update profile (only fields present in User schema)
-exports.updateMe = async (req, res) => {
+export const updateMe = async (req, res) => {
   try {
     const allowedFields = [
       "fullName",
@@ -51,7 +51,7 @@ exports.updateMe = async (req, res) => {
 };
 
 // ✅ Upload profile image
-exports.uploadProfileImage = async (req, res) => {
+export const uploadProfileImage = async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ message: "Image URL required" });

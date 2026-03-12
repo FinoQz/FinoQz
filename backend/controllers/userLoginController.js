@@ -1,19 +1,18 @@
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 
-const redis = require('../utils/redis');
-const emailQueue = require('../utils/emailQueue');
-const logActivity = require('../utils/logActivity');
-
-const generateOTP = require('../utils/generateOTP');
-const signinOtpTemplate = require('../emailTemplates/signinotpTemplate');
-const getDeviceInfo = require('../utils/getDeviceInfo');
-
-const { emitLiveUserStats } = require('../utils/emmiters');
+import User from '../models/User.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import redis from '../utils/redis.js';
+import emailQueue from '../utils/emailQueue.js';
+import logActivity from '../utils/logActivity.js';
+import generateOTP from '../utils/generateOTP.js';
+import signinOtpTemplate from '../emailTemplates/signinotpTemplate.js';
+import getDeviceInfo from '../utils/getDeviceInfo.js';
+import { emitLiveUserStats } from '../utils/emmiters.js';
+import crypto from 'crypto';
 
 // ✅ STEP 1 — LOGIN (Password Check + Redis OTP + Queue Email)
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   let { email, password } = req.body;
 
   try {
@@ -94,7 +93,7 @@ exports.login = async (req, res) => {
 };
 
 // ✅ STEP 2 — VERIFY OTP → ISSUE TOKEN + COOKIE
-exports.verifyLoginOtp = async (req, res) => {
+export const verifyLoginOtp = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
@@ -122,7 +121,6 @@ exports.verifyLoginOtp = async (req, res) => {
       return res.status(403).json({ message: "Incorrect OTP" });
     }
 
-    const crypto = require('crypto');
     const sha256Hex = (input) =>
       crypto.createHash('sha256').update(String(input || '')).digest('hex');
 
@@ -196,7 +194,7 @@ exports.verifyLoginOtp = async (req, res) => {
 };
 
 // ✅ STEP 3 — LOGOUT
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   try {
     const userId = req.userId?.toString();
 
@@ -237,7 +235,7 @@ exports.logout = async (req, res) => {
 
 
 // ✅ STEP 4 — REFRESH TOKEN
-exports.refreshToken = async (req, res) => {
+export const refreshToken = async (req, res) => {
   try {
     const authHeader = req.headers["authorization"];
     const oldToken =
@@ -318,7 +316,7 @@ exports.refreshToken = async (req, res) => {
 
 
 // ✅ STEP 5 — RESEND OTP
-exports.resendOtp = async (req, res) => {
+export const resendOtp = async (req, res) => {
   const email = req.body.email?.toLowerCase().trim();
 
   if (!email) {

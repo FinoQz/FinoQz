@@ -1,9 +1,8 @@
-// routes/uploadRoutes.js
-const express = require('express');
-const router = express.Router();
-const uploadController = require('../controllers/uploadController');
-const authMiddleware = require('../middlewares/authMiddleware'); // require admin if you want only admins
+import express from 'express';
+import * as uploadController from '../controllers/uploadController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
+const router = express.Router();
 
 // PDF upload (extract questions)
 router.post('/pdf', authMiddleware('admin'), uploadController.uploadPdf);
@@ -17,4 +16,4 @@ router.post('/manual', authMiddleware('admin'), uploadController.uploadManual);
 // Excel upload (import questions)
 router.post('/excel', authMiddleware('admin'), uploadController.uploadExcel);
 
-module.exports = router;
+export default router;

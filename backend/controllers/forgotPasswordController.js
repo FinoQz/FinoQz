@@ -1,15 +1,13 @@
 // controllers/forgotPasswordController.js
 
-const User = require('../models/User');
-const bcrypt = require('bcrypt');
-
-const redis = require('../utils/redis');
-const emailQueue = require('../utils/emailQueue');
-const logActivity = require('../utils/logActivity');
-
-const generateOTP = require('../utils/generateOTP');
-const forgotPasswordTemplate = require('../emailTemplates/forgotPasswordTemplate');
-const getDeviceInfo = require('../utils/getDeviceInfo');
+import User from '../models/User.js';
+import bcrypt from 'bcrypt';
+import redis from '../utils/redis.js';
+import emailQueue from '../utils/emailQueue.js';
+import logActivity from '../utils/logActivity.js';
+import generateOTP from '../utils/generateOTP.js';
+import forgotPasswordTemplate from '../emailTemplates/forgotPasswordTemplate.js';
+import getDeviceInfo from '../utils/getDeviceInfo.js';
 
 
 // ✅ Helper: rate-limit key generator
@@ -35,7 +33,7 @@ function extractEmail(req) {
 
 
 // ✅ STEP 1: Initiate forgot password (Redis + BullMQ + rate-limit)
-exports.initiateForgotPassword = async (req, res) => {
+export const initiateForgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -180,7 +178,7 @@ exports.initiateForgotPassword = async (req, res) => {
 //     return res.status(500).json({ message: "Server error during OTP verification" });
 //   }
 // };
-exports.verifyForgotPasswordOtp = async (req, res) => {
+export const verifyForgotPasswordOtp = async (req, res) => {
   const email = extractEmail(req);
   const { otp } = req.body;
 
@@ -294,7 +292,7 @@ exports.verifyForgotPasswordOtp = async (req, res) => {
 //     return res.status(500).json({ message: "Server error during password reset" });
 //   }
 // };
-exports.resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
   const email = extractEmail(req);
   const { newPassword } = req.body;
 

@@ -1,5 +1,5 @@
 // middlewares/validateSignup.js
-module.exports = (req, res, next) => {
+const validateSignUp = (req, res, next) => {
   const { fullName, email } = req.body;
   if (!fullName || !email) {
     return res.status(400).json({ message: 'Full name and email are required' });
@@ -10,3 +10,5 @@ module.exports = (req, res, next) => {
   }
   next();
 };
+
+export default validateSignUp;

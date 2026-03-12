@@ -1,8 +1,6 @@
-'use strict';
-
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const redis = require('../utils/redis');
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import redis from '../utils/redis.js';
 
 const sessionCache = new Map(); // 🔁 In-memory fallback (per process)
 
@@ -10,7 +8,7 @@ function sha256Hex(input) {
   return crypto.createHash('sha256').update(String(input || '')).digest('hex');
 }
 
-module.exports = function (requiredRole = null) {
+const authMiddleware = function (requiredRole = null) {
   return async (req, res, next) => {
     try {
       const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -85,3 +83,5 @@ module.exports = function (requiredRole = null) {
     }
   };
 };
+
+export default authMiddleware;

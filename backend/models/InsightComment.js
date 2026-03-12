@@ -1,5 +1,4 @@
-const mongoose = require('mongoose');
-
+import mongoose from 'mongoose';
 const insightCommentSchema = new mongoose.Schema({
   insightId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -42,4 +41,5 @@ const insightCommentSchema = new mongoose.Schema({
 // Indexes for performance
 insightCommentSchema.index({ insightId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('InsightComment', insightCommentSchema);
+
+export default mongoose.model('InsightComment', insightCommentSchema);

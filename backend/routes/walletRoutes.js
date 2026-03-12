@@ -1,13 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getWalletBalance,
   addFunds,
   deductFunds,
   getWalletTransactions
-} = require('../controllers/walletController');
-const { celebrate, Joi, Segments } = require('celebrate');
-const verifyToken = require('../middlewares/verifyToken');
+} from '../controllers/walletController.js';
+import { getAllWalletBalances } from '../controllers/walletController.js';
+import { celebrate, Joi, Segments } from 'celebrate';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
+
+const router = express.Router();
 
 // Get wallet balance
 router.get('/balance', verifyToken(), getWalletBalance);
@@ -40,5 +43,7 @@ router.post('/deduct-funds',
 
 // Get wallet transactions
 router.get('/transactions', verifyToken(), getWalletTransactions);
+// Get all users' wallet balances (Admin only)
+router.get('/all-balances', verifyToken(), requireAdmin, getAllWalletBalances);
 
-module.exports = router;
+export default router;

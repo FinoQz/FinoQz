@@ -1,6 +1,6 @@
-const CommunityPost = require('../models/CommunityPost');
-const Comment = require('../models/Comment');
-const Notification = require('../models/Notification');
+import CommunityPost from '../models/CommunityPost.js';
+import Comment from '../models/Comment.js';
+import Notification from '../models/Notification.js';
 
 /**
  * Create a new community post
@@ -345,7 +345,7 @@ const flagPost = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   createPost,
   updatePost,
   deletePost,

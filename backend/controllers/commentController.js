@@ -1,6 +1,6 @@
-const Comment = require('../models/Comment');
-const CommunityPost = require('../models/CommunityPost');
-const Notification = require('../models/Notification');
+import Comment from '../models/Comment.js';
+import CommunityPost from '../models/CommunityPost.js';
+import Notification from '../models/Notification.js';
 
 /**
  * Add a comment to a post
@@ -187,7 +187,7 @@ const likeComment = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   addComment,
   getComments,
   deleteComment,

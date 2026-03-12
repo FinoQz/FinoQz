@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as controller from '../controllers/demoQuizController.js';
+
 const router = express.Router();
-const controller = require('../controllers/demoQuizController');
 
 // 🔐 Admin Routes
 router.get('/categories', controller.getCategories);
@@ -16,4 +17,4 @@ router.post('/ai-generate', controller.generateAIQuestions);
 router.get('/public/categories', controller.getPublicCategories);
 router.get('/public/quiz', controller.getPublicQuizByCategory);
 
-module.exports = router;
+export default router;

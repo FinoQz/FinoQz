@@ -1,10 +1,65 @@
-const QuizAttempt = require('../models/QuizAttempt');
-const Quiz = require('../models/Quiz');
-const User = require('../models/User');
-const Transaction = require('../models/Transaction');
-const Certificate = require('../models/Certificate');
-const redis = require('../utils/redis');
-const mongoose = require('mongoose');
+/**
+ * Get total revenue for a specific quiz
+ * @route GET /api/analytics/quiz-revenue
+ * @query quizId (required)
+ */
+const getQuizRevenue = async (req, res) => {
+  try {
+    const { quizId } = req.query;
+    if (!quizId) {
+      return res.status(400).json({ message: 'quizId is required' });
+    }
+    // Sum all successful transactions for this quiz
+    const result = await Transaction.aggregate([
+      {
+        $match: {
+          quizId: new mongoose.Types.ObjectId(quizId),
+          status: 'success'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$amount' }
+        }
+      }
+    ]);
+    const totalRevenue = result[0]?.totalRevenue || 0;
+    res.json({ totalRevenue });
+  } catch (error) {
+    console.error('Get quiz revenue error:', error);
+    res.status(500).json({ message: 'Failed to fetch quiz revenue' });
+  }
+};
+/**
+ * Get paid users count for a quiz
+ * @route GET /api/analytics/quiz-paid-users
+ * @query quizId (required)
+ */
+const getQuizPaidUsers = async (req, res) => {
+  try {
+    const { quizId } = req.query;
+    if (!quizId) {
+      return res.status(400).json({ message: 'quizId is required' });
+    }
+    // Find all successful transactions for this quiz
+    const paidUsers = await Transaction.distinct('userId', {
+      quizId: new mongoose.Types.ObjectId(quizId),
+      status: 'success'
+    });
+    res.json({ paidUsers: paidUsers.length });
+  } catch (error) {
+    console.error('Get quiz paid users error:', error);
+    res.status(500).json({ message: 'Failed to fetch paid users for quiz' });
+  }
+};
+import QuizAttempt from '../models/QuizAttempt.js';
+import Quiz from '../models/Quiz.js';
+import User from '../models/User.js';
+import Transaction from '../models/Transaction.js';
+import Certificate from '../models/Certificate.js';
+import redis from '../utils/redis.js';
+import mongoose from 'mongoose';
 
 /**
  * Get dashboard KPI stats
@@ -423,12 +478,14 @@ const getQuestionInsights = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getDashboardStats,
   getUserGrowth,
   getQuizStats,
   getRevenueAnalytics,
   getTopPerformers,
   getCategoryPerformance,
-  getQuestionInsights
+  getQuestionInsights,
+  getQuizPaidUsers,
+  getQuizRevenue
 };

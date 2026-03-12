@@ -1,5 +1,6 @@
-const Admin = require('../models/Admin');
-const logger = require('./logger');
+
+import Admin from '../models/Admin.js';
+import logger from './logger.js';
 
 async function seedSuperAdmin() {
   try {
@@ -50,4 +51,4 @@ async function seedSuperAdmin() {
   }
 }
 
-module.exports = seedSuperAdmin;
+export default seedSuperAdmin;

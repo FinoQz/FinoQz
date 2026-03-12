@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const certificateSchema = new mongoose.Schema({
   userId: {
@@ -50,4 +50,4 @@ const certificateSchema = new mongoose.Schema({
 // Compound index for user certificates
 certificateSchema.index({ userId: 1, issueDate: -1 });
 
-module.exports = mongoose.model('Certificate', certificateSchema);
+export default mongoose.model('Certificate', certificateSchema);

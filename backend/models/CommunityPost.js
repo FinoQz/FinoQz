@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const communityPostSchema = new mongoose.Schema({
   title: {
@@ -79,4 +79,4 @@ communityPostSchema.index({ status: 1, isPinned: -1, createdAt: -1 });
 communityPostSchema.index({ category: 1, status: 1, createdAt: -1 });
 communityPostSchema.index({ featuredOnLanding: 1, status: 1, createdAt: -1 });
 
-module.exports = mongoose.model('CommunityPost', communityPostSchema);
+export default mongoose.model('CommunityPost', communityPostSchema);

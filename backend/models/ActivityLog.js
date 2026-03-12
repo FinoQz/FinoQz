@@ -21,7 +21,7 @@
 // });
 
 // module.exports = mongoose.model('ActivityLog', activityLogSchema);
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const activityLogSchema = new mongoose.Schema({
   actorType: { type: String, enum: ['admin', 'user'], required: true },
@@ -44,4 +44,4 @@ const activityLogSchema = new mongoose.Schema({
 // ✅ Compound index for faster queries
 activityLogSchema.index({ actorType: 1, actorId: 1, action: 1 });
 
-module.exports = mongoose.model('ActivityLog', activityLogSchema);
+export default mongoose.model('ActivityLog', activityLogSchema);

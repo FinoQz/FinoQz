@@ -1,5 +1,5 @@
 // validateLogin middleware
-module.exports = (req, res, next) => {
+const validateLogin = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -8,3 +8,5 @@ module.exports = (req, res, next) => {
 
   next();
 };
+
+export default validateLogin;

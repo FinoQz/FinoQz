@@ -1,15 +1,15 @@
-const Admin = require('../models/Admin');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const redis = require('../utils/redis');
-const generateOTP = require('../utils/generateOTP');
-const getDeviceInfo = require('../utils/getDeviceInfo');
-const otpTemplate = require('../emailTemplates/otpTemplate');
-const loginAlertTemplate = require('../emailTemplates/loginAlertTemplate');
-const emailQueue = require('../utils/emailQueue');
-const logActivity = require('../utils/logActivity');
-const { emitDashboardStats } = require('./adminPanelController');
+import Admin from '../models/Admin.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import redis from '../utils/redis.js';
+import generateOTP from '../utils/generateOTP.js';
+import getDeviceInfo from '../utils/getDeviceInfo.js';
+import otpTemplate from '../emailTemplates/otpTemplate.js';
+import loginAlertTemplate from '../emailTemplates/loginAlertTemplate.js';
+import emailQueue from '../utils/emailQueue.js';
+import logActivity from '../utils/logActivity.js';
+import { emitDashboardStats } from './adminPanelController.js';
 
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -21,7 +21,7 @@ const getLoginId = (req) =>
   req.body.email || req.body.identifier || req.cookies?.pendingAdminEmail;
 
 // ✅ Login: Generate OTP, store in Redis, send email
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     let { identifier, password } = req.body;
 
@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
 
 
 // ✅ Verify OTP, issue tokens, set cookies, log activity, track live user
-exports.verifyOtp = async (req, res) => {
+export const verifyOtp = async (req, res) => {
   try {
     const loginId = getLoginId(req);
     const { otp } = req.body;
@@ -221,7 +221,7 @@ exports.verifyOtp = async (req, res) => {
 
 
 // ✅ Refresh token → issue new access token
-exports.refreshToken = async (req, res) => {
+export const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies?.adminRefresh;
     if (!refreshToken) {
@@ -294,7 +294,7 @@ exports.refreshToken = async (req, res) => {
 
 
 // 📧 Get pending email from cookie
-exports.getPendingEmail = (req, res) => {
+export const getPendingEmail = (req, res) => {
   const email = req.cookies?.pendingAdminEmail;
 
   if (!email) {
@@ -306,7 +306,7 @@ exports.getPendingEmail = (req, res) => {
 };
 
 // 🔁 Resend OTP
-exports.resendOtp = async (req, res) => {
+export const resendOtp = async (req, res) => {
   try {
     const loginId =
       req.body.email || req.body.identifier || req.cookies?.pendingAdminEmail;
@@ -341,7 +341,7 @@ exports.resendOtp = async (req, res) => {
 };
 
 // 🚪 Logout admin, clear cookies, delete tokens, update live user count
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   try {
     const token = req.cookies?.adminToken;
 

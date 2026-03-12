@@ -1,11 +1,12 @@
-const User = require('../models/User');
+
+import User from '../models/User.js';
 
 /**
  * User Panel Controller
  * - Protected route: requires JWT
  * - Returns user details for dashboard
  */
-exports.getUserPanel = async (req, res) => {
+export const getUserPanel = async (req, res) => {
   try {
     // JWT se decoded user id aata hai (authMiddleware set karega req.user)
     const user = await User.findById(req.user.id).select("fullName email role status");

@@ -1,7 +1,7 @@
-const express = require('express');
-const { getActivityLogs, clearAllLogs } = require('../controllers/activityLogController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const requireAdmin = require('../middlewares/requireAdmin');
+import express from 'express';
+import { getActivityLogs, clearAllLogs } from '../controllers/activityLogController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
 
 const router = express.Router();
 
@@ -10,4 +10,4 @@ router.get('/', authMiddleware('admin'), requireAdmin, getActivityLogs);
 // ✅ NEW CLEAR LOGS ROUTE
 router.delete('/clear', authMiddleware('admin'), requireAdmin, clearAllLogs);
 
-module.exports = router;
+export default router;

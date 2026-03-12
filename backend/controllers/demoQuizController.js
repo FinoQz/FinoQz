@@ -1,16 +1,16 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+import { GoogleGenerativeAI } from '@google/generative-ai';
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const DemoQuizCategory = require('../models/DemoQuizCategory');
-const DemoQuizQuestion = require('../models/DemoQuizQuestion');
+import DemoQuizCategory from '../models/DemoQuizCategory.js';
+import DemoQuizQuestion from '../models/DemoQuizQuestion.js';
 
 // Get all categories (admin)
-exports.getCategories = async (req, res) => {
+export const getCategories = async (req, res) => {
   const categories = await DemoQuizCategory.find().sort({ createdAt: -1 });
   res.json(categories);
 };
 
 // Create a new category (admin)
-exports.createCategory = async (req, res) => {
+export const createCategory = async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Category name is required' });
 
@@ -19,7 +19,7 @@ exports.createCategory = async (req, res) => {
 };
 
 // Get questions by category (admin)
-exports.getQuestions = async (req, res) => {
+export const getQuestions = async (req, res) => {
   const { categoryId } = req.query;
   if (!categoryId) return res.status(400).json({ error: 'Missing categoryId' });
 
@@ -28,7 +28,7 @@ exports.getQuestions = async (req, res) => {
 };
 
 // Create a new question (admin)
-exports.createQuestion = async (req, res) => {
+export const createQuestion = async (req, res) => {
   const { categoryId, question, options, correctIndex } = req.body;
   if (!categoryId || !question || !Array.isArray(options) || correctIndex == null) {
     return res.status(400).json({ error: 'Invalid question payload' });
@@ -45,7 +45,7 @@ exports.createQuestion = async (req, res) => {
 };
 
 // Delete a question (admin)
-exports.deleteQuestion = async (req, res) => {
+export const deleteQuestion = async (req, res) => {
   const { id } = req.params;
   await DemoQuizQuestion.findByIdAndDelete(id);
   res.json({ ok: true });
@@ -53,7 +53,7 @@ exports.deleteQuestion = async (req, res) => {
 
 
 
-exports.generateAIQuestions = async (req, res) => {
+export const generateAIQuestions = async (req, res) => {
   const { categoryId, prompt, count } = req.body;
   if (!categoryId || !prompt || typeof count !== 'number') {
     return res.status(400).json({ error: 'Invalid AI payload' });
@@ -117,7 +117,7 @@ Prompt: ${prompt}
 //
 
 // GET /api/public/demo-quiz/categories
-exports.getPublicCategories = async (req, res) => {
+export const getPublicCategories = async (req, res) => {
   try {
     const categories = await DemoQuizCategory.find().sort({ createdAt: -1 });
     res.json(categories.map(c => ({ _id: c._id, name: c.name })));
@@ -128,7 +128,7 @@ exports.getPublicCategories = async (req, res) => {
 };
 
 // GET /api/public/demo-quiz/quiz?categoryId=...
-exports.getPublicQuizByCategory = async (req, res) => {
+export const getPublicQuizByCategory = async (req, res) => {
   try {
     const { categoryId } = req.query;
     if (!categoryId) return res.status(400).json({ error: 'Missing categoryId' });

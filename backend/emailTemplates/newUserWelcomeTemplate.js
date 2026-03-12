@@ -1,4 +1,4 @@
-module.exports = ({ fullName, email, password }) => `
+const newUserWelcomeTemplate = ({ fullName, email, password }) => `
   <div style="font-family: 'Segoe UI', Roboto, sans-serif; background-color: #fff; padding: 32px; border-radius: 16px; border: 1px solid #e0e0e0; max-width: 600px; margin: auto;">
     
     <div style="text-align: center; margin-bottom: 24px;">
@@ -36,3 +36,5 @@ module.exports = ({ fullName, email, password }) => `
     </p>
   </div>
 `;
+
+export default newUserWelcomeTemplate;

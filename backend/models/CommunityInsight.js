@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const communityInsightSchema = new mongoose.Schema({
   authorId: {
@@ -68,4 +68,4 @@ communityInsightSchema.index({ isActive: 1, isPinned: -1, createdAt: -1 });
 communityInsightSchema.index({ isActive: 1, likeCount: -1 });
 communityInsightSchema.index({ authorId: 1, createdAt: -1 });
 
-module.exports = mongoose.model('CommunityInsight', communityInsightSchema);
+export default mongoose.model('CommunityInsight', communityInsightSchema);

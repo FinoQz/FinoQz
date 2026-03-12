@@ -1,6 +1,6 @@
 // utils/emitters.js
-const redis = require('./redis');
-const User = require('../models/User'); // Add this at the top if not present
+import redis from './redis.js';
+import User from '../models/User.js';
 
 async function emitLiveUserStats(io) {
   const liveUsers = await redis.scard('liveUsers');
@@ -153,7 +153,7 @@ async function emitUsersUpdate(req) {
   }
 }
 
-module.exports = {
+export {
   emitLiveUserStats,
   emitDashboardStats,
   emitAnalyticsUpdate,

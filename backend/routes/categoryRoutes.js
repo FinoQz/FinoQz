@@ -1,8 +1,8 @@
-// routes/categoryRoutes.js
-const express = require('express');
-const { celebrate, Joi, errors } = require('celebrate');
+import express from 'express';
+import { celebrate, Joi, errors } from 'celebrate';
+import * as c from '../controllers/categoryController.js';
+
 const router = express.Router();
-const c = require('../controllers/categoryController');
 
 const createSchema = celebrate({
   body: Joi.object({
@@ -19,4 +19,4 @@ router.delete('/:id', c.deleteCategory);
 // Celebrate error handler
 router.use(errors());
 
-module.exports = router;
+export default router;

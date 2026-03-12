@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import DashboardCharts from '../components/DashboardCharts';
 import { TrendingUp, BookOpen, Wallet, Award, Loader2 } from 'lucide-react';
 import apiUser from '@/lib/apiUser';
 
@@ -20,6 +21,7 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -27,18 +29,22 @@ export default function Dashboard() {
         setLoading(true);
         setError(null);
 
-        const [totalQuizzesRes, activeQuizzesRes, walletRes, certificatesRes] = await Promise.all([
-          apiUser.get('/api/quiz-attempts/user/all?status=submitted'),
-          apiUser.get('/api/quiz-attempts/user/all?status=in_progress'),
-          apiUser.get('/api/wallet/balance'),
-          apiUser.get('/api/certificates/user'),
+        // Fetch quizzes available and enrolled
+        // Optionally fetch userId from session/localStorage if available
+        // Example: setUserId(sessionStorage.getItem('userId') || undefined);
+        const userIdParam = userId ? `?userId=${userId}` : '';
+        const [quizzesRes, myQuizzesRes, walletRes, certificatesRes] = await Promise.all([
+          apiUser.get(`/api/quiz/quizzes${userIdParam}`), // User-specific quizzes (visibility)
+          apiUser.get(`/api/quiz/my-quizzes${userIdParam}`), // User-specific enrolled quizzes
+          apiUser.get(`/api/wallet/balance${userIdParam}`), // User-specific wallet balance
+          apiUser.get(`/api/certificates/user${userIdParam}`), // User-specific certificates
         ]);
 
         setData({
-          totalQuizzes: totalQuizzesRes.data?.length || 0,
-          activeQuizzes: activeQuizzesRes.data?.length || 0,
+          totalQuizzes: quizzesRes.data?.data?.length || 0,
+          activeQuizzes: myQuizzesRes.data?.data?.length || 0,
           walletBalance: walletRes.data?.balance || 0,
-          certificates: certificatesRes.data?.length || 0,
+          certificates: certificatesRes.data?.certificates?.length || 0,
         });
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
@@ -51,6 +57,8 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
+    // Optionally set userId here if you want to use session/localStorage
+    // setUserId(sessionStorage.getItem('userId') || undefined);
   }, []);
   if (loading) {
     return (
@@ -130,23 +138,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Recent Activity */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">Recent Activity</h3>
-          <div className="h-48 sm:h-64 flex items-center justify-center border-b border-l border-gray-200">
-            <div className="text-gray-400 text-sm">Chart placeholder - Activity data</div>
-          </div>
-        </div>
-
-        {/* Quiz Progress */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <h3 className="text-base sm:text-lg font-semibold mb-4 text-gray-900">Quiz Progress</h3>
-          <div className="h-48 sm:h-64 flex items-center justify-center border-b border-l border-gray-200">
-            <div className="text-gray-400 text-sm">Chart placeholder - Progress data</div>
-          </div>
-        </div>
-      </div>
+      <DashboardCharts userId={userId} />
     </div>
   );
 }

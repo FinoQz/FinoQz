@@ -1,7 +1,6 @@
-const express = require('express');
-const router = express.Router();
 
-const {
+import express from 'express';
+import {
   getInsights,
   getInsightById,
   createInsight,
@@ -13,20 +12,19 @@ const {
   deleteInsight,
   deleteComment,
   getPinnedInsights
-} = require('../controllers/insightController');
-
-const {
+} from '../controllers/insightController.js';
+import {
   getAllInsights,
   getInsightsAnalytics,
   createAdminInsight,
   togglePinInsight,
   toggleInsightStatus,
   deleteAnyInsight
-} = require('../controllers/adminInsightController');
+} from '../controllers/adminInsightController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
 
-
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
+const router = express.Router();
 
 // Public routes
 router.get('/pinned', getPinnedInsights);
@@ -51,4 +49,4 @@ router.patch('/admin/:id/pin', verifyToken(), requireAdmin, togglePinInsight);
 router.patch('/admin/:id/status', verifyToken(), requireAdmin, toggleInsightStatus);
 router.delete('/admin/:id', verifyToken(), requireAdmin, deleteAnyInsight);
 
-module.exports = router;
+export default router;

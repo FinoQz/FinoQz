@@ -1,10 +1,10 @@
 // controllers/questionController.js
-const Question = require('../models/Question');
-const Quiz = require('../models/Quiz');
-const mongoose = require('mongoose');
+import Question from '../models/Question.js';
+import Quiz from '../models/Quiz.js';
+import mongoose from 'mongoose';
 
 // Create single question and optionally attach to quiz
-exports.createQuestion = async (req, res, next) => {
+export const createQuestion = async (req, res, next) => {
   try {
     const payload = req.body;
     const quizId = req.params.quizId;
@@ -31,7 +31,7 @@ exports.createQuestion = async (req, res, next) => {
   }
 };
 
-exports.bulkCreateAndAttach = async (req, res, next) => {
+export const bulkCreateAndAttach = async (req, res, next) => {
   // POST /api/quizzes/:quizId/questions  body: { questions: [...], landingDemo: boolean }
   try {
     const { questions = [], landingDemo = false } = req.body;
@@ -84,7 +84,7 @@ exports.bulkCreateAndAttach = async (req, res, next) => {
   }
 };
 
-exports.getQuestion = async (req, res, next) => {
+export const getQuestion = async (req, res, next) => {
   try {
     const q = await Question.findById(req.params.id);
     if (!q) return res.status(404).json({ message: 'Question not found' });
@@ -94,7 +94,7 @@ exports.getQuestion = async (req, res, next) => {
   }
 };
 
-exports.updateQuestion = async (req, res, next) => {
+export const updateQuestion = async (req, res, next) => {
   try {
     const data = req.body;
     const q = await Question.findByIdAndUpdate(req.params.id, data, { new: true });
@@ -105,7 +105,7 @@ exports.updateQuestion = async (req, res, next) => {
   }
 };
 
-exports.deleteQuestion = async (req, res, next) => {
+export const deleteQuestion = async (req, res, next) => {
   try {
     const q = await Question.findByIdAndDelete(req.params.id);
     if (!q) return res.status(404).json({ message: 'Question not found' });

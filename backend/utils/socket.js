@@ -1,9 +1,10 @@
-const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
-const cookie = require('cookie');
-const logger = require('./logger');
-const redis = require('./redis');
-const { emitLiveUserStats } = require('./emmiters');
+
+import { Server } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
+import logger from './logger.js';
+import redis from './redis.js';
+import { emitLiveUserStats } from './emmiters.js';
 
 
 const allowedOrigins = [
@@ -97,6 +98,4 @@ function initSocket(server) {
 
 
 
-module.exports = {
-  initSocket,
-};
+export { initSocket };

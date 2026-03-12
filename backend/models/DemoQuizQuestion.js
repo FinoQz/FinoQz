@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const DemoQuizQuestionSchema = new mongoose.Schema({
   categoryId: {
@@ -11,4 +11,4 @@ const DemoQuizQuestionSchema = new mongoose.Schema({
   correctIndex: { type: Number, required: true },
 }, { timestamps: true });
 
-module.exports = mongoose.model('DemoQuizQuestion', DemoQuizQuestionSchema);
+export default mongoose.model('DemoQuizQuestion', DemoQuizQuestionSchema);

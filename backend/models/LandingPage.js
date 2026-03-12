@@ -1,6 +1,5 @@
-'use strict';
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 /**
@@ -90,4 +89,4 @@ const LandingPageSchema = new Schema(
 // Example (uncomment to use):
 // LandingPageSchema.index({ 'categories.id': 1 }, { unique: true, sparse: true });
 
-module.exports = mongoose.models.LandingPage || mongoose.model('LandingPage', LandingPageSchema);
+export default mongoose.models.LandingPage || mongoose.model('LandingPage', LandingPageSchema);

@@ -64,12 +64,12 @@
 //     }
 //   }
 // };
-const { Resend } = require('resend');
-const logger = require('./logger');
+import { Resend } from 'resend';
+import logger from './logger.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-module.exports = async ({ to, subject, html }) => {
+const sendEmail = async ({ to, subject, html }) => {
   console.log("📨 Sending email to:", to);
 
   if (!to) {
@@ -98,3 +98,5 @@ module.exports = async ({ to, subject, html }) => {
     throw err;
   }
 };
+
+export default sendEmail;

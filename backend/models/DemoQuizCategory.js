@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const DemoQuizCategorySchema = new mongoose.Schema({
   name: { type: String, required: true },
 }, { timestamps: true });
 
-module.exports = mongoose.model('DemoQuizCategory', DemoQuizCategorySchema);
+export default mongoose.model('DemoQuizCategory', DemoQuizCategorySchema);

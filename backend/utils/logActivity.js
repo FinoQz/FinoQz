@@ -1,7 +1,7 @@
-const ActivityLog = require('../models/ActivityLog');
-const getDeviceInfo = require('./getDeviceInfo');
+import ActivityLog from '../models/ActivityLog.js';
+import getDeviceInfo from './getDeviceInfo.js';
 
-module.exports = async function logActivity({
+const logActivity = async function ({
   req,
   actorType,
   actorId,
@@ -31,6 +31,8 @@ module.exports = async function logActivity({
     console.error('❌ Failed to log activity:', err);
   }
 };
+
+export default logActivity;
 // const ActivityLog = require('../models/ActivityLog');
 // const getDeviceInfo = require('./getDeviceInfo');
 // const logger = require('./logger'); // ✅ structured logger

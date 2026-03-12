@@ -1,28 +1,49 @@
-'use strict';
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const cookieParser = require('cookie-parser');
-const morgan = require('morgan');
-const http = require('http');
-const path = require('path');
-const { errors } = require('celebrate');
-const { connectDB, dbHealth, logger } = require('./config/db');
-const seedSuperAdmin = require('./utils/seedSuperAdmin');
-const { initSocket } = require('./utils/socket'); // destructured for clarity
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import morgan from 'morgan';
+import http from 'http';
+import path from 'path';
+import { errors } from 'celebrate';
+import { connectDB, dbHealth, logger } from './config/db.js';
+import seedSuperAdmin from './utils/seedSuperAdmin.js';
+import { initSocket } from './utils/socket.js';
+
+import adminAuthRoutes from './routes/adminAuthRoutes.js';
+import userSignupRoute from './routes/userSignupRoute.js';
+import userLoginRoute from './routes/userLoginRoute.js';
+import forgotPasswordRoute from './routes/forgotPasswordRoute.js';
+import adminPanelRoute from './routes/adminPanelRoute.js';
+import activityLogRoute from './routes/activityLogRoute.js';
+import userProfile from './routes/userProfile.js';
+import quizRoutes from './routes/quizRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
+import questionRoutes from './routes/questionRoutes.js';
+import adminLanding from './routes/adminLanding.js';
+import demoQuiz from './routes/demoQuiz.js';
+import dashboardAnalytics from './routes/dashboardAnalytics.js';
+import quizAttemptRoutes from './routes/quizAttemptRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
+import communityRoutes from './routes/communityRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
+import certificateRoutes from './routes/certificateRoutes.js';
+import analyticsRoutes from './routes/analyticsRoutes.js';
+import walletRoutes from './routes/walletRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import insightRoutes from './routes/insightRoutes.js';
+import financeContentRoutes from './routes/financeContentRoutes.js';
 
 const app = express();
 const server = http.createServer(app);
 
-// Safe env presence log for Cashfree config (no secrets printed)
-console.log('Cashfree env loaded:', {
-  env: process.env.CASHFREE_ENV || 'not set',
-  clientIdSet: Boolean(process.env.CASHFREE_CLIENT_ID),
-  clientSecretSet: Boolean(process.env.CASHFREE_CLIENT_SECRET)
-});
+// Remove rate limit for analytics endpoints (unlimited)
+const analyticsLimiter = (req, res, next) => next();
+
 
 // ✅ Initialize Socket.io
 const io = initSocket(server);
@@ -50,7 +71,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ];
 
-app.use(require('cors')({
+app.use(cors({
   origin: (origin, callback) => {
     if (
       !origin ||
@@ -69,22 +90,21 @@ app.use(require('cors')({
 
 
 // ✅ Middleware
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(helmet());
 app.use(morgan('dev'));
 app.set('trust proxy', 1);
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: 'Too many requests, please try again later.',
-}));
+
 
 // ✅ Static Files
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ✅ Health Check Endpoint
 app.get('/health', (req, res) => {
@@ -98,37 +118,37 @@ app.get('/health', (req, res) => {
   });
 });
 
+
 // ✅ Routes
-app.use('/api/admin', require('./routes/adminAuthRoutes'));
-app.use('/api/user/signup', require('./routes/userSignupRoute'));
-app.use('/api/user/login', require('./routes/userLoginRoute'));
-app.use('/api/user/forgot-password', require('./routes/forgotPasswordRoute'));
-app.use('/api/admin/panel', require('./routes/adminPanelRoute'));
-app.use('/api/admin/activity-logs', require('./routes/activityLogRoute'));
-app.use('/api/user/profile', require('./routes/userProfile'));
-app.use('/api/quizzes', require('./routes/quizRoutes'));
-app.use('/api/categories', require('./routes/categoryRoutes'));
-app.use('/api/upload', require('./routes/uploadRoutes'));
-app.use('/api/questions', require('./routes/questionRoutes'));
-app.use('/api/admin/landing', require('./routes/adminLanding'));
-app.use('/api/admin/demo-quiz', require('./routes/demoQuiz'));
-app.use('/api/admin/panel/analytics', require('./routes/dashboardAnalytics'));
+app.use('/api/admin', adminAuthRoutes);
+app.use('/api/user/signup', userSignupRoute);
+app.use('/api/user/login', userLoginRoute);
+app.use('/api/user/forgot-password', forgotPasswordRoute);
+app.use('/api/admin/panel', adminPanelRoute);
+app.use('/api/admin/activity-logs', activityLogRoute);
+app.use('/api/user/profile', userProfile);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/admin/landing', adminLanding);
+app.use('/api/admin/demo-quiz', demoQuiz);
+// Apply unlimited limiter to analytics endpoints
+app.use('/api/admin/panel/analytics', analyticsLimiter, dashboardAnalytics);
 
 // ✅ New Production Routes
-app.use('/api/quiz-attempts', require('./routes/quizAttemptRoutes'));
-app.use('/api/transactions', require('./routes/transactionRoutes'));
-app.use('/api/community', require('./routes/communityRoutes'));
-app.use('/api/comments', require('./routes/commentRoutes'));
-app.use('/api/certificates', require('./routes/certificateRoutes'));
-app.use('/api/analytics', require('./routes/analyticsRoutes'));
-app.use('/api/wallet', require('./routes/walletRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/reviews', require('./routes/reviewRoutes'));
-app.use('/api/insights', require('./routes/insightRoutes'));
-app.use('/api/finance-content', require('./routes/financeContentRoutes'));
-
-// ✅ Dashboard Analytics Routes
-app.use('/api/admin/panel/analytics', require('./routes/dashboardAnalytics'));
+app.use('/api/quiz-attempts', quizAttemptRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/insights', insightRoutes);
+app.use('/api/finance-content', financeContentRoutes);
 
 // ✅ Celebrate validation errors
 app.use(errors());
@@ -146,7 +166,7 @@ app.use((err, req, res, next) => {
     url: req.url,
     method: req.method
   });
-  
+
   res.status(err.statusCode || 500).json({
     message: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })

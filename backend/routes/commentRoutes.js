@@ -1,13 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const {
+
+import express from 'express';
+import {
   addComment,
   getComments,
   deleteComment,
   likeComment
-} = require('../controllers/commentController');
-const { celebrate, Joi, Segments } = require('celebrate');
-const verifyToken = require('../middlewares/verifyToken');
+} from '../controllers/commentController.js';
+import { celebrate, Joi, Segments } from 'celebrate';
+import verifyToken from '../middlewares/verifyToken.js';
+
+const router = express.Router();
 
 // Add a comment
 router.post('/',
@@ -55,4 +57,4 @@ router.post('/:commentId/like',
   likeComment
 );
 
-module.exports = router;
+export default router;

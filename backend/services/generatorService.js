@@ -1,6 +1,6 @@
-const axios = require('axios');
-const fs = require('fs');
-const pdfParse = require('pdf-parse');
+import axios from 'axios';
+import fs from 'fs';
+import pdfParse from 'pdf-parse';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Gemini 2.5 Flash Lite endpoint
@@ -29,13 +29,13 @@ function cleanGeminiOutput(output) {
 }
 
 // Generate quiz description from title
-exports.generateDescription = async (quizTitle) => {
+export const generateDescription = async (quizTitle) => {
   const prompt = `Write a short, engaging, 2-3 line description for a quiz titled "${quizTitle}". Only return the description, nothing else.`;
   return await geminiPrompt(prompt, 480);
 };
 
 // Generate quiz questions from prompt, number, topic
-exports.generateFromPrompt = async (prompt, numQuestions = 3, topic = '') => {
+export const generateFromPrompt = async (prompt, numQuestions = 3, topic = '') => {
   const fullPrompt = `
 Generate exactly ${numQuestions} multiple-choice questions for a quiz about "${topic}".
 Do NOT return less than ${numQuestions} questions. If the content is insufficient, create additional questions based on the topic.
@@ -82,7 +82,7 @@ function chunkText(text, chunkSize = 6000) {
 }
 
 // Generate quiz questions from file (PDF/text)
-exports.generateFromFile = async (filePath, prompt, numQuestions = 3, topic = '') => {
+export const generateFromFile = async (filePath, prompt, numQuestions = 3, topic = '') => {
   let fileText = '';
   try {
     if (filePath.endsWith('.pdf')) {

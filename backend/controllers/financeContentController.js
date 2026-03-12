@@ -1,5 +1,5 @@
-const FinanceContent = require('../models/FinanceContent');
-const Admin = require('../models/Admin');
+import FinanceContent from '../models/FinanceContent.js';
+import Admin from '../models/Admin.js';
 
 // GET /api/finance-content - Get all published content (paginated, filtered)
 const getPublishedContent = async (req, res) => {
@@ -235,7 +235,7 @@ const getAllContent = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getPublishedContent,
   getContentBySlug,
   createContent,

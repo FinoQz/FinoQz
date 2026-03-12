@@ -1,15 +1,13 @@
-const express = require('express');
-const router = express.Router();
-
-const {
+import express from 'express';
+import {
   getUserNotifications,
   markAllAsRead
-} = require('../controllers/notificationController');
+} from '../controllers/notificationController.js';
+import auth from '../middlewares/authMiddleware.js';
 
-// TODO: replace with your actual auth middleware paths
-const auth = require('../middlewares/authMiddleware');
+const router = express.Router();
 
 router.get('/', auth, getUserNotifications);
 router.patch('/read-all', auth, markAllAsRead);
 
-module.exports = router;
+export default router;

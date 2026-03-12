@@ -1,9 +1,9 @@
-const express = require('express');
-const { celebrate, Joi, Segments, errors } = require('celebrate');
-const rateLimit = require('express-rate-limit');
-const {login,verifyOtp,refreshToken,getPendingEmail,resendOtp,logout} = require('../controllers/adminAuthController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const requireAdmin = require('../middlewares/requireAdmin');
+import express from 'express';
+import { celebrate, Joi, Segments, errors } from 'celebrate';
+import rateLimit from 'express-rate-limit';
+import { login, verifyOtp, refreshToken, getPendingEmail, resendOtp, logout } from '../controllers/adminAuthController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
 
 const router = express.Router();
 
@@ -53,5 +53,5 @@ router.get('/pending-email',getPendingEmail);
 // 🧼 Celebrate error handler (must be after all routes)
 router.use(errors());
 
-module.exports = router;
+export default router;
 

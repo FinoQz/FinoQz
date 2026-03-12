@@ -1,4 +1,4 @@
-module.exports = (name) => `
+const userRejectionTemplate = (name) => `
   <div style="font-family: 'Segoe UI', Roboto, sans-serif; background-color: #fff0f0; padding: 32px; border-radius: 16px; border: 1px solid #f5c2c2; max-width: 600px; margin: auto;">
     <div style="text-align: center; margin-bottom: 24px;">
       <img src="https://cdn.jsdelivr.net/gh/FinoQz/logo/finoQz.png" width="48" height="48" alt="FinoQz Logo" />
@@ -18,3 +18,5 @@ module.exports = (name) => `
     </p>
   </div>
 `;
+
+export default userRejectionTemplate;

@@ -1,4 +1,4 @@
-const Review = require('../models/Review');
+import Review from '../models/Review.js';
 
 // POST /api/reviews - Submit anonymous review (public)
 const createReview = async (req, res) => {
@@ -143,7 +143,7 @@ const deleteReview = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   createReview,
   getPinnedReviews,
   getAllReviews,

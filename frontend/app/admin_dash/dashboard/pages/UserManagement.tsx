@@ -50,16 +50,13 @@ export default function UserManagement() {
 
   // ✅ Initial fetch
   useEffect(() => {
-    const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
     const fetchAllUsers = async () => {
       try {
-        const pendingRes = await apiAdmin.get('api/admin/panel/pending-users');
-        await delay(300);
-        const approvedRes = await apiAdmin.get('api/admin/panel/approved-users');
-        await delay(300);
-        const rejectedRes = await apiAdmin.get('api/admin/panel/rejected-users');
-
+        const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+          apiAdmin.get('api/admin/panel/pending-users'),
+          apiAdmin.get('api/admin/panel/approved-users'),
+          apiAdmin.get('api/admin/panel/rejected-users'),
+        ]);
         setPendingUsers(pendingRes.data || []);
         setApprovedUsers(approvedRes.data || []);
         setRejectedUsers(rejectedRes.data || []);

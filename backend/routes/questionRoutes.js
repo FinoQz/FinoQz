@@ -1,8 +1,8 @@
-// routes/questionRoutes.js
-const express = require('express');
+import express from 'express';
+import * as questionC from '../controllers/questionController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+
 const router = express.Router();
-const questionC = require('../controllers/questionController');
-const authMiddleware = require('../middlewares/authMiddleware');
 
 // Create single question (optionally attach to quiz via path)
 router.post('/quizzes/:quizId/questions', authMiddleware('admin'), questionC.bulkCreateAndAttach);
@@ -15,4 +15,4 @@ router.get('/questions/:id', authMiddleware('admin'), questionC.getQuestion);
 router.put('/questions/:id', authMiddleware('admin'), questionC.updateQuestion);
 router.delete('/questions/:id', authMiddleware('admin'), questionC.deleteQuestion);
 
-module.exports = router;
+export default router;

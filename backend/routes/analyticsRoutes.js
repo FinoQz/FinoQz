@@ -1,16 +1,19 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getDashboardStats,
   getUserGrowth,
   getQuizStats,
   getRevenueAnalytics,
   getTopPerformers,
   getCategoryPerformance,
-  getQuestionInsights
-} = require('../controllers/analyticsController');
-const verifyToken = require('../middlewares/verifyToken');
-const requireAdmin = require('../middlewares/requireAdmin');
+  getQuestionInsights,
+  getQuizPaidUsers,
+  getQuizRevenue
+} from '../controllers/analyticsController.js';
+import verifyToken from '../middlewares/verifyToken.js';
+import requireAdmin from '../middlewares/requireAdmin.js';
+
+const router = express.Router();
 
 // All analytics routes require admin access
 router.use(verifyToken(), requireAdmin);
@@ -36,4 +39,10 @@ router.get('/category-performance', getCategoryPerformance);
 // Get question-level insights
 router.get('/question-insights', getQuestionInsights);
 
-module.exports = router;
+// Get paid users count for a quiz
+router.get('/quiz-paid-users', getQuizPaidUsers);
+
+// Get total revenue for a quiz
+router.get('/quiz-revenue', getQuizRevenue);
+
+export default router;

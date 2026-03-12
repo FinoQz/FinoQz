@@ -1,11 +1,11 @@
-require("dotenv").config();
-const { Worker } = require("bullmq");
-const sendEmail = require("../utils/sendEmail");
+
+import "dotenv/config";
+import { Worker } from "bullmq";
+import sendEmail from "../utils/sendEmail.js";
 const isSecure = process.env.REDIS_URL?.startsWith("rediss://");
 
-const emailWorker = new Worker(
-  "emailQueue",
-  async (job) => {
+// Export the job handler as a named export
+export async function handleEmailJob(job) {
 
     // ✅ 1. User Signup Email OTP
     if (job.name === "userEmailOtp") {
@@ -239,7 +239,12 @@ const emailWorker = new Worker(
     }
 
 
-  },
+
+}
+
+const emailWorker = new Worker(
+  "emailQueue",
+  handleEmailJob,
   {
     connection: {
       url: process.env.REDIS_URL,
@@ -252,6 +257,7 @@ const emailWorker = new Worker(
 
 
 // ✅ Logs
+
 emailWorker.on("completed", (job) =>
   console.log(`✅ [${job.name}] Job ${job.id} completed`)
 );
@@ -260,4 +266,4 @@ emailWorker.on("failed", (job, err) =>
   console.error(`❌ [${job.name}] Job ${job.id} failed`, err)
 );
 
-module.exports = emailWorker;
+export default emailWorker;
