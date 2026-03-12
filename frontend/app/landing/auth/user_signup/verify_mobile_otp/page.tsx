@@ -39,10 +39,6 @@ export default function VerifyMobileOtpPage() {
     const storedOtp = getCookie('tempOtp');
     if (storedOtp) {
       setTempOtp(storedOtp);
-      setTimeout(() => {
-        setTempOtp(null);
-        deleteCookie('tempOtp');
-      }, 10000);
     }
   }, []);
 
@@ -122,10 +118,6 @@ export default function VerifyMobileOtpPage() {
       const newOtp = getCookie('tempOtp');
       if (newOtp) {
         setTempOtp(newOtp);
-        setTimeout(() => {
-          setTempOtp(null);
-          deleteCookie('tempOtp');
-        }, 10000);
       }
     } catch (err) {
       let message = 'Failed to resend OTP';
@@ -164,19 +156,10 @@ export default function VerifyMobileOtpPage() {
       {tempOtp && (
         <div className="absolute inset-0 flex items-center justify-center z-50">
           <div className="bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg text-center max-w-sm w-full mx-4 relative">
-            <button
-              onClick={() => {
-                setTempOtp(null);
-                deleteCookie('tempOtp');
-              }}
-              className="absolute top-1 right-2 text-sm text-gray-500 hover:text-gray-800"
-            >
-              ✕
-            </button>
             <p className="font-semibold">Temporary OTP (testing)</p>
             <p className="text-2xl font-bold tracking-widest mt-1">{tempOtp}</p>
             <p className="text-xs text-gray-500 mt-2">
-              This will disappear in 10 seconds
+              This will remain visible for testing
             </p>
           </div>
         </div>

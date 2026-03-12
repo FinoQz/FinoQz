@@ -44,7 +44,7 @@ export default function InputField({
         <label className="text-sm font-medium text-gray-700">{label}</label>
       )}
 
-      <div className="flex justify-center gap-3">
+      <div className="grid grid-cols-6 gap-2 sm:gap-3">
         {otpArray.map((digit, index) => (
           <input
             key={index}
@@ -58,16 +58,14 @@ export default function InputField({
             onChange={(e) => handleChange(e.target.value, index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
             className="
-              w-12 h-16
-              text-center
-              text-lg font-semibold
+              w-full h-12 sm:h-16
+              text-center text-base sm:text-lg font-semibold
               rounded-xl
               bg-gray-50
               border border-gray-300
               shadow-inner
               focus:outline-none
-              focus:ring-2
-              focus:ring-indigo-500
+              focus:ring-2 focus:ring-indigo-500
               focus:bg-white
               transition
             "
