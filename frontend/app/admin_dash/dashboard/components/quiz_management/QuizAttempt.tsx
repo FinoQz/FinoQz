@@ -19,6 +19,7 @@ interface QuizAttemptProps {
     totalMarks: string;
     negativeMarking: boolean;
     negativePerWrong: string;
+    questions: Question[];
   };
   onExit: () => void;
   onSubmit?: (score: number, answers: Record<string, number>) => void;
