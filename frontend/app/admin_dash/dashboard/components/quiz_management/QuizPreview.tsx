@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Clock, Target, Award, Users, Calendar, Eye, IndianRupee } from 'lucide-react';
+import Image from 'next/image';
 import QuizAttempt from './QuizAttempt';
 
 interface QuizPreviewProps {
@@ -50,6 +51,8 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
     negativePerWrong
   } = quizData;
 
+  const safeTags = Array.isArray(tags) ? tags : [];
+
   const handleStartQuiz = () => {
     setShowQuizAttempt(true);
   };
@@ -67,7 +70,8 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
           duration,
           totalMarks,
           negativeMarking,
-          negativePerWrong
+          negativePerWrong,
+          questions: []
         }}
         onExit={handleExitQuiz}
         onSubmit={(score, answers) => {
@@ -88,8 +92,11 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
 
   const formatDateTime = (date: string, time: string) => {
     if (!date || !time) return 'Not set';
+
     const dateObj = new Date(`${date}T${time}`);
-    return dateObj.toLocaleDateString('en-IN', {
+    if (Number.isNaN(dateObj.getTime())) return 'Not set';
+
+    return dateObj.toLocaleString('en-IN', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -124,11 +131,13 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
         <div className="p-6 space-y-6">
           {/* Cover Image */}
           {coverImagePreview && (
-            <div className="w-full h-64 rounded-xl overflow-hidden">
-              <img
+            <div className="relative w-full h-64 rounded-xl overflow-hidden">
+              <Image
                 src={coverImagePreview}
                 alt="Quiz cover"
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 1024px"
               />
             </div>
           )}
@@ -152,11 +161,11 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
           </div>
 
           {/* Tags */}
-          {tags.length > 0 && (
+          {safeTags.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {tags.map((tag, idx) => (
+              {safeTags.map((tag, idx) => (
                 <span
-                  key={idx}
+                  key={`${tag}-${idx}`}
                   className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm"
                 >
                   #{tag}
