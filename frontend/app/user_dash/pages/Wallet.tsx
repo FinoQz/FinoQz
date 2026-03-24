@@ -3,8 +3,16 @@
 import React from 'react';
 import { Wallet, TrendingUp, CreditCard, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
+type Transaction = {
+  id: string;
+  type: 'credit' | 'debit';
+  description: string;
+  date: string;
+  amount: number;
+};
+
 export default function WalletPage() {
-  const transactions = [];
+  const transactions: Transaction[] = [];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
@@ -70,28 +78,38 @@ export default function WalletPage() {
       {/* Transaction History */}
       <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Transaction History</h3>
-        <div className="space-y-3">
-          {transactions.map((transaction) => (
-            <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-              <div className="flex items-center gap-4">
-                <div className={`p-2 rounded-lg ${transaction.type === 'credit' ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {transaction.type === 'credit' ? (
-                    <ArrowDownLeft className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <ArrowUpRight className="w-5 h-5 text-red-600" />
-                  )}
+
+        {transactions.length === 0 ? (
+          <div className="p-6 text-sm text-gray-600 bg-gray-50 rounded-xl">
+            No transactions found.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {transactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`p-2 rounded-lg ${transaction.type === 'credit' ? 'bg-green-100' : 'bg-red-100'}`}>
+                    {transaction.type === 'credit' ? (
+                      <ArrowDownLeft className="w-5 h-5 text-green-600" />
+                    ) : (
+                      <ArrowUpRight className="w-5 h-5 text-red-600" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{transaction.description}</p>
+                    <p className="text-xs text-gray-600">{transaction.date}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-gray-900">{transaction.description}</p>
-                  <p className="text-xs text-gray-600">{transaction.date}</p>
+                <div className={`text-lg font-bold ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                  {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount}
                 </div>
               </div>
-              <div className={`text-lg font-bold ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
