@@ -28,6 +28,12 @@ interface ContentCardProps {
 
 export default function ContentCard({ content, onEdit, onDelete, onToggleVisibility, onToggleFeatured }: ContentCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const resolvedId = content.id ?? content._id;
+
+  const runWithId = (cb: (id: string) => void) => {
+    if (!resolvedId) return;
+    cb(resolvedId);
+  };
 
   const getTypeIcon = () => {
     switch (content.type) {
@@ -137,24 +143,27 @@ export default function ContentCard({ content, onEdit, onDelete, onToggleVisibil
         {/* Actions */}
         <div className="flex gap-2 pt-3 border-t border-gray-200">
           <button
-            onClick={() => onEdit(content.id)}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition text-sm font-medium"
+            onClick={() => runWithId(onEdit)}
+            disabled={!resolvedId}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit className="w-4 h-4" />
             Edit
           </button>
           
           <button
-            onClick={() => onToggleVisibility(content.id)}
-            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            onClick={() => runWithId(onToggleVisibility)}
+            disabled={!resolvedId}
+            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
             title={content.isVisible ? 'Hide' : 'Show'}
           >
             {content.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
 
           <button
-            onClick={() => onToggleFeatured(content.id)}
-            className={`px-3 py-2 rounded-lg transition ${
+            onClick={() => runWithId(onToggleFeatured)}
+            disabled={!resolvedId}
+            className={`px-3 py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${
               content.isFeatured
                 ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -166,7 +175,8 @@ export default function ContentCard({ content, onEdit, onDelete, onToggleVisibil
           
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+            disabled={!resolvedId}
+            className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
             title="Delete"
           >
             <Trash2 className="w-4 h-4" />
@@ -178,7 +188,7 @@ export default function ContentCard({ content, onEdit, onDelete, onToggleVisibil
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => onDelete(content.id)}
+        onConfirm={() => runWithId(onDelete)}
         contentTitle={content.title}
       />
     </div>
