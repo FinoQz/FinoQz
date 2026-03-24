@@ -366,10 +366,9 @@ const getActiveQuizzes = async (req, res) => {
       startAt: { $lte: now },
       endAt: { $gte: now }
     });
-    // Optionally, return a sparkline (dummy data for now)
-    res.json({ activeQuizzes, sparkline: [2, 3, 4, 5, 6, 7, 8, activeQuizzes] });
+    res.json({ activeQuizzes });
   } catch (err) {
-    res.status(500).json({ activeQuizzes: 0, sparkline: [] });
+    res.status(500).json({ activeQuizzes: 0 });
   }
 };
 

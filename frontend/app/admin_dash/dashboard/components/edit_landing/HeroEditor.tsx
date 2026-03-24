@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Trash2 } from 'lucide-react';
 import * as sha1 from 'js-sha1';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface Stat {
   value: string;
@@ -22,12 +23,13 @@ export default function HeroEditor() {
   ]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
     const fetchHero = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API}api/admin/landing`);
-        const data = await res.json();
+        const res = await apiAdmin.get('api/admin/landing');
+        const data = res.data;
         const hero = data?.hero || {};
         setHeading(hero.heading || '');
         setTagline(hero.tagline || '');
@@ -41,6 +43,7 @@ export default function HeroEditor() {
         ]);
       } catch (err) {
         console.error('Failed to load hero data', err);
+        setSaveMessage('❌ Failed to load hero data');
       }
     };
     fetchHero();
@@ -107,33 +110,38 @@ export default function HeroEditor() {
 
   const handleSave = async () => {
     setLoading(true);
+    setSaveMessage('');
     try {
+      // Validate required fields
+      if (!heading.trim() || !tagline.trim() || !buttonText.trim() || !buttonLink.trim()) {
+        setSaveMessage('❌ Please fill in all required fields');
+        return;
+      }
+
       const hero = {
-        heading,
-        tagline,
-        buttonText,
-        buttonLink,
+        heading: heading.trim(),
+        tagline: tagline.trim(),
+        buttonText: buttonText.trim(),
+        buttonLink: buttonLink.trim(),
         imageUrl: imagePreview,
-        stats,
+        stats: stats.filter(s => s.value.trim() && s.label.trim()),
       };
 
-      const formData = new FormData();
-      formData.append('payload', JSON.stringify({ hero }));
+      const res = await apiAdmin.patch('api/admin/landing', { hero });
 
-      const res = await fetch('/api/admin/landing', {
-        method: 'PATCH',
-        body: formData,
-      });
-
-      const result = await res.json();
-      if (result.ok) {
-        alert('Hero section updated successfully!');
+      if (res.status >= 200 && res.status < 300) {
+        setSaveMessage('✅ Hero section updated successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
       } else {
-        alert('Failed to save changes');
+        setSaveMessage('❌ Failed to save changes');
       }
     } catch (err) {
       console.error('Save error:', err);
-      alert('Something went wrong');
+      if (err instanceof Error && err.message.includes('401')) {
+        setSaveMessage('❌ You are not authorized to edit landing content');
+      } else {
+        setSaveMessage('❌ Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -154,6 +162,16 @@ export default function HeroEditor() {
           {loading ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+
+      {saveMessage && (
+        <div className={`p-3 rounded-md text-sm ${
+          saveMessage.includes('✅') 
+            ? 'bg-green-50 text-green-700 border border-green-200'
+            : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {saveMessage}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div className="space-y-5">

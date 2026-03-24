@@ -12,15 +12,13 @@ export interface ContentFormData {
   videoLink?: string;
   content?: string;
   toolLink?: string;
-  visibility: string;
   tags: string[];
   isFeatured: boolean;
-  views: number;
-  likes: number;
 }
 
 interface ContentItem {
-  id: number;
+  id?: string;
+  _id?: string;
   title: string;
   category: string;
   type: 'article' | 'video' | 'pdf' | 'tool';
@@ -28,13 +26,12 @@ interface ContentItem {
   tags: string[];
   views: number;
   likes: number;
-  uploadDate: string;
+  uploadDate?: string;
   isVisible: boolean;
   isFeatured: boolean;
   videoLink?: string;
   content?: string;
   toolLink?: string;
-  visibility?: string;
 }
 
 interface AddContentModalProps {
@@ -53,7 +50,6 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
     videoLink: '',
     content: '',
     toolLink: '',
-    visibility: 'public',
     tags: '',
     isFeatured: false,
   });
@@ -71,7 +67,6 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
         videoLink: editData.videoLink || '',
         content: editData.content || '',
         toolLink: editData.toolLink || '',
-        visibility: editData.visibility || 'public',
         tags: editData.tags?.join(', ') || '',
         isFeatured: editData.isFeatured || false,
       });
@@ -85,7 +80,6 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
         videoLink: '',
         content: '',
         toolLink: '',
-        visibility: 'public',
         tags: '',
         isFeatured: false,
       });
@@ -141,8 +135,6 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
     onSubmit({
       ...formData,
       tags: tagsArray,
-      views: editData?.views || 0,
-      likes: editData?.likes || 0,
     });
     onClose();
   };
@@ -291,19 +283,6 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
               </div>
             </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Visibility</label>
-            <select
-              value={formData.visibility}
-              onChange={(e) => handleChange('visibility', e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
-            >
-              <option value="public">Public</option>
-              <option value="premium">Premium Only</option>
-              <option value="quiz-buyers">Quiz Buyers Only</option>
-            </select>
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>

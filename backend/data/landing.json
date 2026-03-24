@@ -1,6 +1,6 @@
 {
   "hero": {
-    "heading": "Where Smart Finance Learning Becomes a Daily Habit",
+    "heading": "Where Smart  Quiz Learning Becomes a Daily Habit",
     "tagline": "Master finance through interactive quizzes, earn certificates, and grow a thriving community",
     "buttonText": "Try Free Quiz",
     "buttonLink": "#try-quiz",
@@ -24,6 +24,7 @@
     {
       "id": "1766694633540",
       "name": "Balance Sheet",
+      "description": "",
       "bullets": [
         "Learn from Balance",
         "Budget Planing",
@@ -33,6 +34,7 @@
     {
       "id": "1766695312264",
       "name": "P&L Staement",
+      "description": "",
       "bullets": [
         "Market Indices",
         "Trading Strategies",
@@ -42,6 +44,7 @@
     {
       "id": "1766695338231",
       "name": "CashFlow Statement",
+      "description": "",
       "bullets": [
         "Double Entry",
         "Trial Balance",
@@ -51,6 +54,7 @@
     {
       "id": "1766695352702",
       "name": "Generic Statement",
+      "description": "",
       "bullets": [
         "Capital Budgeting",
         "Cost of Capital",

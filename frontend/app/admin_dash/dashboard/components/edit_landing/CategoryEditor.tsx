@@ -19,7 +19,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 
 interface Category {
@@ -48,7 +48,7 @@ export default function CategoryEditor() {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const res = await api.get('api/admin/landing'); // ✅ updated
+                const res = await apiAdmin.get('api/admin/landing');
                 const data = res.data;
                 const loaded = data?.categories || [];
                 setCategories(loaded);
@@ -63,7 +63,7 @@ export default function CategoryEditor() {
     const saveCategories = async () => {
         setLoading(true);
         try {
-            const res = await api.patch('api/admin/landing', { categories }); // ✅ updated
+            const res = await apiAdmin.patch('api/admin/landing', { categories });
             if (res.status < 200 || res.status >= 300) {
                 alert('Failed to save categories');
             } else {

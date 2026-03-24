@@ -80,10 +80,21 @@ const getContentBySlug = async (req, res) => {
 // POST /api/admin/finance-content - Create new content (admin only)
 const createContent = async (req, res) => {
   try {
-    const { title, excerpt, content, thumbnail, category, tags } = req.body;
+    const { title, excerpt, content, thumbnail, category, tags, type, isFeatured, videoLink, toolLink } = req.body;
     
-    if (!title || !content) {
-      return res.status(400).json({ message: 'Title and content are required' });
+    if (!title) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+    
+    // Type-specific validation
+    if (type === 'article' && !content) {
+      return res.status(400).json({ message: 'Content is required for articles' });
+    }
+    if (type === 'video' && !videoLink) {
+      return res.status(400).json({ message: 'Video link is required for videos' });
+    }
+    if (type === 'tool' && !toolLink) {
+      return res.status(400).json({ message: 'Tool link is required for tools' });
     }
     
     const adminId = req.adminId || req.user._id || req.user.id;
@@ -93,12 +104,17 @@ const createContent = async (req, res) => {
     const financeContent = await FinanceContent.create({
       title,
       excerpt: excerpt || '',
-      content,
+      content: content || '',
       thumbnail: thumbnail || '',
       authorId: adminId,
       authorName,
       category: category || 'Other',
-      tags: tags || []
+      tags: tags || [],
+      type: type || 'article',
+      isFeatured: isFeatured || false,
+      isPublished: true,
+      videoLink: videoLink || '',
+      toolLink: toolLink || ''
     });
     
     res.status(201).json({
@@ -115,20 +131,24 @@ const createContent = async (req, res) => {
 const updateContent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, excerpt, content, thumbnail, category, tags } = req.body;
+    const { title, excerpt, content, thumbnail, category, tags, type, isFeatured, videoLink, toolLink } = req.body;
     
     const financeContent = await FinanceContent.findById(id);
     if (!financeContent) {
       return res.status(404).json({ message: 'Content not found' });
     }
     
-    // Update fields - slug will be regenerated automatically by pre-save hook when title changes
+    // Update fields
     if (title) financeContent.title = title;
     if (excerpt !== undefined) financeContent.excerpt = excerpt;
     if (content) financeContent.content = content;
     if (thumbnail !== undefined) financeContent.thumbnail = thumbnail;
     if (category) financeContent.category = category;
     if (tags) financeContent.tags = tags;
+    if (type) financeContent.type = type;
+    if (isFeatured !== undefined) financeContent.isFeatured = isFeatured;
+    if (videoLink !== undefined) financeContent.videoLink = videoLink;
+    if (toolLink !== undefined) financeContent.toolLink = toolLink;
     
     await financeContent.save();
     
@@ -178,6 +198,52 @@ const togglePublishContent = async (req, res) => {
     });
   } catch (error) {
     console.error('Toggle publish content error:', error);
+    res.status(500).json({ message: 'Failed to update content' });
+  }
+};
+
+// PATCH /api/admin/finance-content/:id/visibility - Toggle visibility
+const toggleVisibility = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const content = await FinanceContent.findById(id);
+    if (!content) {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    
+    content.isVisible = !content.isVisible;
+    await content.save();
+    
+    res.json({
+      message: `Content ${content.isVisible ? 'shown' : 'hidden'} successfully`,
+      content
+    });
+  } catch (error) {
+    console.error('Toggle visibility error:', error);
+    res.status(500).json({ message: 'Failed to update content' });
+  }
+};
+
+// PATCH /api/admin/finance-content/:id/featured - Toggle featured status
+const toggleFeatured = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const content = await FinanceContent.findById(id);
+    if (!content) {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    
+    content.isFeatured = !content.isFeatured;
+    await content.save();
+    
+    res.json({
+      message: `Content ${content.isFeatured ? 'featured' : 'unfeatured'} successfully`,
+      content
+    });
+  } catch (error) {
+    console.error('Toggle featured error:', error);
     res.status(500).json({ message: 'Failed to update content' });
   }
 };
@@ -242,5 +308,7 @@ export {
   updateContent,
   deleteContent,
   togglePublishContent,
+  toggleVisibility,
+  toggleFeatured,
   getAllContent
 };

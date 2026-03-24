@@ -48,7 +48,23 @@ const financeContentSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  type: {
+    type: String,
+    enum: ['article', 'video', 'pdf', 'tool'],
+    default: 'article',
+    index: true
+  },
   isPublished: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  isVisible: {
+    type: Boolean,
+    default: true,
+    index: true
+  },
+  isFeatured: {
     type: Boolean,
     default: false,
     index: true
@@ -56,6 +72,18 @@ const financeContentSchema = new mongoose.Schema({
   views: {
     type: Number,
     default: 0
+  },
+  likes: {
+    type: Number,
+    default: 0
+  },
+  videoLink: {
+    type: String,
+    trim: true
+  },
+  toolLink: {
+    type: String,
+    trim: true
   },
   publishedAt: {
     type: Date
@@ -95,5 +123,8 @@ financeContentSchema.pre('save', async function(next) {
 // Compound indexes for performance
 financeContentSchema.index({ isPublished: 1, publishedAt: -1 });
 financeContentSchema.index({ category: 1, isPublished: 1, publishedAt: -1 });
+financeContentSchema.index({ isFeatured: 1, isPublished: 1, publishedAt: -1 });
+financeContentSchema.index({ isVisible: 1, isPublished: 1, publishedAt: -1 });
+financeContentSchema.index({ type: 1, isPublished: 1, publishedAt: -1 });
 
 export default mongoose.model('FinanceContent', financeContentSchema);

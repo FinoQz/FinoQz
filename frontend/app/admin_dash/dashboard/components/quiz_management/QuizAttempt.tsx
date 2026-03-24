@@ -33,73 +33,7 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
 
-  // Dummy questions
-  const questions: Question[] = [
-    {
-      id: '1',
-      type: 'mcq',
-      text: 'What is the primary purpose of diversification in investment?',
-      options: ['To maximize returns', 'To reduce risk', 'To increase liquidity', 'To avoid taxes'],
-      correctAnswer: 1,
-      marks: 1
-    },
-    {
-      id: '2',
-      type: 'mcq',
-      text: 'Which financial ratio measures a company\'s ability to pay short-term obligations?',
-      options: ['Debt-to-equity ratio', 'Current ratio', 'Return on Equity', 'Price-to-Earnings ratio'],
-      correctAnswer: 1,
-      marks: 1
-    },
-    {
-      id: '3',
-      type: 'true-false',
-      text: 'Compound interest is calculated only on the principal amount.',
-      options: ['True', 'False'],
-      correctAnswer: 1,
-      marks: 1
-    },
-    {
-      id: '4',
-      type: 'mcq',
-      text: 'What does ROI stand for in finance?',
-      options: ['Return on Investment', 'Rate of Interest', 'Risk of Investment', 'Revenue of Industry'],
-      correctAnswer: 0,
-      marks: 1
-    },
-    {
-      id: '5',
-      type: 'mcq',
-      text: 'Which of the following is NOT a type of mutual fund?',
-      options: ['Equity Fund', 'Debt Fund', 'Fixed Deposit', 'Hybrid Fund'],
-      correctAnswer: 2,
-      marks: 1
-    },
-    {
-      id: '6',
-      type: 'true-false',
-      text: 'A credit score above 750 is generally considered good in India.',
-      options: ['True', 'False'],
-      correctAnswer: 0,
-      marks: 1
-    },
-    {
-      id: '7',
-      type: 'mcq',
-      text: 'What is the lock-in period for ELSS (Equity Linked Savings Scheme)?',
-      options: ['1 year', '2 years', '3 years', '5 years'],
-      correctAnswer: 2,
-      marks: 1
-    },
-    {
-      id: '8',
-      type: 'mcq',
-      text: 'Which of the following is a progressive tax?',
-      options: ['GST', 'Income Tax', 'Sales Tax', 'Excise Duty'],
-      correctAnswer: 1,
-      marks: 1
-    }
-  ];
+  const questions: Question[] = quizData.questions || [];
 
   const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;

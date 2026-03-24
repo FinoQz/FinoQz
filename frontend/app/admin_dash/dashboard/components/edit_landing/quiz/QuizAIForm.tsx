@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles, Loader2 } from 'lucide-react';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface QuizAIFormProps {
   categoryId: string;
@@ -27,7 +27,7 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
     setGenerated([]);
 
     try {
-      const res = await api.post('api/admin/demo-quiz/ai-generate', {
+      const res = await apiAdmin.post('api/admin/demo-quiz/ai-generate', {
         categoryId,
         prompt,
         count,

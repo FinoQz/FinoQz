@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Eye, Heart, Edit, Trash2, EyeOff, FileText, Video, FileDown, Calculator } from 'lucide-react';
+import { Eye, Heart, Edit, Trash2, EyeOff, FileText, Video, FileDown, Calculator, Star } from 'lucide-react';
 import Image from 'next/image';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface ContentCardProps {
   content: {
-    id: number;
+    id?: string;
+    _id?: string;
     title: string;
     category: string;
     type: 'article' | 'video' | 'pdf' | 'tool';
@@ -15,16 +16,17 @@ interface ContentCardProps {
     tags: string[];
     views: number;
     likes: number;
-    uploadDate: string;
+    uploadDate?: string;
     isVisible: boolean;
     isFeatured: boolean;
   };
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-  onToggleVisibility: (id: number) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onToggleVisibility: (id: string) => void;
+  onToggleFeatured: (id: string) => void;
 }
 
-export default function ContentCard({ content, onEdit, onDelete, onToggleVisibility }: ContentCardProps) {
+export default function ContentCard({ content, onEdit, onDelete, onToggleVisibility, onToggleFeatured }: ContentCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const getTypeIcon = () => {
@@ -148,6 +150,18 @@ export default function ContentCard({ content, onEdit, onDelete, onToggleVisibil
             title={content.isVisible ? 'Hide' : 'Show'}
           >
             {content.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
+
+          <button
+            onClick={() => onToggleFeatured(content.id)}
+            className={`px-3 py-2 rounded-lg transition ${
+              content.isFeatured
+                ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            title={content.isFeatured ? 'Remove from featured' : 'Mark as featured'}
+          >
+            <Star className={`w-4 h-4 ${content.isFeatured ? 'fill-current' : ''}`} />
           </button>
           
           <button

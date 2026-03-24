@@ -4,12 +4,7 @@ import React from 'react';
 import { Wallet, TrendingUp, CreditCard, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 export default function WalletPage() {
-  const transactions = [
-    { id: 1, type: 'credit', amount: 500, description: 'Wallet Top-up', date: '2025-01-18' },
-    { id: 2, type: 'debit', amount: 299, description: 'Quiz Purchase - Tax Planning', date: '2025-01-17' },
-    { id: 3, type: 'credit', amount: 1000, description: 'Refund - Payment Issue', date: '2025-01-15' },
-    { id: 4, type: 'debit', amount: 499, description: 'Quiz Purchase - Stock Market', date: '2025-01-12' },
-  ];
+  const transactions = [];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen">

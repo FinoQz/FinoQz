@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface Category {
   _id: string;
@@ -25,7 +25,7 @@ export default function QuizCategoryForm({ onSelectCategory }: QuizCategoryFormP
 
   const fetchCategories = async () => {
     try {
-      const res = await api.get('api/admin/demo-quiz/categories');
+      const res = await apiAdmin.get('api/admin/demo-quiz/categories');
       setCategories(res.data || []);
     } catch (err) {
       console.error('Failed to load categories', err);
@@ -38,7 +38,7 @@ export default function QuizCategoryForm({ onSelectCategory }: QuizCategoryFormP
 
     setLoading(true);
     try {
-      const res = await api.post('api/admin/demo-quiz/categories', { name });
+      const res = await apiAdmin.post('api/admin/demo-quiz/categories', { name });
       const created: Category = res.data;
       setCategories((prev) => [...prev, created]);
       setSelected(created._id);

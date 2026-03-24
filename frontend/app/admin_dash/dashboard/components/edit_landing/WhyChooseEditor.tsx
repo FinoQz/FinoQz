@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, RotateCcw, Undo2, Save } from 'lucide-react';
-import api from '@/lib/api';
+import apiAdmin from '@/lib/apiAdmin';
 
 interface Reason {
   id: string;
@@ -104,7 +104,7 @@ export default function WhyChooseEditor() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await api.patch('api/admin/landing', { reasons }); // ✅ no localhost
+      const res = await apiAdmin.patch('api/admin/landing', { reasons });
 
       if (res.status < 200 || res.status >= 300) {
         alert('Failed to save reasons');

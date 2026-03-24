@@ -72,7 +72,7 @@ export default function AnalyticsPanel({ stats }: AnalyticsPanelProps) {
             <span className="text-xs font-medium text-green-600">+12%</span>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-1">
-            {Math.round(stats.totalViews / stats.totalContent)}
+            {stats.totalContent > 0 ? Math.round(stats.totalViews / stats.totalContent) : 0}
           </h3>
           <p className="text-sm text-gray-600">Avg. Views/Content</p>
         </div>

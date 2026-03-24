@@ -1,110 +1,79 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
+import apiAdmin from '@/lib/apiAdmin';
 import ContentCard from '../components/financecontent/ContentCard';
 import AnalyticsPanel from '../components/financecontent/AnalyticsPanel';
 import AddContentModal, { ContentFormData } from '../components/financecontent/AddContentModal';
+
+interface ContentItem {
+  id?: string;
+  _id?: string;
+  title: string;
+  category: string;
+  type: 'article' | 'video' | 'pdf' | 'tool';
+  thumbnail: string;
+  tags: string[];
+  views: number;
+  likes: number;
+  uploadDate?: string;
+  isVisible: boolean;
+  isFeatured: boolean;
+  videoLink?: string;
+  content?: string;
+  toolLink?: string;
+}
 
 export default function FinanceContent() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  type ContentType = typeof contents[0] | null;
-  const [editingContent, setEditingContent] = useState<ContentType>(null);
+  const [contents, setContents] = useState<ContentItem[]>([]);
+  const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Dummy data
-  const [contents, setContents] = useState([
-    {
-      id: 1,
-      title: 'Understanding Stock Market Basics: A Beginner\'s Guide',
-      thumbnail: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400',
-      category: 'Stock Market',
-      type: 'article' as const,
-      tags: ['New', 'Featured'],
-      views: 15420,
-      likes: 342,
-      uploadDate: '2024-11-15',
-      isVisible: true,
-      isFeatured: true,
-    },
-    {
-      id: 2,
-      title: 'How to Calculate Your Tax Liability in 2024',
-      thumbnail: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400',
-      category: 'Taxation',
-      type: 'video' as const,
-      tags: ['Trending'],
-      views: 28900,
-      likes: 567,
-      uploadDate: '2024-11-10',
-      isVisible: true,
-      isFeatured: false,
-    },
-    {
-      id: 3,
-      title: 'Personal Finance Checklist 2024',
-      thumbnail: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=400',
-      category: 'Personal Finance',
-      type: 'pdf' as const,
-      tags: ['Featured'],
-      views: 12300,
-      likes: 289,
-      uploadDate: '2024-11-08',
-      isVisible: true,
-      isFeatured: true,
-    },
-    {
-      id: 4,
-      title: 'EMI Calculator - Home Loan & Car Loan',
-      thumbnail: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=400',
-      category: 'Personal Finance',
-      type: 'tool' as const,
-      tags: ['New'],
-      views: 34100,
-      likes: 892,
-      uploadDate: '2024-11-20',
-      isVisible: true,
-      isFeatured: false,
-    },
-    {
-      id: 5,
-      title: 'Mutual Funds vs Fixed Deposits: Which is Better?',
-      thumbnail: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=400',
-      category: 'Investment',
-      type: 'article' as const,
-      tags: ['Trending'],
-      views: 19200,
-      likes: 421,
-      uploadDate: '2024-11-18',
-      isVisible: false,
-      isFeatured: false,
-    },
-    {
-      id: 6,
-      title: 'GST Returns Filing Made Easy',
-      thumbnail: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400',
-      category: 'Accounting',
-      type: 'video' as const,
-      tags: ['Featured'],
-      views: 22100,
-      likes: 534,
-      uploadDate: '2024-11-12',
-      isVisible: true,
-      isFeatured: true,
-    },
-  ]);
+  // Fetch content on mount
+  useEffect(() => {
+    fetchContents();
+  }, []);
+
+  const fetchContents = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+      const res = await apiAdmin.get('/api/finance-content/admin/all', {
+        params: { page: 1, limit: 100 }
+      });
+      const items = (res.data.content || []).map((item: any) => ({
+        id: item._id,
+        _id: item._id,
+        ...item,
+        views: Number(item.views) || 0,
+        likes: Number(item.likes) || 0,
+        uploadDate: item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      }));
+      setContents(items);
+    } catch (err: any) {
+      console.error('Error fetching content:', err);
+      setError(err.response?.data?.message || 'Failed to load content');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const analyticsData = {
     totalContent: contents.length,
-    totalViews: contents.reduce((sum, item) => sum + item.views, 0),
+    totalViews: contents.reduce((sum, item) => sum + (Number(item.views) || 0), 0),
     monthlyEngagement: 67,
     topContent: contents
-      .sort((a, b) => b.views - a.views)
+      .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0))
       .slice(0, 3)
       .map(item => ({
         title: item.title,
-        views: item.views,
+        views: Number(item.views) || 0,
         category: item.category,
       })),
   };
@@ -118,49 +87,117 @@ export default function FinanceContent() {
     { id: 'featured', label: 'Featured' },
   ];
 
-  const handleEdit = (id: number) => {
-    const contentToEdit = contents.find(item => item.id === id);
+  const handleEdit = (id: string) => {
+    const contentToEdit = contents.find(item => item._id === id || item.id === id);
     if (contentToEdit) {
       setEditingContent(contentToEdit);
       setShowAddModal(true);
     }
   };
 
-  const handleDelete = (id: number) => {
-    setContents(contents.filter(item => item.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await apiAdmin.delete(`/api/finance-content/admin/${id}`);
+      setContents(contents.filter(item => item._id !== id && item.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting content:', err);
+      alert(err.response?.data?.message || 'Failed to delete content');
+    }
   };
 
-  const handleToggleVisibility = (id: number) => {
-    setContents(contents.map(item =>
-      item.id === id ? { ...item, isVisible: !item.isVisible } : item
-    ));
-  };
-
-  const handleSaveContent = (data: ContentFormData) => {
-    if (editingContent) {
-      // Update existing content
+  const handleToggleVisibility = async (id: string) => {
+    try {
+      await apiAdmin.patch(`/api/finance-content/admin/${id}/visibility`);
       setContents(contents.map(item =>
-        item.id === editingContent.id ? { ...item, ...data } : item
+        (item._id === id || item.id === id) ? { ...item, isVisible: !item.isVisible } : item
       ));
-      setEditingContent(null);
-    } else {
-      // Add new content
-      const newContent = {
-        ...data,
-        id: contents.length + 1,
-        views: 0,
-        likes: 0,
-        uploadDate: new Date().toISOString().split('T')[0],
-        isVisible: true,
+    } catch (err) {
+      console.error('Error toggling visibility:', err);
+      
+      // Proper error handling with type safety
+      const errorMessage = 
+        err instanceof Error 
+          ? err.message 
+          : (err as any)?.response?.data?.message 
+          ? (err as any).response.data.message
+          : 'Failed to update visibility';
+      
+      alert(errorMessage);
+    }
+  };
+
+  const handleToggleFeatured = async (id: string) => {
+    try {
+      await apiAdmin.patch(`/api/finance-content/admin/${id}/featured`);
+      setContents(contents.map(item =>
+        (item._id === id || item.id === id) ? { ...item, isFeatured: !item.isFeatured } : item
+      ));
+    } catch (err) {
+      console.error('Error toggling featured:', err);
+      
+      // Proper error handling with type safety
+      const errorMessage = 
+        err instanceof Error 
+          ? err.message 
+          : (err as any)?.response?.data?.message 
+          ? (err as any).response.data.message
+          : 'Failed to update featured status';
+      
+      alert(errorMessage);
+    }
+  };
+
+  const handleSaveContent = async (data: ContentFormData) => {
+    try {
+      // Handle tags - convert from string (comma-separated) or array to string array
+      let tagsArray: string[] = [];
+      if (typeof (data as any).tags === 'string') {
+        tagsArray = (data as any).tags
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter(Boolean);
+      } else if (Array.isArray((data as any).tags)) {
+        tagsArray = (data as any).tags.filter((t: string) => t && t.trim());
+      }
+
+      const payload = {
+        title: data.title,
+        category: data.category,
+        type: data.type,
+        content: data.content,
+        thumbnail: data.thumbnail,
+        videoLink: data.videoLink,
+        toolLink: data.toolLink,
+        tags: tagsArray,
+        isFeatured: data.isFeatured,
+        excerpt: data.content?.substring(0, 300) || ''
       };
-      setContents([newContent, ...contents]);
+
+      if (editingContent && (editingContent._id || editingContent.id)) {
+        const contentId = editingContent._id || editingContent.id;
+        await apiAdmin.put(`/api/finance-content/admin/${contentId}`, payload);
+        
+        // Refresh list
+        await fetchContents();
+      } else {
+        await apiAdmin.post('/api/finance-content/admin/create', payload);
+        
+        // Refresh list
+        await fetchContents();
+      }
+
+      setEditingContent(null);
+      setShowAddModal(false);
+    } catch (err: any) {
+      console.error('Error saving content:', err);
+      alert(err.response?.data?.message || 'Failed to save content');
     }
   };
 
   const filteredContents = contents.filter(item => {
     const matchesTab = activeTab === 'all' ||
       activeTab === item.type ||
-      (activeTab === 'featured' && (item.isFeatured || item.tags.includes('Featured')));
+      (activeTab === 'featured' && item.isFeatured);
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
@@ -170,6 +207,14 @@ export default function FinanceContent() {
     setShowAddModal(false);
     setEditingContent(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 lg:p-8 min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Loading finance content...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8">
@@ -187,6 +232,13 @@ export default function FinanceContent() {
           Add New Content
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6">
+          <p className="text-red-700 font-medium">{error}</p>
+        </div>
+      )}
 
       {/* Analytics Panel */}
       <div className="mb-6">
@@ -237,11 +289,12 @@ export default function FinanceContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredContents.map(content => (
             <ContentCard
-              key={content.id}
+              key={content._id || content.id}
               content={content}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggleVisibility={handleToggleVisibility}
+              onEdit={() => handleEdit(content._id || content.id || '')}
+              onDelete={() => handleDelete(content._id || content.id || '')}
+              onToggleVisibility={() => handleToggleVisibility(content._id || content.id || '')}
+              onToggleFeatured={() => handleToggleFeatured(content._id || content.id || '')}
             />
           ))}
         </div>
@@ -266,7 +319,7 @@ export default function FinanceContent() {
         isOpen={showAddModal}
         onClose={handleCloseModal}
         onSubmit={handleSaveContent}
-        editData={editingContent}
+        editData={editingContent as any}
       />
     </div>
   );
