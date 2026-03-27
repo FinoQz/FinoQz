@@ -263,7 +263,7 @@ export default function Community() {
           placeholder="Share your thoughts with the community..."
           value={newInsight}
           onChange={(e) => setNewInsight(e.target.value)}
-          className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] resize-none"
+          className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] resize-none"
           rows={3}
           maxLength={500}
         />
@@ -272,7 +272,7 @@ export default function Community() {
           <button 
             onClick={handleCreateInsight}
             disabled={isSubmitting || !newInsight.trim()}
-            className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Posting...' : 'Post Insight'}
           </button>
@@ -295,7 +295,7 @@ export default function Community() {
                 </div>
               )}
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] flex items-center justify-center text-white font-bold text-lg">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-secondary)] flex items-center justify-center text-white font-bold text-lg">
                   {insight.authorName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
@@ -336,7 +336,7 @@ export default function Community() {
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] resize-none"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] resize-none"
                         rows={3}
                         maxLength={500}
                       />
@@ -349,7 +349,7 @@ export default function Community() {
                         </button>
                         <button
                           onClick={() => handleEditInsight(insight._id)}
-                          className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+                          className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition"
                         >
                           Save Changes
                         </button>
@@ -424,13 +424,13 @@ export default function Community() {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
-                  className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                  className="flex-1 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                   maxLength={500}
                 />
                 <button
                   onClick={handleAddComment}
                   disabled={!newComment.trim()}
-                  className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition disabled:bg-gray-400"
+                  className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition disabled:bg-gray-400"
                 >
                   <Send className="w-5 h-5" />
                 </button>

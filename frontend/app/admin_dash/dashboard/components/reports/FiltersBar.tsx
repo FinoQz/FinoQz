@@ -44,7 +44,7 @@ export default function FiltersBar({
         <select
           value={selectedQuiz}
           onChange={(e) => onQuizChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="all">All Quizzes</option>
           <option value="quiz1">Financial Management Basics</option>
@@ -56,7 +56,7 @@ export default function FiltersBar({
         <select
           value={dateRange}
           onChange={(e) => onDateRangeChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
@@ -68,7 +68,7 @@ export default function FiltersBar({
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="all">All Status</option>
           <option value="completed">Completed</option>
@@ -81,7 +81,7 @@ export default function FiltersBar({
         <select
           value={type}
           onChange={(e) => onTypeChange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="all">All Types</option>
           <option value="free">Free</option>
@@ -96,7 +96,7 @@ export default function FiltersBar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search user, email, txn ID..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
           />
         </div>
       </div>
@@ -105,7 +105,7 @@ export default function FiltersBar({
       <div className="flex items-center gap-2 mt-4">
         <button
           onClick={onApply}
-          className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition text-sm font-medium"
+          className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition text-sm font-medium"
         >
           Apply Filters
         </button>

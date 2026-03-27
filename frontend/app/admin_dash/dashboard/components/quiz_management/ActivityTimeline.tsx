@@ -66,7 +66,7 @@ export default function ActivityTimeline() {
   return (
     <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
-        <Activity className="w-5 h-5 text-[#253A7B]" />
+        <Activity className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
       </div>
 

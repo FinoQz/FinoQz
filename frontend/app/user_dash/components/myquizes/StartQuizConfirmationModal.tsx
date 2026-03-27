@@ -59,7 +59,7 @@ export default function StartQuizConfirmationModal({
           {/* Quiz Title & Category */}
           <div className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs px-3 py-1.5 bg-[#253A7B] text-white rounded-full font-semibold">
+              <span className="text-xs px-3 py-1.5 bg-[var(--theme-primary)] text-white rounded-full font-semibold">
                 {category}
               </span>
               {isFree ? (
@@ -78,15 +78,15 @@ export default function StartQuizConfirmationModal({
           {/* Quiz Stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-md transition group">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-[#253A7B] transition">
-                <Clock className="w-5 h-5 text-[#253A7B] group-hover:text-white transition" />
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-[var(--theme-primary)] transition">
+                <Clock className="w-5 h-5 text-[var(--theme-primary)] group-hover:text-white transition" />
               </div>
               <p className="text-xs text-gray-600 mb-1.5 font-medium">Duration</p>
               <p className="text-lg font-bold text-gray-900">{duration} min</p>
             </div>
             <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-md transition group">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-[#253A7B] transition">
-                <FileQuestion className="w-5 h-5 text-[#253A7B] group-hover:text-white transition" />
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-[var(--theme-primary)] transition">
+                <FileQuestion className="w-5 h-5 text-[var(--theme-primary)] group-hover:text-white transition" />
               </div>
               <p className="text-xs text-gray-600 mb-1.5 font-medium">Questions</p>
               <p className="text-lg font-bold text-gray-900">{totalQuestions}</p>
@@ -101,28 +101,28 @@ export default function StartQuizConfirmationModal({
           </div>
 
           {/* Instructions Box */}
-          <div className="bg-gradient-to-br from-blue-50 to-white border-2 border-[#253A7B] rounded-xl p-4">
+          <div className="bg-gradient-to-br from-blue-50 to-white border-2 border-[var(--theme-primary)] rounded-xl p-4">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-[#253A7B] rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 bg-[var(--theme-primary)] rounded-lg flex items-center justify-center flex-shrink-0">
                 <Info className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-[#253A7B] mb-2">Instructions</p>
+                <p className="text-sm font-bold text-[var(--theme-primary)] mb-2">Instructions</p>
                 <ul className="text-xs text-gray-700 space-y-1.5 leading-relaxed">
                   <li className="flex items-start gap-2">
-                    <span className="text-[#253A7B] font-bold mt-0.5">•</span>
+                    <span className="text-[var(--theme-primary)] font-bold mt-0.5">•</span>
                     <span>You have {duration} minutes to complete this quiz</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#253A7B] font-bold mt-0.5">•</span>
+                    <span className="text-[var(--theme-primary)] font-bold mt-0.5">•</span>
                     <span>All {totalQuestions} questions must be answered</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#253A7B] font-bold mt-0.5">•</span>
+                    <span className="text-[var(--theme-primary)] font-bold mt-0.5">•</span>
                     <span>You can review and change answers before submitting</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-[#253A7B] font-bold mt-0.5">•</span>
+                    <span className="text-[var(--theme-primary)] font-bold mt-0.5">•</span>
                     <span>Make sure you have a stable internet connection</span>
                   </li>
                 </ul>
@@ -141,7 +141,7 @@ export default function StartQuizConfirmationModal({
           </button>
           <button
             onClick={onConfirm}
-            className="w-full sm:w-auto flex-1 px-5 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] hover:shadow-xl transition font-semibold shadow-lg flex items-center justify-center gap-2 text-sm"
+            className="w-full sm:w-auto flex-1 px-5 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] hover:shadow-xl transition font-semibold shadow-lg flex items-center justify-center gap-2 text-sm"
           >
             <Play className="w-4 h-4" />
             Start Quiz

@@ -123,7 +123,7 @@ export default function TransactionDetailModal({
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase">Amount</label>
-                <p className="text-2xl font-bold text-[#253A7B] mt-1">₹{transaction.amount.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-[var(--theme-primary)] mt-1">₹{transaction.amount.toLocaleString()}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500 uppercase">Payment Method</label>

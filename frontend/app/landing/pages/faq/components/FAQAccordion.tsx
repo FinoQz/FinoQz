@@ -34,7 +34,7 @@ export default function FAQAccordion() {
         <div key={i} className="bg-white rounded-xl shadow p-4">
           <button
             onClick={() => toggle(i)}
-            className="w-full text-left text-[#253A7B] font-semibold text-lg focus:outline-none"
+            className="w-full text-left text-[var(--theme-primary)] font-semibold text-lg focus:outline-none"
           >
             {faq.question}
           </button>

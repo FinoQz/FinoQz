@@ -158,7 +158,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
               type="text"
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Enter content title..."
             />
             {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
@@ -172,7 +172,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
               <select
                 value={formData.category}
                 onChange={(e) => handleChange('category', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition bg-white"
               >
                 <option value="">Select Category</option>
                 <option value="Personal Finance">Personal Finance</option>
@@ -193,7 +193,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
               <select
                 value={formData.type}
                 onChange={(e) => handleChange('type', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition bg-white"
               >
                 <option value="article">Article</option>
                 <option value="video">Video</option>
@@ -211,7 +211,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
                   type="text"
                   value={formData.thumbnail}
                   onChange={(e) => handleChange('thumbnail', e.target.value)}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                   placeholder="Enter image URL..."
                 />
                 <label className="inline-flex px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition cursor-pointer items-center gap-2 font-medium">
@@ -244,7 +244,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
                   type="url"
                   value={formData.videoLink}
                   onChange={(e) => handleChange('videoLink', e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                   placeholder="https://youtube.com/watch?v=..."
                 />
               </div>
@@ -261,7 +261,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
                 rows={8}
                 value={formData.content}
                 onChange={(e) => handleChange('content', e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition resize-none"
                 placeholder="Write your article content here..."
               />
               {errors.content && <p className="text-xs text-red-500 mt-1">{errors.content}</p>}
@@ -277,7 +277,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
                   type="url"
                   value={formData.toolLink}
                   onChange={(e) => handleChange('toolLink', e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                   placeholder="https://example.com/calculator"
                 />
               </div>
@@ -290,7 +290,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
               type="text"
               value={formData.tags}
               onChange={(e) => handleChange('tags', e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="New, Trending, Popular"
             />
           </div>
@@ -303,7 +303,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
             <button
               onClick={() => handleChange('isFeatured', !formData.isFeatured)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.isFeatured ? 'bg-[#253A7B]' : 'bg-gray-300'
+                formData.isFeatured ? 'bg-[var(--theme-primary)]' : 'bg-gray-300'
               }`}
             >
               <span
@@ -324,7 +324,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit, editData }:
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md"
+            className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md"
           >
             {editData ? 'Update Content' : 'Add Content'}
           </button>

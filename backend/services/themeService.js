@@ -19,7 +19,7 @@ export async function getThemeSettings() {
       primaryColor: theme?.primaryColor || DEFAULT_PRIMARY_COLOR,
     };
   } catch {
-    _cache = { logoUrl: DEFAULT_LOGO_URL, primaryColor: DEFAULT_PRIMARY_COLOR };
+    _cache = { logoUrl: FINOQZ_DEFAULT_LOGO_URL, primaryColor: DEFAULT_PRIMARY_COLOR };
   }
   _cacheAt = Date.now();
   return _cache;

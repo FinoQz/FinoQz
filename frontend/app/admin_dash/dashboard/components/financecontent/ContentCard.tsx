@@ -93,7 +93,7 @@ export default function ContentCard({ content, onEdit, onDelete, onToggleVisibil
           {content.tags.map((tag, index) => (
             <span
               key={index}
-              className="px-2 py-1 bg-[#253A7B] text-white text-xs font-medium rounded-lg shadow-sm"
+              className="px-2 py-1 bg-[var(--theme-primary)] text-white text-xs font-medium rounded-lg shadow-sm"
             >
               {tag}
             </span>
@@ -145,7 +145,7 @@ export default function ContentCard({ content, onEdit, onDelete, onToggleVisibil
           <button
             onClick={() => runWithId(onEdit)}
             disabled={!resolvedId}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit className="w-4 h-4" />
             Edit

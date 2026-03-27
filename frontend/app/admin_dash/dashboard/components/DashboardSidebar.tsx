@@ -81,7 +81,7 @@ const logoSrc = currentTheme.logoUrl || '/finoqz.ico';
           onClick={onClose}
           className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 transition"
         >
-          <X className="w-6 h-6 text-[#253A7B]" />
+          <X className="w-6 h-6 text-[var(--theme-primary)]" />
         </button>
 
         {/* Logo/Brand */}
@@ -117,7 +117,7 @@ const logoSrc = currentTheme.logoUrl || '/finoqz.ico';
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
                       isActive
-                        ? 'bg-[#253A7B] text-white shadow-md'
+                        ? 'bg-[var(--theme-primary)] text-white shadow-md'
                         : 'text-gray-700 hover:bg-white hover:shadow-sm'
                     }`}
                   >

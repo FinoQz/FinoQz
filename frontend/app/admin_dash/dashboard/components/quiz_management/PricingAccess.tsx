@@ -47,18 +47,18 @@ export default function PricingAccess({
               onKeyDown={(e) => e.key === 'Enter' && onPricingTypeChange(type as 'free' | 'paid')}
               className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                 pricingType === type
-                  ? 'border-[#253A7B] bg-white'
+                  ? 'border-[var(--theme-primary)] bg-white'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    pricingType === type ? 'border-[#253A7B]' : 'border-gray-300'
+                    pricingType === type ? 'border-[var(--theme-primary)]' : 'border-gray-300'
                   }`}
                 >
                   {pricingType === type && (
-                    <div className="w-3 h-3 rounded-full bg-[#253A7B]" />
+                    <div className="w-3 h-3 rounded-full bg-[var(--theme-primary)]" />
                   )}
                 </div>
                 <div>
@@ -92,7 +92,7 @@ export default function PricingAccess({
                 }}
                 placeholder="Enter price"
                 min="1"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">Minimum ₹1</p>
@@ -109,7 +109,7 @@ export default function PricingAccess({
                   onCouponChange({ ...coupon, code: e.target.value.toUpperCase().trim() })
                 }
                 placeholder="Coupon Code"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition uppercase"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition uppercase"
               />
               <select
                 value={coupon.discountType}

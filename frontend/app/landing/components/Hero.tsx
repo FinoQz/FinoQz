@@ -6,6 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import apiAdmin from '@/lib/apiAdmin';
+import BrandLogo from '@/components/BrandLogo';
 
 interface Stat {
   value: string;
@@ -75,8 +76,8 @@ export default function Hero() {
           transition={{ duration: 0.8 }}
         >
           <div className="flex items-center gap-3 mb-6">
-            <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={52} height={52} unoptimized priority style={{ height: 'auto' }} />
-            <span className="text-[2rem] md:text-[2.25rem] font-semibold text-[#253A7B] tracking-wide">
+            <BrandLogo width={52} height={52} priority />
+            <span className="text-[2rem] md:text-[2.25rem] font-semibold text-[var(--theme-primary)] tracking-wide">
               FinoQz
             </span>
           </div>
@@ -90,7 +91,7 @@ export default function Hero() {
           <div className="flex flex-wrap gap-4 mb-8">
             <Button
               onClick={() => handleCTAClick(hero.buttonLink)}
-              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 bg-[#253A7B] hover:bg-blue-700 text-white"
+              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 bg-[var(--theme-primary)] hover:bg-blue-700 text-white"
             >
               {hero.buttonText}
               <ChevronRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
@@ -98,7 +99,7 @@ export default function Hero() {
 
             <Button
               variant="outline"
-              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 border border-[#253A7B]"
+              className="rounded-md px-4 py-2 text-sm md:text-base md:px-6 md:py-3 border border-[var(--theme-primary)]"
               onClick={() => router.push('/landing/auth/user_login/login')}
             >
               Login
@@ -146,7 +147,7 @@ export default function Hero() {
 
 const Stat = ({ value, label }: { value: string; label: string }) => (
   <div className="min-w-[80px]">
-    <p className="text-base md:text-2xl font-bold text-[#253A7B]">{value}</p>
+    <p className="text-base md:text-2xl font-bold text-[var(--theme-primary)]">{value}</p>
     <p className="text-xs md:text-sm text-gray-500">{label}</p>
   </div>
 );

@@ -56,7 +56,7 @@ export default function PostCard({ post, isSelected, onSelect, onEdit, onDelete,
     <div
       onClick={onSelect}
       className={`bg-white rounded-xl border-2 p-4 cursor-pointer transition hover:shadow-md ${
-        isSelected ? 'border-[#253A7B] shadow-md' : 'border-gray-200'
+        isSelected ? 'border-[var(--theme-primary)] shadow-md' : 'border-gray-200'
       } ${post.status === 'flagged' ? 'border-l-4 border-l-red-500' : ''}`}
     >
       {/* Header: Author & Badges */}
@@ -77,7 +77,7 @@ export default function PostCard({ post, isSelected, onSelect, onEdit, onDelete,
         </div>
         <div className="flex items-center gap-2">
           {post.isPinned && (
-            <Pin className="w-4 h-4 text-[#253A7B] fill-[#253A7B]" />
+            <Pin className="w-4 h-4 text-[var(--theme-primary)] fill-[var(--theme-primary)]" />
           )}
           {post.status === 'flagged' && (
             <Flag className="w-4 h-4 text-red-500 fill-red-500" />
@@ -153,7 +153,7 @@ export default function PostCard({ post, isSelected, onSelect, onEdit, onDelete,
           <button
             onClick={onTogglePin}
             className={`p-1.5 rounded-lg transition ${
-              post.isPinned ? 'bg-[#253A7B] text-white' : 'hover:bg-gray-100 text-gray-600'
+              post.isPinned ? 'bg-[var(--theme-primary)] text-white' : 'hover:bg-gray-100 text-gray-600'
             }`}
             title={post.isPinned ? 'Unpin' : 'Pin'}
           >
@@ -168,7 +168,7 @@ export default function PostCard({ post, isSelected, onSelect, onEdit, onDelete,
           </button>
           <button
             onClick={onEdit}
-            className="p-1.5 hover:bg-blue-50 rounded-lg transition text-[#253A7B]"
+            className="p-1.5 hover:bg-blue-50 rounded-lg transition text-[var(--theme-primary)]"
             title="Edit"
           >
             <Edit className="w-4 h-4" />

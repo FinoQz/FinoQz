@@ -111,7 +111,7 @@ export default function FinanceContent() {
             placeholder="Search articles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
           />
         </div>
 
@@ -121,7 +121,7 @@ export default function FinanceContent() {
             onClick={() => setSelectedCategory('')}
             className={`px-4 py-2 rounded-lg font-medium transition ${
               selectedCategory === ''
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -133,7 +133,7 @@ export default function FinanceContent() {
               onClick={() => setSelectedCategory(category)}
               className={`px-4 py-2 rounded-lg font-medium transition ${
                 selectedCategory === category
-                  ? 'bg-[#253A7B] text-white'
+                  ? 'bg-[var(--theme-primary)] text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -173,7 +173,7 @@ export default function FinanceContent() {
                 
                 {/* Category Badge */}
                 <div className="absolute top-3 left-3">
-                  <span className="text-xs font-semibold text-white bg-[#253A7B] px-3 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-white bg-[var(--theme-primary)] px-3 py-1 rounded-full">
                     {item.category}
                   </span>
                 </div>
@@ -187,7 +187,7 @@ export default function FinanceContent() {
 
               {/* Content */}
               <div className="p-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#253A7B] transition">
+                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[var(--theme-primary)] transition">
                   {item.title}
                 </h3>
                 
@@ -226,7 +226,7 @@ export default function FinanceContent() {
                 {/* Read Article Button */}
                 <button 
                   onClick={() => handleContentClick(item.slug)}
-                  className="w-full px-4 py-2.5 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium text-sm"
+                  className="w-full px-4 py-2.5 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium text-sm"
                 >
                   Read Article
                 </button>

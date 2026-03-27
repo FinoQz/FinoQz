@@ -10,7 +10,7 @@ interface BulkActionsProps {
 
 export default function BulkActions({ selectedCount, onClearSelection }: BulkActionsProps) {
   return (
-    <div className="bg-[#253A7B] text-white rounded-xl p-4 shadow-lg flex items-center justify-between">
+    <div className="bg-[var(--theme-primary)] text-white rounded-xl p-4 shadow-lg flex items-center justify-between">
       <div className="flex items-center gap-3">
         <span className="font-bold text-lg">{selectedCount}</span>
         <span className="text-sm">participant{selectedCount !== 1 ? 's' : ''} selected</span>

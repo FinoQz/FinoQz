@@ -54,7 +54,7 @@ function ColorField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="#000000"
-          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-[#253A7B] focus:outline-none"
+          className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-[var(--theme-primary)] focus:outline-none"
         />
       </div>
     </div>
@@ -170,7 +170,7 @@ export default function ThemeManagement() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Palette className="w-6 h-6 text-[#253A7B]" />
+            <Palette className="w-6 h-6 text-[var(--theme-primary)]" />
             Theme Management
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -180,7 +180,7 @@ export default function ThemeManagement() {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="flex items-center gap-2 bg-[#253A7B] text-white px-5 py-2.5 rounded-lg hover:bg-[#1a2a5e] transition text-sm font-medium disabled:opacity-50"
+          className="flex items-center gap-2 bg-[var(--theme-primary)] text-white px-5 py-2.5 rounded-lg hover:bg-[var(--theme-secondary)] transition text-sm font-medium disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {loading ? 'Saving…' : 'Save Theme'}
@@ -206,7 +206,7 @@ export default function ThemeManagement() {
           {/* Logo Section */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <Upload className="w-5 h-5 text-[#253A7B]" />
+              <Upload className="w-5 h-5 text-[var(--theme-primary)]" />
               <h2 className="text-lg font-semibold text-gray-900">Logo</h2>
             </div>
             <p className="text-sm text-gray-500">
@@ -219,7 +219,7 @@ export default function ThemeManagement() {
                 accept="image/*"
                 onChange={handleLogoUpload}
                 disabled={logoUploading}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-[#253A7B] file:text-white hover:file:bg-[#1a2a5e] disabled:opacity-50"
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-[var(--theme-primary)] file:text-white hover:file:bg-[var(--theme-secondary)] disabled:opacity-50"
               />
               {logoUploading && (
                 <p className="text-xs text-blue-600">Uploading logo…</p>
@@ -252,7 +252,7 @@ export default function ThemeManagement() {
           {/* Colors Section */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-5">
             <div className="flex items-center gap-2 mb-2">
-              <Palette className="w-5 h-5 text-[#253A7B]" />
+              <Palette className="w-5 h-5 text-[var(--theme-primary)]" />
               <h2 className="text-lg font-semibold text-gray-900">Colors</h2>
             </div>
 
@@ -291,7 +291,7 @@ export default function ThemeManagement() {
           {/* Display Mode */}
           <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <Monitor className="w-5 h-5 text-[#253A7B]" />
+              <Monitor className="w-5 h-5 text-[var(--theme-primary)]" />
               <h2 className="text-lg font-semibold text-gray-900">Display Mode</h2>
             </div>
             <div className="flex items-center gap-4">
@@ -299,7 +299,7 @@ export default function ThemeManagement() {
                 onClick={() => setForm((p) => ({ ...p, darkMode: false }))}
                 className={`flex-1 py-3 rounded-lg border-2 text-sm font-medium transition ${
                   !form.darkMode
-                    ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]'
+                    ? 'border-[var(--theme-primary)] bg-blue-50 text-[var(--theme-primary)]'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'
                 }`}
               >
@@ -309,7 +309,7 @@ export default function ThemeManagement() {
                 onClick={() => setForm((p) => ({ ...p, darkMode: true }))}
                 className={`flex-1 py-3 rounded-lg border-2 text-sm font-medium transition ${
                   form.darkMode
-                    ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]'
+                    ? 'border-[var(--theme-primary)] bg-blue-50 text-[var(--theme-primary)]'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'
                 }`}
               >
@@ -322,7 +322,7 @@ export default function ThemeManagement() {
         {/* Right: Preview */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Eye className="w-5 h-5 text-[#253A7B]" />
+            <Eye className="w-5 h-5 text-[var(--theme-primary)]" />
             <h2 className="text-lg font-semibold text-gray-900">Live Preview</h2>
           </div>
 

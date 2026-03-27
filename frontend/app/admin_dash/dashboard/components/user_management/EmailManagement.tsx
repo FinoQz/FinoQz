@@ -119,11 +119,11 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
       {/* Header */}
       <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-[#253A7B] rounded-xl">
+          <div className="p-3 bg-[var(--theme-primary)] rounded-xl">
             <Mail className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#253A7B]">
+            <h2 className="text-xl sm:text-2xl font-bold text-[var(--theme-primary)]">
               Email Management
             </h2>
             <p className="text-sm text-gray-600">Select users and compose email</p>
@@ -144,7 +144,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
               placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition text-sm"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition text-sm"
             />
           </div>
 
@@ -154,7 +154,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
             className="w-full mb-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition flex items-center gap-2 text-sm font-medium text-gray-700"
           >
             {selectedUsers.length === filteredUsers.length ? (
-              <CheckSquare className="w-5 h-5 text-[#253A7B]" />
+              <CheckSquare className="w-5 h-5 text-[var(--theme-primary)]" />
             ) : (
               <Square className="w-5 h-5" />
             )}
@@ -173,14 +173,14 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
                   key={user._id}
                   onClick={() => handleSelectUser(user._id)}
                   className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedUsers.includes(user._id)
-                      ? "border-[#253A7B]"
+                      ? "border-[var(--theme-primary)]"
                       : "border-gray-200 hover:border-gray-300"
                     }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-1">
                       {selectedUsers.includes(user._id) ? (
-                        <CheckSquare className="w-5 h-5 text-[#253A7B]" />
+                        <CheckSquare className="w-5 h-5 text-[var(--theme-primary)]" />
                       ) : (
                         <Square className="w-5 h-5 text-gray-400" />
                       )}
@@ -243,7 +243,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Enter email subject"
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               />
             </div>
 
@@ -257,7 +257,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
                 onChange={(e) => setEmailBody(e.target.value)}
                 placeholder="Write your email message here..."
                 rows={12}
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition resize-none"
               />
             </div>
 
@@ -265,7 +265,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
             <button
               onClick={handleSendEmail}
               disabled={isSending || selectedUsers.length === 0}
-              className={`w-full px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 ${isSending || selectedUsers.length === 0
+              className={`w-full px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] shadow-lg hover:shadow-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 ${isSending || selectedUsers.length === 0
                   ? "opacity-50 cursor-not-allowed"
                   : ""
                 }`}

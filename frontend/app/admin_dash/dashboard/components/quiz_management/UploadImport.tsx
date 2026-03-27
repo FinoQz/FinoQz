@@ -40,8 +40,8 @@ export default function UploadImport({ quizId, numberOfQuestions, onCacheQuestio
             key={t.key}
             className={`flex items-center gap-2 px-4 py-2 rounded-full font-semibold transition border
               ${tab === t.key
-                ? 'bg-[#253A7B] text-white border-[#253A7B]'
-                : 'bg-white text-[#253A7B] border-[#253A7B] hover:bg-[#253A7B]/10'
+                ? 'bg-[var(--theme-primary)] text-white border-[var(--theme-primary)]'
+                : 'bg-white text-[var(--theme-primary)] border-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10'
               }`}
             onClick={() => setTab(t.key)}
           >
@@ -149,10 +149,10 @@ function ManualQuizSetup({
         {questions.map((q, idx) => (
           <div key={idx} className="border rounded-xl p-4 bg-gray-50 relative">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-              <span className="font-semibold text-[#253A7B]">Question {idx + 1}</span>
+              <span className="font-semibold text-[var(--theme-primary)]">Question {idx + 1}</span>
               <div className="flex gap-2">
                 <button
-                  className="text-[#253A7B] hover:bg-[#253A7B]/10 p-1 rounded"
+                  className="text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 p-1 rounded"
                   onClick={() => handleEditQuestion(idx)}
                   title="Edit"
                 >
@@ -197,7 +197,7 @@ function ManualQuizSetup({
       </div>
       <div className="mt-6 flex flex-col sm:flex-row gap-3">
         <button
-          className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 justify-center"
+          className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 justify-center"
           onClick={handleAddQuestion}
           disabled={numberOfQuestions ? questions.length >= parseInt(numberOfQuestions, 10) : false}
         >
@@ -219,7 +219,7 @@ function ManualQuizSetup({
             <div className="mb-4 text-red-600 font-semibold">Incomplete Questions</div>
             <div className="mb-6">{popupMsg}</div>
             <button
-              className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold"
+              className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded-lg font-semibold"
               onClick={() => setShowPopup(false)}
             >
               OK
@@ -255,7 +255,7 @@ function ManualQuestionEditor({ question, onSave, onCancel }: ManualQuestionEdit
               type="radio"
               checked={q.correct === i}
               onChange={() => setQ({ ...q, correct: i })}
-              className="accent-[#253A7B]"
+              className="accent-[var(--theme-primary)]"
             />
             <input
               className="w-full border rounded px-2 py-1"
@@ -278,7 +278,7 @@ function ManualQuestionEditor({ question, onSave, onCancel }: ManualQuestionEdit
       />
       <div className="flex gap-2 mt-2 flex-col sm:flex-row">
         <button
-          className="bg-[#253A7B] text-white px-3 py-1 rounded"
+          className="bg-[var(--theme-primary)] text-white px-3 py-1 rounded"
           onClick={() => onSave(q)}
         >
           Save
@@ -413,8 +413,8 @@ function UploadQuizFile({
             key={type}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition
               ${fileType === type
-                ? 'bg-[#253A7B] text-white border-[#253A7B]'
-                : 'bg-white text-[#253A7B] border-[#253A7B] hover:bg-[#253A7B]/10'
+                ? 'bg-[var(--theme-primary)] text-white border-[var(--theme-primary)]'
+                : 'bg-white text-[var(--theme-primary)] border-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10'
               }`}
             onClick={() => setFileType(type)}
           >
@@ -427,9 +427,9 @@ function UploadQuizFile({
         ))}
       </div>
       {/* Custom Upload Box */}
-      <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#253A7B] rounded-xl px-4 py-6 sm:px-6 sm:py-8 cursor-pointer bg-[#f5f8ff] hover:bg-[#e9f0ff] transition mb-4 w-full">
-        <UploadCloud className="w-10 h-10 text-[#253A7B] mb-2" />
-        <span className="font-semibold text-[#253A7B] mb-1 text-center break-all">
+      <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--theme-primary)] rounded-xl px-4 py-6 sm:px-6 sm:py-8 cursor-pointer bg-[#f5f8ff] hover:bg-[#e9f0ff] transition mb-4 w-full">
+        <UploadCloud className="w-10 h-10 text-[var(--theme-primary)] mb-2" />
+        <span className="font-semibold text-[var(--theme-primary)] mb-1 text-center break-all">
           {file ? file.name : `Click to upload ${fileType.toUpperCase()} file`}
         </span>
         <span className="text-xs text-gray-500 mb-2 text-center">
@@ -443,7 +443,7 @@ function UploadQuizFile({
         />
       </label>
       <button
-        className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
+        className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded-lg font-semibold w-full sm:w-auto"
         onClick={handleParse}
         disabled={!file || loading}
       >
@@ -455,9 +455,9 @@ function UploadQuizFile({
           {questions.map((q, idx) => (
             <div key={idx} className="border rounded-xl p-4 bg-gray-50 relative">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                <span className="font-semibold text-[#253A7B]">Question {idx + 1}</span>
+                <span className="font-semibold text-[var(--theme-primary)]">Question {idx + 1}</span>
                 <button
-                  className="text-[#253A7B] hover:bg-[#253A7B]/10 p-1 rounded"
+                  className="text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 p-1 rounded"
                   onClick={() => setEditingIdx(idx)}
                   title="Edit"
                 >
@@ -601,9 +601,9 @@ function AIQuizGenerator({
     <div>
       <h2 className="text-xl font-bold mb-4">Generate Quiz with Finoqz.AI</h2>
       {/* Custom Upload Box */}
-      <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#253A7B] rounded-xl px-4 py-6 sm:px-6 sm:py-8 cursor-pointer bg-[#f5f8ff] hover:bg-[#e9f0ff] transition mb-4 w-full">
-        <UploadCloud className="w-10 h-10 text-[#253A7B] mb-2" />
-        <span className="font-semibold text-[#253A7B] mb-1 text-center break-all">
+      <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--theme-primary)] rounded-xl px-4 py-6 sm:px-6 sm:py-8 cursor-pointer bg-[#f5f8ff] hover:bg-[#e9f0ff] transition mb-4 w-full">
+        <UploadCloud className="w-10 h-10 text-[var(--theme-primary)] mb-2" />
+        <span className="font-semibold text-[var(--theme-primary)] mb-1 text-center break-all">
           {file ? file.name : 'Click to upload PDF file'}
         </span>
         <span className="text-xs text-gray-500 mb-2 text-center">
@@ -624,7 +624,7 @@ function AIQuizGenerator({
         placeholder="Enter prompt for AI (e.g. 'Generate MCQs on chapter 2')"
       />
       <button
-        className="bg-[#253A7B] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 w-full sm:w-auto justify-center"
+        className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 w-full sm:w-auto justify-center"
         onClick={handleGenerate}
         disabled={!file || !prompt || loading}
       >
@@ -637,9 +637,9 @@ function AIQuizGenerator({
           {questions.map((q, idx) => (
             <div key={idx} className="border rounded-xl p-4 bg-gray-50 relative">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
-                <span className="font-semibold text-[#253A7B]">Question {idx + 1}</span>
+                <span className="font-semibold text-[var(--theme-primary)]">Question {idx + 1}</span>
                 <button
-                  className="text-[#253A7B] hover:bg-[#253A7B]/10 p-1 rounded"
+                  className="text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 p-1 rounded"
                   onClick={() => setEditingIdx(idx)}
                   title="Edit"
                 >

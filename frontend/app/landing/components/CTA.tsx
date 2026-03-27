@@ -10,7 +10,7 @@ export default function CTA() {
 
 
   return (
-    <section className="py-24 relative overflow-hidden bg-gradient-to-b from-[#f8faff] via-[#cddaff] to-[#3249b0] text-[#253A7B] text-center">
+    <section className="py-24 relative overflow-hidden bg-gradient-to-b from-[#f8faff] via-[#cddaff] to-[#3249b0] text-[var(--theme-primary)] text-center">
 
       {/* Radial glow overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.08),_transparent)] pointer-events-none z-0" />
@@ -47,7 +47,7 @@ export default function CTA() {
         <div className="flex flex-wrap justify-center gap-4">
           <Button
             size="lg"
-            className="bg-[#253A7B] text-white hover:bg-[#1e2a78] transition duration-300 font-semibold"
+            className="bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)] transition duration-300 font-semibold"
             onClick={() => router.push("/landing/auth/user_signup/signup")}
           >
             Start Free Today
@@ -55,7 +55,7 @@ export default function CTA() {
           <Button
             size="lg"
             variant="outline"
-            className="border border-[#253A7B] text-[#253A7B] hover:bg-[#253A7B] hover:text-white transition duration-300 font-semibold"
+            className="border border-[var(--theme-primary)] text-[var(--theme-primary)] hover:bg-[var(--theme-primary)] hover:text-white transition duration-300 font-semibold"
             onClick={() => router.push("/landing/auth/user_login/login")}
           >
             Login

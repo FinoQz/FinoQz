@@ -68,9 +68,9 @@ export default function PostList({
               className="p-1.5 hover:bg-blue-100 rounded-lg transition"
             >
               {allSelected ? (
-                <CheckSquare className="w-5 h-5 text-[#253A7B]" />
+                <CheckSquare className="w-5 h-5 text-[var(--theme-primary)]" />
               ) : (
-                <Square className="w-5 h-5 text-[#253A7B]" />
+                <Square className="w-5 h-5 text-[var(--theme-primary)]" />
               )}
             </button>
             <span className="text-sm font-medium text-gray-700">
@@ -102,7 +102,7 @@ export default function PostList({
                 className="mt-4 p-1.5 hover:bg-gray-100 rounded-lg transition"
               >
                 {selectedPosts.includes(post.id) ? (
-                  <CheckSquare className="w-5 h-5 text-[#253A7B]" />
+                  <CheckSquare className="w-5 h-5 text-[var(--theme-primary)]" />
                 ) : (
                   <Square className="w-5 h-5 text-gray-400" />
                 )}
@@ -135,7 +135,7 @@ export default function PostList({
               className="mt-4 p-1.5 hover:bg-gray-100 rounded-lg transition"
             >
               {selectedPosts.includes(post.id) ? (
-                <CheckSquare className="w-5 h-5 text-[#253A7B]" />
+                <CheckSquare className="w-5 h-5 text-[var(--theme-primary)]" />
               ) : (
                 <Square className="w-5 h-5 text-gray-400" />
               )}

@@ -117,7 +117,7 @@ export default function DashboardCharts({ userId }: DashboardChartsProps) {
       {
         label: 'Quizzes Attempted',
         data: activity.map(a => a.quizzes),
-        borderColor: '#253A7B',
+        borderColor: 'var(--theme-primary)',
         backgroundColor: 'rgba(37,58,123,0.1)',
         tension: 0.4,
       },
@@ -138,7 +138,7 @@ export default function DashboardCharts({ userId }: DashboardChartsProps) {
       {
         label: 'Score %',
         data: progress.map(p => p.percentage),
-        backgroundColor: '#253A7B',
+        backgroundColor: 'var(--theme-primary)',
       }
     ]
   };

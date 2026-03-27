@@ -116,7 +116,7 @@ export default function QuizResult() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[var(--theme-primary)] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your results...</p>
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function QuizResult() {
           <p className="text-gray-600 mb-6">{error || 'Result not found'}</p>
           <button
             onClick={handleBackToDashboard}
-            className="px-6 py-3 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium"
+            className="px-6 py-3 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium"
           >
             Back to Dashboard
           </button>
@@ -161,7 +161,7 @@ export default function QuizResult() {
             onClick={() => setActiveTab('summary')}
             className={`px-6 py-3 rounded-lg font-medium transition ${
               activeTab === 'summary'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
@@ -171,7 +171,7 @@ export default function QuizResult() {
             onClick={() => setActiveTab('detailed')}
             className={`px-6 py-3 rounded-lg font-medium transition ${
               activeTab === 'detailed'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >

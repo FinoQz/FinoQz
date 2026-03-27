@@ -35,7 +35,7 @@ export default function FiltersBar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search posts..."
-            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm"
+            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm"
           />
         </div>
 
@@ -45,7 +45,7 @@ export default function FiltersBar({
           <select
             value={category}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm bg-white"
           >
             <option value="all">All Categories</option>
             <option value="Announcements">Announcements</option>
@@ -61,7 +61,7 @@ export default function FiltersBar({
           <select
             value={status}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm bg-white"
           >
             <option value="all">All Status</option>
             <option value="published">Published</option>
@@ -76,7 +76,7 @@ export default function FiltersBar({
           <select
             value={dateRange}
             onChange={(e) => onDateRangeChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm bg-white"
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>

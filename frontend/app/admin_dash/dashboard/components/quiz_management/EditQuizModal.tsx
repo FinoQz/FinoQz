@@ -112,7 +112,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                 value={formData.quizTitle}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 placeholder="Enter quiz title"
               />
             </div>
@@ -128,7 +128,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                 onChange={handleInputChange}
                 required
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 placeholder="Enter quiz description"
               />
             </div>
@@ -144,7 +144,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                   placeholder="e.g., Finance, Mathematics"
                 />
               </div>
@@ -158,7 +158,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   name="difficultyLevel"
                   value={formData.difficultyLevel}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 >
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
@@ -185,7 +185,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   onChange={handleInputChange}
                   required
                   min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 />
               </div>
 
@@ -201,7 +201,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   onChange={handleInputChange}
                   required
                   min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 />
               </div>
 
@@ -214,7 +214,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   name="attemptLimit"
                   value={formData.attemptLimit}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 >
                   <option value="unlimited">Unlimited</option>
                   <option value="1">1 Attempt</option>
@@ -240,7 +240,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   name="pricingType"
                   value={formData.pricingType}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 >
                   <option value="free">Free</option>
                   <option value="paid">Paid</option>
@@ -259,7 +259,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                     value={formData.price}
                     onChange={handleInputChange}
                     min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                   />
                 </div>
               )}
@@ -280,7 +280,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   name="visibility"
                   value={formData.visibility}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 >
                   <option value="public">Public</option>
                   <option value="unlisted">Unlisted</option>
@@ -297,7 +297,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
                 >
                   <option value="draft">Draft</option>
                   <option value="published">Published</option>
@@ -319,7 +319,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

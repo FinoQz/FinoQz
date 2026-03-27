@@ -10,7 +10,7 @@ export default function AboutUsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 text-gray-900">
       <Navbar />
-      <section className="bg-gradient-to-b from-white via-[#f0f4ff] to-[#dbeafe] text-[#253A7B] py-20">
+      <section className="bg-gradient-to-b from-white via-[#f0f4ff] to-[#dbeafe] text-[var(--theme-primary)] py-20">
         <div className="container mx-auto px-6">
           <HeroSection />
           <InfoGrid />

@@ -44,7 +44,7 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-[#253A7B]">Generate Quiz with AI</h3>
+      <h3 className="text-lg font-semibold text-[var(--theme-primary)]">Generate Quiz with AI</h3>
 
       <div className="space-y-3">
         <textarea
@@ -66,7 +66,7 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
         <button
           onClick={generateQuiz}
           disabled={loading || !prompt.trim()}
-          className="bg-[#253A7B] text-white px-6 py-2 rounded hover:bg-[#1a2a5e] transition text-sm flex items-center gap-2"
+          className="bg-[var(--theme-primary)] text-white px-6 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           {loading ? 'Generating...' : 'Generate'}
@@ -85,7 +85,7 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
                 {q.options.map((opt, j) => (
                   <li
                     key={j}
-                    className={q.correctIndex === j ? 'text-[#253A7B] font-semibold' : ''}
+                    className={q.correctIndex === j ? 'text-[var(--theme-primary)] font-semibold' : ''}
                   >
                     {opt}
                   </li>

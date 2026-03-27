@@ -153,32 +153,32 @@ export default function UserManagement() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        <button onClick={() => setActiveTab('all')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'all' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>All Users</button>
+        <button onClick={() => setActiveTab('all')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'all' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>All Users</button>
 
-        <button onClick={() => setActiveTab('add-new')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'add-new' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
+        <button onClick={() => setActiveTab('add-new')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'add-new' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
           <UserPlus className="w-4 h-4" /> Add New User
         </button>
 
-        <button onClick={() => setActiveTab('email-users')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'email-users' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
+        <button onClick={() => setActiveTab('email-users')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'email-users' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
           <Mail className="w-4 h-4" /> Send Email
         </button>
 
-        <button onClick={() => setActiveTab('groups')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'groups' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
+        <button onClick={() => setActiveTab('groups')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'groups' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
           <Users className="w-4 h-4" /> Groups
         </button>
 
-        <button onClick={() => setActiveTab('pending')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'pending' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Pending ({pendingUsers.length})</button>
+        <button onClick={() => setActiveTab('pending')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'pending' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Pending ({pendingUsers.length})</button>
 
-        <button onClick={() => setActiveTab('approved')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'approved' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Approved ({approvedUsers.length})</button>
+        <button onClick={() => setActiveTab('approved')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'approved' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Approved ({approvedUsers.length})</button>
 
-        <button onClick={() => setActiveTab('rejected')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'rejected' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Rejected ({rejectedUsers.length})</button>
+        <button onClick={() => setActiveTab('rejected')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'rejected' ? 'bg-[var(--theme-primary)] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Rejected ({rejectedUsers.length})</button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="text-xs sm:text-sm font-medium text-gray-800">Pending Approvals</div>
-          <div className="text-2xl sm:text-3xl font-bold text-[#253A7B] mt-2">{pendingUsers.length}</div>
+          <div className="text-2xl sm:text-3xl font-bold text-[var(--theme-primary)] mt-2">{pendingUsers.length}</div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -190,7 +190,7 @@ export default function UserManagement() {
 
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-300 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="text-xs sm:text-sm font-medium text-gray-700">Rejected Today</div>
-          <div className="text-2xl sm:text-3xl font-bold text-[#253A7B] mt-2">
+          <div className="text-2xl sm:text-3xl font-bold text-[var(--theme-primary)] mt-2">
             {rejectedUsers.filter(u => new Date(u.rejectedAt).toDateString() === new Date().toDateString()).length}
           </div>
         </div>
@@ -211,7 +211,7 @@ export default function UserManagement() {
           {activeTab === 'pending' && (
             pendingUsers.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-                <div className="text-[#253A7B] text-lg font-medium">No pending users</div>
+                <div className="text-[var(--theme-primary)] text-lg font-medium">No pending users</div>
                 <p className="text-gray-500 text-sm mt-2">All signups have been reviewed</p>
               </div>
             ) : (

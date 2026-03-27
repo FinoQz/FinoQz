@@ -70,7 +70,7 @@ export default function QuizPreview({ quizId, onClose, onPurchase, canPreview, f
     return (
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-3xl max-w-3xl w-full p-6 text-center shadow-2xl border border-gray-200">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading preview...</p>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function QuizPreview({ quizId, onClose, onPurchase, canPreview, f
             </div>
             {previewData.pricingType === 'paid' && (
               <div className="flex items-center gap-1 sm:gap-2 ml-auto">
-                <span className="text-base sm:text-lg font-bold text-[#253A7B]">₹{previewData.price}</span>
+                <span className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">₹{previewData.price}</span>
               </div>
             )}
           </div>
@@ -182,14 +182,14 @@ export default function QuizPreview({ quizId, onClose, onPurchase, canPreview, f
                         onClick={() => handleAnswerSelect(questionIndex, optionIndex)}
                         className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 transition-all ${
                           selectedAnswers[questionIndex] === optionIndex
-                            ? 'border-[#253A7B] bg-[#253A7B]/5'
+                            ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]/5'
                             : 'border-gray-200 hover:border-gray-300 bg-white'
                         }`}
                       >
                         <div className="flex items-start gap-2 sm:gap-3">
                           <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
                             selectedAnswers[questionIndex] === optionIndex
-                              ? 'border-[#253A7B] bg-[#253A7B]'
+                              ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]'
                               : 'border-gray-300'
                           }`}>
                             {selectedAnswers[questionIndex] === optionIndex && (
@@ -207,7 +207,7 @@ export default function QuizPreview({ quizId, onClose, onPurchase, canPreview, f
           ) : (
             <div className="h-full min-h-[180px] sm:min-h-[320px] flex items-center justify-center text-center">
               <div className="max-w-md w-full border border-dashed border-gray-300 rounded-2xl p-6 sm:p-8 bg-gray-50">
-                <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-[#253A7B] mx-auto mb-3 sm:mb-4" />
+                <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-[var(--theme-primary)] mx-auto mb-3 sm:mb-4" />
                 <p className="text-base sm:text-lg font-semibold text-gray-900">Please enroll to preview</p>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">
                   Enroll in this quiz to unlock the preview questions.
@@ -234,7 +234,7 @@ export default function QuizPreview({ quizId, onClose, onPurchase, canPreview, f
               {previewData.pricingType === 'paid' && (
                 <button
                   onClick={onPurchase}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium flex items-center justify-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   Purchase Full Quiz

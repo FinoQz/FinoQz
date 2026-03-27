@@ -19,7 +19,7 @@ export default function KpiCard({ icon: Icon, label, value, trend, suffix }: Kpi
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">{label}</h3>
-        <Icon className="w-5 h-5 text-[#253A7B]" />
+        <Icon className="w-5 h-5 text-[var(--theme-primary)]" />
       </div>
       <div className="flex items-baseline gap-2">
         <p className="text-3xl font-bold text-gray-900">{value}</p>

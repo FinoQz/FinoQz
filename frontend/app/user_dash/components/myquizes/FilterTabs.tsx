@@ -29,7 +29,7 @@ export default function FilterTabs({ activeTab, onTabChange, counts }: FilterTab
           onClick={() => onTabChange(tab.id)}
           className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === tab.id
-              ? 'bg-[#253A7B] text-white shadow-md'
+              ? 'bg-[var(--theme-primary)] text-white shadow-md'
               : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
           }`}
         >

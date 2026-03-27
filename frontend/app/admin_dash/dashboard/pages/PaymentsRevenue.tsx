@@ -329,17 +329,17 @@ export default function PaymentsRevenue() {
   <title>${reportName}</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-    .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #253A7B; padding-bottom: 20px; }
-    .header h1 { color: #253A7B; margin: 0; font-size: 28px; }
+    .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid var(--theme-primary); padding-bottom: 20px; }
+    .header h1 { color: var(--theme-primary); margin: 0; font-size: 28px; }
     .header p { color: #666; margin: 5px 0; }
     .section { margin: 30px 0; }
-    .section h2 { color: #253A7B; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+    .section h2 { color: var(--theme-primary); border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th { background: #253A7B; color: white; padding: 12px; text-align: left; }
+    th { background: var(--theme-primary); color: white; padding: 12px; text-align: left; }
     td { padding: 10px; border-bottom: 1px solid #e5e7eb; }
     tr:hover { background: #f9fafb; }
-    .summary-card { display: inline-block; padding: 15px 25px; margin: 10px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid #253A7B; }
-    .summary-card h3 { margin: 0; color: #253A7B; font-size: 24px; }
+    .summary-card { display: inline-block; padding: 15px 25px; margin: 10px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid var(--theme-primary); }
+    .summary-card h3 { margin: 0; color: var(--theme-primary); font-size: 24px; }
     .summary-card p { margin: 5px 0 0 0; color: #666; font-size: 14px; }
     .footer { margin-top: 50px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
   </style>
@@ -530,7 +530,7 @@ export default function PaymentsRevenue() {
             </button>
             <button
               onClick={() => setShowRefundModal(true)}
-              className="px-4 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 shadow-sm"
+              className="px-4 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center gap-2 shadow-sm"
             >
               <RefreshCw className="w-4 h-4" />
               Manual Refund
@@ -594,7 +594,7 @@ export default function PaymentsRevenue() {
                   <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm bg-white"
                   >
                     <option value="7">Last 7 days</option>
                     <option value="30">Last 30 days</option>
@@ -608,7 +608,7 @@ export default function PaymentsRevenue() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm bg-white"
                   >
                     <option value="all">All Status</option>
                     <option value="success">Success</option>
@@ -623,7 +623,7 @@ export default function PaymentsRevenue() {
                   <select
                     value={methodFilter}
                     onChange={(e) => setMethodFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm bg-white"
                   >
                     <option value="all">All Methods</option>
                     <option value="razorpay">Razorpay</option>
@@ -639,7 +639,7 @@ export default function PaymentsRevenue() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search..."
-                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm"
                   />
                 </div>
               </div>
@@ -660,7 +660,7 @@ export default function PaymentsRevenue() {
               {selectedTxns.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-3">
                   <span className="text-sm text-gray-600">{selectedTxns.length} selected</span>
-                  <button className="text-sm text-[#253A7B] hover:underline font-medium">
+                  <button className="text-sm text-[var(--theme-primary)] hover:underline font-medium">
                     Export Selected
                   </button>
                   <button className="text-sm text-red-600 hover:underline font-medium">
@@ -699,7 +699,7 @@ export default function PaymentsRevenue() {
                       <tr>
                         <td colSpan={8} className="px-4 py-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-3">
-                            <Loader2 className="w-8 h-8 text-[#253A7B] animate-spin" />
+                            <Loader2 className="w-8 h-8 text-[var(--theme-primary)] animate-spin" />
                             <p className="text-gray-600">Loading transactions...</p>
                           </div>
                         </td>
@@ -712,7 +712,7 @@ export default function PaymentsRevenue() {
                             <p className="text-red-600">{error}</p>
                             <button
                               onClick={fetchTransactions}
-                              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+                              className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition"
                             >
                               Retry
                             </button>
@@ -807,7 +807,7 @@ export default function PaymentsRevenue() {
                         disabled={loading}
                         className={`px-3 py-1.5 rounded-lg font-medium text-sm transition ${
                           currentPage === pageNum 
-                            ? 'bg-[#253A7B] text-white' 
+                            ? 'bg-[var(--theme-primary)] text-white' 
                             : 'border-2 border-gray-200 hover:bg-gray-50'
                         }`}
                       >
@@ -842,7 +842,7 @@ export default function PaymentsRevenue() {
               </div>
               <div className="h-32 flex items-end justify-between gap-1">
                 {[40, 65, 45, 80, 60, 90, 75].map((height, i) => (
-                  <div key={`bar-${height}-${i}`} className="flex-1 bg-[#253A7B] rounded-t-lg opacity-80 hover:opacity-100 transition" style={{ height: `${height}%` }} />
+                  <div key={`bar-${height}-${i}`} className="flex-1 bg-[var(--theme-primary)] rounded-t-lg opacity-80 hover:opacity-100 transition" style={{ height: `${height}%` }} />
                 ))}
               </div>
               <div className="mt-3 text-center">
@@ -861,7 +861,7 @@ export default function PaymentsRevenue() {
                       <span className="text-sm font-semibold text-gray-900">{item.percentage}%</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#253A7B]" style={{ width: `${item.percentage}%` }} />
+                      <div className="h-full bg-[var(--theme-primary)]" style={{ width: `${item.percentage}%` }} />
                     </div>
                     <p className="text-xs text-gray-600 mt-1">{formatCurrency(item.amount)}</p>
                   </div>
@@ -907,7 +907,7 @@ export default function PaymentsRevenue() {
               </div>
               <button
                 onClick={() => setShowPayoutModal(true)}
-                className="w-full px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm"
+                className="w-full px-4 py-2 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium text-sm"
               >
                 Request Payout
               </button>

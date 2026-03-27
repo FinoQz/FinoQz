@@ -31,7 +31,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({ quizData, onPreview, onExpo
           <button
             onClick={onPreview}
             title={`Preview ${quizData.title}`}
-            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
+            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)] transition font-medium text-sm flex items-center gap-2"
           >
             <Eye className="w-4 h-4" />
             Preview Quiz
@@ -39,7 +39,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({ quizData, onPreview, onExpo
 
           <button
             onClick={onExport}
-            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
+            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)] transition font-medium text-sm flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -47,7 +47,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({ quizData, onPreview, onExpo
 
           <button
             onClick={handleGenerateCertificates}
-            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
+            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)] transition font-medium text-sm flex items-center gap-2"
           >
             <Award className="w-4 h-4" />
             Generate Certificates
@@ -55,7 +55,7 @@ const DrawerHeader: React.FC<DrawerHeaderProps> = ({ quizData, onPreview, onExpo
 
           <button
             onClick={handleMessageAll}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm flex items-center gap-2 shadow-md"
+            className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium text-sm flex items-center gap-2 shadow-md"
           >
             <Mail className="w-4 h-4" />
             Message All

@@ -284,7 +284,7 @@ export default function Quizes() {
             <p className="text-red-600 mb-4">{error}</p>
             <button 
               onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+              className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition"
             >
               Retry
             </button>
@@ -344,7 +344,7 @@ export default function Quizes() {
                 <p className="text-sm text-gray-600 mb-3">{selectedQuizToBuy.category}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Total Amount</span>
-                  <span className="text-2xl font-bold text-[#253A7B]">₹{selectedQuizToBuy.price}</span>
+                  <span className="text-2xl font-bold text-[var(--theme-primary)]">₹{selectedQuizToBuy.price}</span>
                 </div>
               </div>
 
@@ -357,7 +357,7 @@ export default function Quizes() {
                   onClick={() => handlePaymentMethodSelect('upi')}
                   className={`w-full p-4 rounded-xl border-2 transition flex items-center gap-3 ${
                     selectedPaymentMethod === 'upi'
-                      ? 'border-[#253A7B] bg-blue-50'
+                      ? 'border-[var(--theme-primary)] bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -369,7 +369,7 @@ export default function Quizes() {
                     <p className="text-xs text-gray-600">Google Pay, PhonePe, Paytm</p>
                   </div>
                   {selectedPaymentMethod === 'upi' && (
-                    <CheckCircle className="w-5 h-5 text-[#253A7B]" />
+                    <CheckCircle className="w-5 h-5 text-[var(--theme-primary)]" />
                   )}
                 </button>
 
@@ -378,7 +378,7 @@ export default function Quizes() {
                   onClick={() => handlePaymentMethodSelect('card')}
                   className={`w-full p-4 rounded-xl border-2 transition flex items-center gap-3 ${
                     selectedPaymentMethod === 'card'
-                      ? 'border-[#253A7B] bg-blue-50'
+                      ? 'border-[var(--theme-primary)] bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -390,7 +390,7 @@ export default function Quizes() {
                     <p className="text-xs text-gray-600">Credit/Debit Card via PhonePe</p>
                   </div>
                   {selectedPaymentMethod === 'card' && (
-                    <CheckCircle className="w-5 h-5 text-[#253A7B]" />
+                    <CheckCircle className="w-5 h-5 text-[var(--theme-primary)]" />
                   )}
                 </button>
 
@@ -399,7 +399,7 @@ export default function Quizes() {
                   onClick={() => handlePaymentMethodSelect('wallet')}
                   className={`w-full p-4 rounded-xl border-2 transition flex items-center gap-3 ${
                     selectedPaymentMethod === 'wallet'
-                      ? 'border-[#253A7B] bg-blue-50'
+                      ? 'border-[var(--theme-primary)] bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -411,7 +411,7 @@ export default function Quizes() {
                     <p className="text-xs text-gray-600">Use your account wallet balance</p>
                   </div>
                   {selectedPaymentMethod === 'wallet' && (
-                    <CheckCircle className="w-5 h-5 text-[#253A7B]" />
+                    <CheckCircle className="w-5 h-5 text-[var(--theme-primary)]" />
                   )}
                 </button>
               </div>
@@ -420,7 +420,7 @@ export default function Quizes() {
               <button
                 onClick={handleConfirmPayment}
                 disabled={!selectedPaymentMethod}
-                className="w-full px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="w-full px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Confirm Payment
               </button>
@@ -464,7 +464,7 @@ export default function Quizes() {
               {/* Quiz Info */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-[#ffffff] bg-opacity-10 text-[#253A7B] rounded-full text-sm font-semibold">
+                  <span className="px-3 py-1 bg-[#ffffff] bg-opacity-10 text-[var(--theme-primary)] rounded-full text-sm font-semibold">
                     {selectedQuizToStart.category}
                   </span>
                   {selectedQuizToStart.price === 0 ? (
@@ -523,7 +523,7 @@ export default function Quizes() {
                 </button>
                 <button
                   onClick={handleConfirmStartQuiz}
-                  className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center justify-center gap-2"
                 >
                   <Play className="w-5 h-5" />
                   Start Quiz
@@ -550,7 +550,7 @@ export default function Quizes() {
             placeholder="Search quizzes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm"
+            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition text-sm"
           />
         </div>
 
@@ -560,7 +560,7 @@ export default function Quizes() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm bg-white cursor-pointer"
+            className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition text-sm bg-white cursor-pointer"
           >
             <option value="all">All Categories</option>
             {categories.map((cat) => (
@@ -576,7 +576,7 @@ export default function Quizes() {
               onClick={() => setPriceFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 priceFilter === 'all'
-                  ? 'bg-white text-[#253A7B] shadow-sm'
+                  ? 'bg-white text-[var(--theme-primary)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -586,7 +586,7 @@ export default function Quizes() {
               onClick={() => setPriceFilter('free')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 priceFilter === 'free'
-                  ? 'bg-white text-[#253A7B] shadow-sm'
+                  ? 'bg-white text-[var(--theme-primary)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -596,7 +596,7 @@ export default function Quizes() {
               onClick={() => setPriceFilter('paid')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 priceFilter === 'paid'
-                  ? 'bg-white text-[#253A7B] shadow-sm'
+                  ? 'bg-white text-[var(--theme-primary)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -608,7 +608,7 @@ export default function Quizes() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'newest' | 'popular')}
-            className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm bg-white cursor-pointer"
+            className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition text-sm bg-white cursor-pointer"
           >
             <option value="newest">Newest</option>
             <option value="popular">Popular</option>
@@ -618,7 +618,7 @@ export default function Quizes() {
         {/* Mobile Filter Button */}
         <button
           onClick={() => setIsMobileFilterOpen(true)}
-          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm"
+          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium text-sm"
         >
           <Filter className="w-5 h-5" />
           Filters
@@ -634,7 +634,7 @@ export default function Quizes() {
               className="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
             >
               {/* Cover Image */}
-              <div className="relative h-48 bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] overflow-hidden">
+              <div className="relative h-48 bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-secondary)] overflow-hidden">
                 {quiz.coverImage ? (
                   <img src={quiz.coverImage} alt={quiz.quizTitle} className="w-full h-full object-cover" />
                 ) : (
@@ -657,7 +657,7 @@ export default function Quizes() {
               <div className="p-5 space-y-4">
                 {/* Title & Category */}
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-[#253A7B] transition">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-[var(--theme-primary)] transition">
                     {quiz.quizTitle}
                   </h3>
                   <p className="text-sm text-gray-500">{quiz.category}</p>
@@ -692,14 +692,14 @@ export default function Quizes() {
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => handlePreviewQuiz(quiz)}
-                      className="px-3 py-1.5 border-2 border-[#253A7B] text-[#253A7B] rounded-lg hover:bg-[#253A7B] hover:text-white transition text-sm font-medium"
+                      className="px-3 py-1.5 border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] rounded-lg hover:bg-[var(--theme-primary)] hover:text-white transition text-sm font-medium"
                     >
                       Preview
                     </button>
                     {!quiz.isPurchased && (
                       <button 
                         onClick={() => handleEnrollOnly(quiz)}
-                        className="px-3 py-1.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-[#253A7B] hover:text-[#253A7B] transition text-sm font-medium"
+                        className="px-3 py-1.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)] transition text-sm font-medium"
                       >
                         {quiz.pricingType === 'free' || quiz.price === 0 ? 'Enroll' : 'Buy'}
                       </button>
@@ -709,7 +709,7 @@ export default function Quizes() {
                       disabled={!quiz.isPurchased}
                       className={`px-4 py-1.5 rounded-lg transition text-sm font-medium ${
                         quiz.isPurchased
-                          ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
+                          ? 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)]'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
@@ -742,7 +742,7 @@ export default function Quizes() {
               setSelectedCategory('all');
               setPriceFilter('all');
             }}
-            className="px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+            className="px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
           >
             Clear Filters
           </button>
@@ -776,7 +776,7 @@ export default function Quizes() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition bg-white"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition bg-white"
               >
                 <option value="all">All Categories</option>
                 {categories.map((cat) => (
@@ -795,7 +795,7 @@ export default function Quizes() {
                   onClick={() => setPriceFilter('all')}
                   className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition ${
                     priceFilter === 'all'
-                      ? 'bg-[#253A7B] text-white'
+                      ? 'bg-[var(--theme-primary)] text-white'
                       : 'bg-gray-100 text-gray-700'
                   }`}
                 >
@@ -805,7 +805,7 @@ export default function Quizes() {
                   onClick={() => setPriceFilter('free')}
                   className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition ${
                     priceFilter === 'free'
-                      ? 'bg-[#253A7B] text-white'
+                      ? 'bg-[var(--theme-primary)] text-white'
                       : 'bg-gray-100 text-gray-700'
                   }`}
                 >
@@ -815,7 +815,7 @@ export default function Quizes() {
                   onClick={() => setPriceFilter('paid')}
                   className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition ${
                     priceFilter === 'paid'
-                      ? 'bg-[#253A7B] text-white'
+                      ? 'bg-[var(--theme-primary)] text-white'
                       : 'bg-gray-100 text-gray-700'
                   }`}
                 >
@@ -830,7 +830,7 @@ export default function Quizes() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'newest' | 'popular')}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition bg-white"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition bg-white"
               >
                 <option value="newest">Newest</option>
                 <option value="popular">Popular</option>
@@ -840,7 +840,7 @@ export default function Quizes() {
             {/* Apply Button */}
             <button
               onClick={() => setIsMobileFilterOpen(false)}
-              className="w-full px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+              className="w-full px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
             >
               Apply Filters
             </button>

@@ -50,7 +50,7 @@ export default function ProfileActions({
           onClick={onSave}
           disabled={isSaving}
           aria-label="Save changes"
-          className="flex-1 sm:flex-initial px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 sm:flex-initial px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
             <span className="flex items-center gap-2">

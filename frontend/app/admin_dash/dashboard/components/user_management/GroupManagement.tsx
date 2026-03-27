@@ -234,7 +234,7 @@ export default function GroupManagement(): JSX.Element {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-700 flex items-center gap-2">
-          <Users className="w-5 h-5 text-[#253A7B]" />
+          <Users className="w-5 h-5 text-[var(--theme-primary)]" />
           Group Management
         </h2>
         <p className="text-sm text-gray-600 mt-1">Create and manage groups of users for broadcasts, permissions or segmentation.</p>
@@ -253,14 +253,14 @@ export default function GroupManagement(): JSX.Element {
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="E.g. Marketing Team, Beta Testers"
-            className="mt-2 mb-4 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+            className="mt-2 mb-4 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
           />
 
           <div className="text-sm text-gray-600 mb-2">Members (select from the list)</div>
           <div className="flex gap-2 mb-3">
             <button
               onClick={selectAllVisible}
-              className="px-3 py-2 bg-[#253A7B] text-white rounded-lg text-sm hover:opacity-95 flex items-center gap-2"
+              className="px-3 py-2 bg-[var(--theme-primary)] text-white rounded-lg text-sm hover:opacity-95 flex items-center gap-2"
             >
               <PlusCircle className="w-4 h-4" /> Select all visible
             </button>
@@ -311,7 +311,7 @@ export default function GroupManagement(): JSX.Element {
             <button
               onClick={handleCreateGroup}
               disabled={creating}
-              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {creating ? 'Creating...' : 'Create Group'}
             </button>
@@ -401,7 +401,7 @@ export default function GroupManagement(): JSX.Element {
                 <input
                   value={modalGroup.name}
                   onChange={(e) => setModalGroup((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
-                  className="mt-2 mb-4 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                  className="mt-2 mb-4 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                 />
 
                 <div className="flex items-center justify-between mb-2">
@@ -419,7 +419,7 @@ export default function GroupManagement(): JSX.Element {
                         return (
                           <li key={id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-[#EEF2FF] flex items-center justify-center text-sm font-medium text-[#253A7B]">
+                              <div className="w-9 h-9 rounded-full bg-[#EEF2FF] flex items-center justify-center text-sm font-medium text-[var(--theme-primary)]">
                                 {u ? u.fullName.split(' ').map((s) => s[0]).slice(0, 2).join('') : 'U'}
                               </div>
                               <div>
@@ -474,7 +474,7 @@ export default function GroupManagement(): JSX.Element {
 
                           <button
                             onClick={() => addSuggestedToModal(u._id)}
-                            className="px-2 py-1 text-xs bg-[#253A7B] text-white rounded-md hover:opacity-95"
+                            className="px-2 py-1 text-xs bg-[var(--theme-primary)] text-white rounded-md hover:opacity-95"
                           >
                             Add
                           </button>
@@ -488,7 +488,7 @@ export default function GroupManagement(): JSX.Element {
                   <button
                     onClick={handleSaveModalChanges}
                     disabled={modalSaving}
-                    className="px-4 py-2 bg-[#253A7B] text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {modalSaving ? 'Saving...' : 'Save changes'}
                   </button>

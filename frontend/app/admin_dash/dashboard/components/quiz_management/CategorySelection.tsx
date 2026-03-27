@@ -136,13 +136,13 @@ export default function CategorySelection({
                 onKeyDown={(e) => e.key === 'Enter' && onSelectCategory(id)}
                 className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 group ${
                   isSelected
-                    ? 'border-[#253A7B] bg-white shadow-md'
+                    ? 'border-[var(--theme-primary)] bg-white shadow-md'
                     : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                 }`}
               >
                 {/* Check icon if selected */}
                 {isSelected && (
-                  <div className="absolute top-3 right-10 w-6 h-6 bg-[#253A7B] rounded-full flex items-center justify-center">
+                  <div className="absolute top-3 right-10 w-6 h-6 bg-[var(--theme-primary)] rounded-full flex items-center justify-center">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                 )}
@@ -163,7 +163,7 @@ export default function CategorySelection({
                 </button>
                 <h3
                   className={`font-semibold text-lg mb-1 ${
-                    isSelected ? 'text-[#253A7B]' : 'text-gray-900'
+                    isSelected ? 'text-[var(--theme-primary)]' : 'text-gray-900'
                   }`}
                 >
                   {category.name}
@@ -176,7 +176,7 @@ export default function CategorySelection({
           {/* Add New Category Card */}
           <div
             className={`p-5 rounded-xl border-2 border-dashed transition-all duration-300 ${
-              showForm ? 'border-[#253A7B]' : 'border-gray-300 hover:border-gray-400'
+              showForm ? 'border-[var(--theme-primary)]' : 'border-gray-300 hover:border-gray-400'
             }`}
           >
             {showForm ? (
@@ -200,7 +200,7 @@ export default function CategorySelection({
                   disabled={!customName.trim() || !customDesc.trim()}
                   className={`w-full py-2 rounded text-sm transition ${
                     customName.trim() && customDesc.trim()
-                      ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
+                      ? 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)]'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -210,7 +210,7 @@ export default function CategorySelection({
             ) : (
               <button
                 onClick={() => setShowForm(true)}
-                className="w-full h-full flex flex-col items-center justify-center text-gray-600 hover:text-[#253A7B] transition"
+                className="w-full h-full flex flex-col items-center justify-center text-gray-600 hover:text-[var(--theme-primary)] transition"
               >
                 <PlusCircle className="w-6 h-6 mb-1" />
                 <span className="text-sm font-medium">Add New Category</span>

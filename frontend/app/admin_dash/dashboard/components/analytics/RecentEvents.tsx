@@ -20,7 +20,7 @@ export default function RecentEvents({ events }: RecentEventsProps) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <Activity className="w-5 h-5 text-[#253A7B]" />
+          <Activity className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">Recent Analytics Events</h3>
         </div>
         <p className="text-sm text-gray-500">No recent events available.</p>
@@ -40,7 +40,7 @@ export default function RecentEvents({ events }: RecentEventsProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <Activity className="w-5 h-5 text-[#253A7B]" />
+        <Activity className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-sm font-semibold text-gray-700">Recent Analytics Events</h3>
       </div>
 
@@ -52,7 +52,7 @@ export default function RecentEvents({ events }: RecentEventsProps) {
               {/* Timeline line */}
               <div className="relative flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-[#253A7B]" />
+                  <Icon className="w-4 h-4 text-[var(--theme-primary)]" />
                 </div>
                 {index < events.length - 1 && (
                   <div className="w-0.5 h-full bg-gray-200 absolute top-8"></div>

@@ -39,7 +39,7 @@ export default function UserGrowthChart({ data }: UserGrowthChartProps) {
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#253A7B]" />
+          <TrendingUp className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">User Growth Over Time</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function UserGrowthChart({ data }: UserGrowthChartProps) {
             onClick={() => setActiveChart('users')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeChart === 'users'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -57,7 +57,7 @@ export default function UserGrowthChart({ data }: UserGrowthChartProps) {
             onClick={() => setActiveChart('attempts')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeChart === 'attempts'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -67,7 +67,7 @@ export default function UserGrowthChart({ data }: UserGrowthChartProps) {
             onClick={() => setActiveChart('revenue')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
               activeChart === 'revenue'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -102,7 +102,7 @@ export default function UserGrowthChart({ data }: UserGrowthChartProps) {
                     </div>
                     {/* Area fill */}
                     <div
-                      className="w-full bg-gradient-to-t from-[#253A7B]/20 to-[#253A7B]/5 rounded-t transition-all duration-300 hover:from-[#253A7B]/30"
+                      className="w-full bg-gradient-to-t from-[var(--theme-primary)]/20 to-[var(--theme-primary)]/5 rounded-t transition-all duration-300 hover:from-[var(--theme-primary)]/30"
                       style={{ height: `${height}%` }}
                     />
                   </div>

@@ -122,7 +122,7 @@ export default function MyQuiz() {
       );
     } else {
       return (
-        <button className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium text-sm flex items-center gap-2">
+        <button className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium text-sm flex items-center gap-2">
           <Play className="w-4 h-4" />
           Start Quiz
         </button>
@@ -147,7 +147,7 @@ export default function MyQuiz() {
     return (
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B]"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)]"></div>
         </div>
       </div>
     );
@@ -193,7 +193,7 @@ export default function MyQuiz() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Avg Score</p>
-              <p className="text-2xl font-bold text-[#253A7B] mt-1">
+              <p className="text-2xl font-bold text-[var(--theme-primary)] mt-1">
                 {quizzes.filter(q => q.bestScore !== null).length > 0
                   ? Math.round(
                       quizzes
@@ -204,8 +204,8 @@ export default function MyQuiz() {
                   : 0}%
               </p>
             </div>
-            <div className="w-12 h-12 bg-[#253A7B]/10 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-[#253A7B]" />
+            <div className="w-12 h-12 bg-[var(--theme-primary)]/10 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-[var(--theme-primary)]" />
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function MyQuiz() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="not-started">Not Started</option>
@@ -238,7 +238,7 @@ export default function MyQuiz() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent"
             >
               <option value="all">All Categories</option>
               {getCategories().map(cat => (
@@ -297,7 +297,7 @@ export default function MyQuiz() {
                       </span>
                       
                       {quiz.bestScore !== null && (
-                        <span className="flex items-center gap-1 text-sm font-semibold text-[#253A7B]">
+                        <span className="flex items-center gap-1 text-sm font-semibold text-[var(--theme-primary)]">
                           <Trophy className="w-4 h-4" />
                           Best: {quiz.bestScore}%
                         </span>

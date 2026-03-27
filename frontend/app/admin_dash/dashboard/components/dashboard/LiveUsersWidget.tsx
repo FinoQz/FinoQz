@@ -82,7 +82,7 @@ export default function LiveUsersWidget() {
   if (loading) {
     // Simple skeleton loader
     return (
-      <div className="bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] rounded-2xl p-6 border border-gray-200 shadow-lg animate-pulse min-h-[200px] flex flex-col justify-center items-center">
+      <div className="bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-secondary)] rounded-2xl p-6 border border-gray-200 shadow-lg animate-pulse min-h-[200px] flex flex-col justify-center items-center">
         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
           <Users className="w-8 h-8 text-white opacity-60" />
         </div>
@@ -99,7 +99,7 @@ export default function LiveUsersWidget() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
+    <div className="bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-secondary)] rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-2">

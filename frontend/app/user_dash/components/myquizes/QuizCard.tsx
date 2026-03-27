@@ -51,7 +51,7 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
       return {
         label: 'Start Quiz',
         action: 'start' as const,
-        style: 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]',
+        style: 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)]',
       };
     }
     if (quiz.progress && quiz.progress < 100) {
@@ -64,7 +64,7 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
     return {
       label: 'View Result',
       action: 'view' as const,
-      style: 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]',
+      style: 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)]',
     };
   };
 
@@ -76,7 +76,7 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
       {/* Header with Category Badge */}
       <div className="p-5 border-b border-gray-100">
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#253A7B] transition flex-1">
+          <h3 className="text-lg font-bold text-gray-900 group-hover:text-[var(--theme-primary)] transition flex-1">
             {quiz.title}
           </h3>
           <span className="inline-block text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold ml-2">
@@ -157,7 +157,7 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
           {quiz.isAttempted && quiz.progress === 100 && (
             <button
               onClick={() => onAction(quiz.id, 'retake')}
-              className="px-4 py-2.5 border-2 border-[#253A7B] text-[#253A7B] rounded-xl hover:bg-[#253A7B] hover:text-white transition font-medium"
+              className="px-4 py-2.5 border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] rounded-xl hover:bg-[var(--theme-primary)] hover:text-white transition font-medium"
             >
               Retake
             </button>

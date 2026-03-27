@@ -64,7 +64,7 @@ export default function ResultModal({
   const getStatusIcon = (status: 'correct' | 'wrong' | 'skipped') => {
     switch (status) {
       case 'correct':
-        return <CheckCircle className="w-4 h-4 text-[#253A7B]" />;
+        return <CheckCircle className="w-4 h-4 text-[var(--theme-primary)]" />;
       case 'wrong':
         return <XCircle className="w-4 h-4 text-gray-500" />;
       case 'skipped':
@@ -76,7 +76,7 @@ export default function ResultModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-2 border-gray-200">
         {/* Header */}
-        <div className="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-[#253A7B] to-[#1e3166]">
+        <div className="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-[var(--theme-primary)] to-[#1e3166]">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white mb-2">Quiz Result</h2>
@@ -100,7 +100,7 @@ export default function ResultModal({
           <div className="text-center py-8 bg-white rounded-2xl border-2 border-gray-200">
             <div className="mb-6">
               <p className="text-sm text-gray-600 font-medium mb-3">Your Score</p>
-              <p className="text-6xl font-bold text-[#253A7B]">
+              <p className="text-6xl font-bold text-[var(--theme-primary)]">
                 {score} <span className="text-4xl text-gray-400">/ {totalQuestions}</span>
               </p>
             </div>
@@ -108,7 +108,7 @@ export default function ResultModal({
             {/* Pass/Fail Badge */}
             <div className="inline-flex items-center gap-2 mb-6">
               {passed ? (
-                <span className="flex items-center gap-2 text-[#253A7B] bg-blue-50 px-6 py-2 rounded-full font-semibold border-2 border-[#253A7B]">
+                <span className="flex items-center gap-2 text-[var(--theme-primary)] bg-blue-50 px-6 py-2 rounded-full font-semibold border-2 border-[var(--theme-primary)]">
                   <CheckCircle className="w-5 h-5" />
                   Passed
                 </span>
@@ -136,7 +136,7 @@ export default function ResultModal({
                     cx="80"
                     cy="80"
                     r="70"
-                    stroke="#253A7B"
+                    stroke="var(--theme-primary)"
                     strokeWidth="10"
                     fill="none"
                     strokeDasharray={`${2 * Math.PI * 70}`}
@@ -145,7 +145,7 @@ export default function ResultModal({
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-[#253A7B]">{percentage}%</span>
+                  <span className="text-3xl font-bold text-[var(--theme-primary)]">{percentage}%</span>
                 </div>
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function ResultModal({
             </div>
             <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-lg transition">
               <p className="text-xs text-gray-600 mb-2 font-medium">Correct</p>
-              <p className="text-3xl font-bold text-[#253A7B]">{correctAnswers}</p>
+              <p className="text-3xl font-bold text-[var(--theme-primary)]">{correctAnswers}</p>
             </div>
             <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-lg transition">
               <p className="text-xs text-gray-600 mb-2 font-medium">Wrong</p>
@@ -177,7 +177,7 @@ export default function ResultModal({
           {/* Legend */}
           <div className="flex items-center justify-center gap-8 text-sm py-4">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#253A7B] border-2 border-gray-200"></div>
+              <div className="w-4 h-4 rounded-full bg-[var(--theme-primary)] border-2 border-gray-200"></div>
               <span className="text-gray-700 font-medium">Correct</span>
             </div>
             <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function ResultModal({
             {rank && (
               <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center">
                 <p className="text-sm text-gray-600 mb-1">Your Rank</p>
-                <p className="text-xl font-bold text-[#253A7B]">{rank}</p>
+                <p className="text-xl font-bold text-[var(--theme-primary)]">{rank}</p>
               </div>
             )}
             {attemptsUsed && totalAttempts && (
@@ -236,11 +236,11 @@ export default function ResultModal({
                     </div>
                     <div className="flex-1">
                       {q.status === 'correct' ? (
-                        <p className="text-sm text-[#253A7B] font-semibold">Marked correct</p>
+                        <p className="text-sm text-[var(--theme-primary)] font-semibold">Marked correct</p>
                       ) : q.status === 'wrong' ? (
                         <p className="text-sm text-gray-700">
                           Your answer: <span className="font-semibold">{q.userAnswer}</span> • 
-                          Correct: <span className="font-semibold text-[#253A7B]">{q.correctAnswer}</span>
+                          Correct: <span className="font-semibold text-[var(--theme-primary)]">{q.correctAnswer}</span>
                         </p>
                       ) : (
                         <p className="text-sm text-gray-500 font-medium">Not answered</p>
@@ -255,15 +255,15 @@ export default function ResultModal({
 
           {/* View Correct Answers Link */}
           <div className="text-center">
-            <button className="text-sm text-[#253A7B] hover:underline font-semibold">
+            <button className="text-sm text-[var(--theme-primary)] hover:underline font-semibold">
               View correct answers in detail →
             </button>
           </div>
 
           {/* Certificate Section */}
           {passed ? (
-            <div className="bg-gradient-to-br from-blue-50 to-gray-50 border-2 border-[#253A7B] rounded-2xl p-6 text-center">
-              <Award className="w-16 h-16 text-[#253A7B] mx-auto mb-4" />
+            <div className="bg-gradient-to-br from-blue-50 to-gray-50 border-2 border-[var(--theme-primary)] rounded-2xl p-6 text-center">
+              <Award className="w-16 h-16 text-[var(--theme-primary)] mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Congratulations! 🎉
               </h3>
@@ -273,14 +273,14 @@ export default function ResultModal({
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={onDownloadCertificate}
-                  className="flex items-center gap-2 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-semibold shadow-lg"
+                  className="flex items-center gap-2 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-semibold shadow-lg"
                 >
                   <Download className="w-5 h-5" />
                   Download Certificate
                 </button>
                 <button
                   onClick={onViewCertificatePreview}
-                  className="flex items-center gap-2 px-6 py-3 border-2 border-[#253A7B] text-[#253A7B] rounded-xl hover:bg-[#253A7B] hover:text-white transition font-semibold"
+                  className="flex items-center gap-2 px-6 py-3 border-2 border-[var(--theme-primary)] text-[var(--theme-primary)] rounded-xl hover:bg-[var(--theme-primary)] hover:text-white transition font-semibold"
                 >
                   <Eye className="w-5 h-5" />
                   View Preview
@@ -307,7 +307,7 @@ export default function ResultModal({
           {canRetake && (
             <button
               onClick={onRetake}
-              className="w-full sm:w-auto px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-semibold shadow-lg"
+              className="w-full sm:w-auto px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-semibold shadow-lg"
             >
               Retake Quiz
             </button>

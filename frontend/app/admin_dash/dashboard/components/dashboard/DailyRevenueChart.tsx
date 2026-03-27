@@ -42,12 +42,12 @@ const DailyRevenueChart: React.FC = () => {
       <div className="flex items-center gap-3 mb-3 sm:mb-4">
         <div className="p-2 sm:p-2 bg-[#e6eafd] rounded-lg">
           {/* Trending up chart icon */}
-          <svg className="w-5 h-5 sm:w-5 sm:h-5 text-[#253A7B]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <polyline points="3 17 9 11 13 15 21 7" stroke="#253A7B" strokeWidth="2" fill="none" />
-            <circle cx="3" cy="17" r="1.5" fill="#253A7B" />
-            <circle cx="9" cy="11" r="1.5" fill="#253A7B" />
-            <circle cx="13" cy="15" r="1.5" fill="#253A7B" />
-            <circle cx="21" cy="7" r="1.5" fill="#253A7B" />
+          <svg className="w-5 h-5 sm:w-5 sm:h-5 text-[var(--theme-primary)]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <polyline points="3 17 9 11 13 15 21 7" stroke="var(--theme-primary)" strokeWidth="2" fill="none" />
+            <circle cx="3" cy="17" r="1.5" fill="var(--theme-primary)" />
+            <circle cx="9" cy="11" r="1.5" fill="var(--theme-primary)" />
+            <circle cx="13" cy="15" r="1.5" fill="var(--theme-primary)" />
+            <circle cx="21" cy="7" r="1.5" fill="var(--theme-primary)" />
           </svg>
         </div>
         <h3 className="text-base sm:text-lg font-bold text-gray-800">Daily Revenue (Last 14 Days)</h3>
@@ -63,7 +63,7 @@ const DailyRevenueChart: React.FC = () => {
                 ₹{revenue.toLocaleString()}
               </div>
               <div
-                className="w-full bg-gradient-to-t from-[#253A7B] to-[#4a6bb5] rounded-t hover:from-[#1a2a5e] hover:to-[#253A7B] transition-all duration-300 cursor-pointer"
+                className="w-full bg-gradient-to-t from-[var(--theme-primary)] to-[#4a6bb5] rounded-t hover:from-[var(--theme-secondary)] hover:to-[var(--theme-primary)] transition-all duration-300 cursor-pointer"
                 style={{
                   height: `${(revenue / maxRevenue) * 320}px`,
                 }}

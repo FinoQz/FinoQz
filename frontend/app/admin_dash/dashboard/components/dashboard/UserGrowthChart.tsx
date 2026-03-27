@@ -49,7 +49,7 @@ const UserGrowthChart: React.FC<UserGrowthChartProps> = ({ userData, days, loadi
       <div className="flex items-center gap-3 mb-3 sm:mb-4">
         <div className="p-2 sm:p-2 bg-[#e6eafd] rounded-lg">
           {/* User/group icon instead of calendar */}
-          <svg className="w-5 h-5 sm:w-5 sm:h-5 text-[#253A7B]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 sm:w-5 sm:h-5 text-[var(--theme-primary)]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <circle cx="9" cy="7" r="4" />
             <path d="M17 11a4 4 0 1 1 0 8" />
             <path d="M3 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2" />

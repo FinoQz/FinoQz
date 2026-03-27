@@ -207,7 +207,7 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
           <div className="flex gap-3">
             <button
               onClick={onExit}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
             >
               Back to Quizzes
             </button>
@@ -241,7 +241,7 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
             </button>
             <button
               onClick={handleSubmitConfirm}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
             >
               Submit
             </button>
@@ -291,7 +291,7 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="px-3 py-1 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-lg text-sm font-medium">
+                    <span className="px-3 py-1 bg-[var(--theme-primary)] bg-opacity-10 text-[var(--theme-primary)] rounded-lg text-sm font-medium">
                       Question {currentQuestionIndex + 1}
                     </span>
                     <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
@@ -321,14 +321,14 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
                     onClick={() => handleAnswerSelect(index)}
                     className={`w-full p-4 rounded-xl border-2 text-left transition ${
                       answers[currentQuestion.id] === index
-                        ? 'border-[#253A7B] bg-white'
+                        ? 'border-[var(--theme-primary)] bg-white'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                         answers[currentQuestion.id] === index
-                          ? 'border-[#253A7B] bg-[#253A7B]'
+                          ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]'
                           : 'border-gray-300'
                       }`}>
                         {answers[currentQuestion.id] === index && (
@@ -366,7 +366,7 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
               ) : (
                 <button
                   onClick={handleNext}
-                  className="px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2"
+                  className="px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center gap-2"
                 >
                   Next
                   <ArrowRight className="w-5 h-5" />
@@ -402,7 +402,7 @@ export default function QuizAttempt({ quizData, onExit, onSubmit }: QuizAttemptP
                       onClick={() => handleQuestionNavigate(index)}
                       className={`aspect-square rounded-lg font-semibold text-sm transition ${
                         currentQuestionIndex === index
-                          ? 'bg-[#253A7B] text-white ring-2 ring-[#253A7B] ring-offset-2'
+                          ? 'bg-[var(--theme-primary)] text-white ring-2 ring-[var(--theme-primary)] ring-offset-2'
                           : status === 'answered'
                           ? 'bg-green-100 text-green-700 hover:bg-green-200'
                           : status === 'flagged'

@@ -166,7 +166,7 @@ export default function ParticipantsTable({
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)] mx-auto mb-4"></div>
             <p className="text-gray-600">Loading participants...</p>
           </div>
         </div>
@@ -194,13 +194,13 @@ export default function ParticipantsTable({
                       type="checkbox"
                       checked={selectedParticipants.length === participants.length}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 accent-[#253A7B] cursor-pointer"
+                      className="w-4 h-4 accent-[var(--theme-primary)] cursor-pointer"
                     />
                   </th>
                   <th className="py-4 px-6 text-left">
                     <button
                       onClick={() => handleSort('name')}
-                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
+                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[var(--theme-primary)] transition"
                     >
                       Name
                       <ArrowUpDown className="w-3 h-3" />
@@ -211,7 +211,7 @@ export default function ParticipantsTable({
                   <th className="py-4 px-6 text-left">
                     <button
                       onClick={() => handleSort('registrationDate')}
-                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
+                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[var(--theme-primary)] transition"
                     >
                       Registration
                       <ArrowUpDown className="w-3 h-3" />
@@ -222,7 +222,7 @@ export default function ParticipantsTable({
                   <th className="py-4 px-6 text-left">
                     <button
                       onClick={() => handleSort('score')}
-                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
+                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[var(--theme-primary)] transition"
                     >
                       Score
                       <ArrowUpDown className="w-3 h-3" />
@@ -245,7 +245,7 @@ export default function ParticipantsTable({
                         type="checkbox"
                         checked={selectedParticipants.includes(participant.id)}
                         onChange={(e) => handleSelectOne(participant.id, e.target.checked)}
-                        className="w-4 h-4 accent-[#253A7B] cursor-pointer"
+                        className="w-4 h-4 accent-[var(--theme-primary)] cursor-pointer"
                       />
                     </td>
                     <td className="py-4 px-6">

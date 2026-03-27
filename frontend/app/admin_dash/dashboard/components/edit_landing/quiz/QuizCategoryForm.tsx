@@ -69,8 +69,8 @@ export default function QuizCategoryForm({ onSelectCategory }: QuizCategoryFormP
             onClick={() => handleSelect(cat._id)}
             className={`px-4 py-2 rounded border text-sm ${
               selected === cat._id
-                ? 'bg-[#253A7B] text-white border-[#253A7B]'
-                : 'border-gray-300 text-gray-700 hover:border-[#253A7B]'
+                ? 'bg-[var(--theme-primary)] text-white border-[var(--theme-primary)]'
+                : 'border-gray-300 text-gray-700 hover:border-[var(--theme-primary)]'
             }`}
           >
             {cat.name}
@@ -89,7 +89,7 @@ export default function QuizCategoryForm({ onSelectCategory }: QuizCategoryFormP
         <button
           onClick={handleAddCategory}
           disabled={loading}
-          className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] transition text-sm disabled:opacity-50"
+          className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm disabled:opacity-50"
         >
           <Plus className="w-4 h-4 inline mr-1" />
           {loading ? 'Adding...' : 'Add'}

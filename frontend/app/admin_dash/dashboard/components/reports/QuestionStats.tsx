@@ -22,7 +22,7 @@ export default function QuestionStats({
       {/* Score Distribution Chart */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-[#253A7B]" />
+          <BarChart3 className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">Score Distribution</h3>
         </div>
         <div className="space-y-3">
@@ -34,7 +34,7 @@ export default function QuestionStats({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-[#253A7B] h-2 rounded-full transition-all"
+                  className="bg-[var(--theme-primary)] h-2 rounded-full transition-all"
                   style={{ width: `${(item.count / maxCount) * 100}%` }}
                 />
               </div>
@@ -46,7 +46,7 @@ export default function QuestionStats({
       {/* Question-wise Accuracy */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-[#253A7B]" />
+          <BarChart3 className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">Question-wise Accuracy</h3>
         </div>
         <div className="space-y-3">
@@ -58,7 +58,7 @@ export default function QuestionStats({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-[#253A7B] h-2 rounded-full transition-all"
+                  className="bg-[var(--theme-primary)] h-2 rounded-full transition-all"
                   style={{ width: `${item.accuracy}%` }}
                 />
               </div>
@@ -70,7 +70,7 @@ export default function QuestionStats({
       {/* Most Missed Questions */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle className="w-5 h-5 text-[#253A7B]" />
+          <AlertTriangle className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">Top 5 Most Missed</h3>
         </div>
         <div className="space-y-3">

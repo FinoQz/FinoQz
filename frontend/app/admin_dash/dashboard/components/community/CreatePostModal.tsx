@@ -108,7 +108,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Enter an engaging title..."
             />
             {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
@@ -124,7 +124,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition bg-white"
               >
                 <option value="Announcements">Announcements</option>
                 <option value="Discussions">Discussions</option>
@@ -141,7 +141,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 placeholder="finance, investment, tips"
               />
             </div>
@@ -184,7 +184,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Attachments
             </label>
-            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-[#253A7B] transition cursor-pointer">
+            <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-[var(--theme-primary)] transition cursor-pointer">
               <Upload className="w-5 h-5 text-gray-600" />
               <span className="text-sm text-gray-600">Upload images, PDFs, or video links</span>
               <input
@@ -221,7 +221,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                     value="public"
                     checked={visibility === 'public'}
                     onChange={(e) => setVisibility(e.target.value as "public" | "members" | "admin")}
-                    className="w-4 h-4 text-[#253A7B]"
+                    className="w-4 h-4 text-[var(--theme-primary)]"
                   />
                   <Globe className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-900">Public</span>
@@ -233,7 +233,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                     value="members"
                     checked={visibility === 'members'}
                     onChange={(e) => setVisibility(e.target.value as "public" | "members" | "admin")}
-                    className="w-4 h-4 text-[#253A7B]"
+                    className="w-4 h-4 text-[var(--theme-primary)]"
                   />
                   <Users className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-900">Members Only</span>
@@ -245,7 +245,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                     value="admin"
                     checked={visibility === 'admin'}
                     onChange={(e) => setVisibility(e.target.value as "public" | "members" | "admin")}
-                    className="w-4 h-4 text-[#253A7B]"
+                    className="w-4 h-4 text-[var(--theme-primary)]"
                   />
                   <Lock className="w-4 h-4 text-gray-600" />
                   <span className="text-sm text-gray-900">Admin Only</span>
@@ -263,7 +263,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
                   type="datetime-local"
                   value={scheduleDate}
                   onChange={(e) => setScheduleDate(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
               <p className="text-xs text-gray-600 mt-2">
@@ -289,7 +289,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit, editPost }:
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md"
+            className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md"
           >
             {editPost ? 'Update Post' : 'Publish Post'}
           </button>

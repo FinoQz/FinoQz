@@ -60,7 +60,7 @@ export default function FlagQueue({ flaggedPosts, onApprove, onReject, onView }:
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => onView(post.id)}
-                  className="p-1.5 hover:bg-blue-50 rounded-lg transition text-[#253A7B]"
+                  className="p-1.5 hover:bg-blue-50 rounded-lg transition text-[var(--theme-primary)]"
                   title="View Details"
                 >
                   <Eye className="w-4 h-4" />

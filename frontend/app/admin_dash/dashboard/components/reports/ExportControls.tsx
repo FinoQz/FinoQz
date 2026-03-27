@@ -34,7 +34,7 @@ export default function ExportControls({ onExportCSV, onExportXLSX }: ExportCont
         </button>
         <button
           onClick={() => setShowPDFModal(true)}
-          className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 shadow-sm"
+          className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium flex items-center gap-2 shadow-sm"
         >
           <FileText className="w-4 h-4" />
           Generate PDF Report
@@ -64,7 +64,7 @@ export default function ExportControls({ onExportCSV, onExportXLSX }: ExportCont
                   onChange={(e) =>
                     setPdfOptions({ ...pdfOptions, includeAnswers: e.target.checked })
                   }
-                  className="w-4 h-4 text-[#253A7B] border-gray-300 rounded focus:ring-[#253A7B]"
+                  className="w-4 h-4 text-[var(--theme-primary)] border-gray-300 rounded focus:ring-[var(--theme-primary)]"
                 />
                 <span className="text-sm text-gray-700">Include answers in report</span>
               </label>
@@ -77,7 +77,7 @@ export default function ExportControls({ onExportCSV, onExportXLSX }: ExportCont
                   onChange={(e) =>
                     setPdfOptions({ ...pdfOptions, includePII: e.target.checked })
                   }
-                  className="w-4 h-4 text-[#253A7B] border-gray-300 rounded focus:ring-[#253A7B]"
+                  className="w-4 h-4 text-[var(--theme-primary)] border-gray-300 rounded focus:ring-[var(--theme-primary)]"
                 />
                 <span className="text-sm text-gray-700">Include user PII (email, phone)</span>
               </label>
@@ -90,7 +90,7 @@ export default function ExportControls({ onExportCSV, onExportXLSX }: ExportCont
                 <select
                   value={pdfOptions.dateRange}
                   onChange={(e) => setPdfOptions({ ...pdfOptions, dateRange: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
                 >
                   <option value="7">Last 7 days</option>
                   <option value="30">Last 30 days</option>
@@ -107,7 +107,7 @@ export default function ExportControls({ onExportCSV, onExportXLSX }: ExportCont
                 <select
                   value={pdfOptions.format}
                   onChange={(e) => setPdfOptions({ ...pdfOptions, format: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
                 >
                   <option value="summary">Summary Report</option>
                   <option value="detailed">Detailed Report</option>
@@ -132,7 +132,7 @@ export default function ExportControls({ onExportCSV, onExportXLSX }: ExportCont
               </button>
               <button
                 onClick={handleGeneratePDF}
-                className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium"
+                className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium"
               >
                 Generate PDF
               </button>

@@ -21,7 +21,7 @@ export default function Leaderboard({ topPerformers }: LeaderboardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
-        <Trophy className="w-5 h-5 text-[#253A7B]" />
+        <Trophy className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-sm font-semibold text-gray-700">Top 5 Performers</h3>
       </div>
       
@@ -37,7 +37,7 @@ export default function Leaderboard({ topPerformers }: LeaderboardProps) {
             </div>
 
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#253A7B] to-blue-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--theme-primary)] to-blue-400 flex items-center justify-center text-white font-semibold flex-shrink-0">
               {performer.avatar}
             </div>
 
@@ -47,7 +47,7 @@ export default function Leaderboard({ topPerformers }: LeaderboardProps) {
                 {performer.userName}
               </p>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-xs font-medium text-[#253A7B]">
+                <span className="text-xs font-medium text-[var(--theme-primary)]">
                   {performer.score}/{performer.totalScore} ({performer.percentage}%)
                 </span>
                 <span className="text-xs text-gray-600 flex items-center gap-1">

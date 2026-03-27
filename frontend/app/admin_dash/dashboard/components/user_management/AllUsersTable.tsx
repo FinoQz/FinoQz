@@ -770,7 +770,7 @@ export default function AllUsersTable() {
 
       {/* Export */}
       <div className="bg-white rounded-2xl p-6 border border-blue-200 shadow-lg">
-        <h3 className="text-sm font-semibold text-[#253A7B] mb-4">
+        <h3 className="text-sm font-semibold text-[var(--theme-primary)] mb-4">
           Export Users Data
         </h3>
 
@@ -793,7 +793,7 @@ export default function AllUsersTable() {
 
           <button
             onClick={handleExportJSON}
-            className="flex items-center gap-2 px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1e2f63] hover:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[#1e2f63] hover:shadow-lg transition-all duration-300"
           >
             <Download className="w-4 h-4" />
             Export to JSON
