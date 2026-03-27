@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import apiAdmin from '@/lib/apiAdmin';
+import { useTheme } from '@/context/ThemeProvider';
 import { 
   LayoutDashboard, 
   Users, 
@@ -15,7 +16,8 @@ import {
   LogOut,
   X,
   Image as ImageIcon,
-  Star
+  Star,
+  Palette
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +32,7 @@ const menuItems = [
   { id: 'users', label: 'User Management', icon: Users },
   { id: 'quiz', label: 'Quiz Management', icon: BookOpen },
   { id: 'landing', label: 'Landing Page', icon: ImageIcon },
+  { id: 'theme', label: 'Theme Management', icon: Palette },
   { id: 'content', label: 'Finance Content', icon: FileText },
   {id: 'financeContent', label: 'Finance Management', icon: FileText },
   { id: 'revenue', label: 'Payments & Revenue', icon: DollarSign },
@@ -42,6 +45,7 @@ const menuItems = [
 ];
 
 export default function DashboardSidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
+const { theme: currentTheme } = useTheme();
 const handleLogout = async () => {
   try {
     await apiAdmin.post('/api/admin/logout', {}, { withCredentials: true });
@@ -51,6 +55,8 @@ const handleLogout = async () => {
     window.location.href = '/landing';
   }
 };
+
+const logoSrc = currentTheme.logoUrl || '/finoqz.ico';
 
 
 
@@ -82,11 +88,12 @@ const handleLogout = async () => {
         <div className="p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <Image 
-              src="/finoqz.ico" 
+              src={logoSrc}
               alt="FinoQz Logo" 
               width={48} 
               height={48} 
               className="rounded-lg"
+              unoptimized
             />
             <div>
               <h1 className="text-[1.25rem] font-semibold text-black tracking-wide">FinoQz</h1>

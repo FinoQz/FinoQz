@@ -3,6 +3,15 @@
   max-width: 100%;
   justify-content: center;
 }
+
+/* Theme CSS custom properties (overridden at runtime by ThemeProvider) */
+:root {
+  --theme-primary: #253A7B;
+  --theme-secondary: #1a2a5e;
+  --theme-accent: #3B82F6;
+  --theme-bg: #f9fafb;
+  --theme-text: #111827;
+}
 .otp-input {
   font-size: 1.25rem;
 }
