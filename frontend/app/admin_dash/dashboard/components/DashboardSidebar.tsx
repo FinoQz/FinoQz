@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import apiAdmin from '@/lib/apiAdmin';
+import { useTheme } from '@/context/ThemeProvider';
 import { 
   LayoutDashboard, 
   Users, 
@@ -15,7 +16,8 @@ import {
   LogOut,
   X,
   Image as ImageIcon,
-  Star
+  Star,
+  Palette
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +32,7 @@ const menuItems = [
   { id: 'users', label: 'User Management', icon: Users },
   { id: 'quiz', label: 'Quiz Management', icon: BookOpen },
   { id: 'landing', label: 'Landing Page', icon: ImageIcon },
+  { id: 'theme', label: 'Theme Management', icon: Palette },
   { id: 'content', label: 'Finance Content', icon: FileText },
   {id: 'financeContent', label: 'Finance Management', icon: FileText },
   { id: 'revenue', label: 'Payments & Revenue', icon: DollarSign },
@@ -42,6 +45,7 @@ const menuItems = [
 ];
 
 export default function DashboardSidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
+const { theme: currentTheme } = useTheme();
 const handleLogout = async () => {
   try {
     await apiAdmin.post('/api/admin/logout', {}, { withCredentials: true });
@@ -51,6 +55,8 @@ const handleLogout = async () => {
     window.location.href = '/landing';
   }
 };
+
+const logoSrc = currentTheme.logoUrl || '/finoqz.ico';
 
 
 
@@ -75,18 +81,19 @@ const handleLogout = async () => {
           onClick={onClose}
           className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 transition"
         >
-          <X className="w-6 h-6 text-[#253A7B]" />
+          <X className="w-6 h-6 text-[var(--theme-primary)]" />
         </button>
 
         {/* Logo/Brand */}
         <div className="p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <Image 
-              src="/finoqz.ico" 
+              src={logoSrc}
               alt="FinoQz Logo" 
               width={48} 
               height={48} 
               className="rounded-lg"
+              unoptimized
             />
             <div>
               <h1 className="text-[1.25rem] font-semibold text-black tracking-wide">FinoQz</h1>
@@ -110,7 +117,7 @@ const handleLogout = async () => {
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
                       isActive
-                        ? 'bg-[#253A7B] text-white shadow-md'
+                        ? 'bg-[var(--theme-primary)] text-white shadow-md'
                         : 'text-gray-700 hover:bg-white hover:shadow-sm'
                     }`}
                   >

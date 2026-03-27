@@ -23,14 +23,14 @@ export default function WalletPage() {
       </div>
 
       {/* Balance Card */}
-      <div className="bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] rounded-2xl p-8 mb-6 shadow-xl">
+      <div className="bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-secondary)] rounded-2xl p-8 mb-6 shadow-xl">
         <div className="flex items-center gap-3 mb-4">
           <Wallet className="w-8 h-8 text-white" />
           <h2 className="text-xl font-semibold text-white">Available Balance</h2>
         </div>
         <div className="text-5xl font-bold text-white mb-4">₹2,450</div>
         <div className="flex gap-3">
-          <button className="px-6 py-3 bg-white text-[#253A7B] rounded-xl font-semibold hover:bg-gray-100 transition">
+          <button className="px-6 py-3 bg-white text-[var(--theme-primary)] rounded-xl font-semibold hover:bg-gray-100 transition">
             Add Money
           </button>
           <button className="px-6 py-3 bg-white/20 text-white rounded-xl font-semibold hover:bg-white/30 transition">

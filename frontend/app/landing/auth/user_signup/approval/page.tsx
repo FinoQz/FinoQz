@@ -54,7 +54,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import BrandLogo from '@/components/BrandLogo';
 import ApprovalCard from './components/ApprovalCard';
 import apiUser from '@/lib/apiUser';
 
@@ -89,12 +89,7 @@ export default function ApprovalPage() {
       {/* Header */}
       <div className="text-center mb-6 flex flex-col items-center justify-center gap-2">
         <div className="flex items-center gap-2">
-          <Image
-            src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg"
-            alt="FinoQz Logo"
-            width={40}
-            height={40}
-          />
+          <BrandLogo width={40} height={40} />
           <h1 className="text-2xl font-bold">FinoQz</h1>
         </div>
         <p className="text-sm text-gray-500">Welcome! Let’s get you started.</p>

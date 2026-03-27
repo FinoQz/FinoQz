@@ -16,7 +16,7 @@ export default function TopCategories({ categories }: TopCategoriesProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <Layers className="w-5 h-5 text-[#253A7B]" />
+        <Layers className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-sm font-semibold text-gray-700">Top Categories</h3>
       </div>
 
@@ -31,7 +31,7 @@ export default function TopCategories({ categories }: TopCategoriesProps) {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-[#253A7B] h-2 rounded-full transition-all duration-500"
+                  className="bg-[var(--theme-primary)] h-2 rounded-full transition-all duration-500"
                   style={{ width: `${percentage}%` }}
                 />
               </div>

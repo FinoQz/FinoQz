@@ -66,6 +66,7 @@
 // };
 import { Resend } from 'resend';
 import logger from './logger.js';
+import { getThemeSettings, injectThemeIntoEmail } from '../services/themeService.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -82,13 +83,22 @@ const sendEmail = async ({ to, subject, html }) => {
     return;
   }
 
+  // Inject current theme (logo + primary colour) into the email HTML
+  let themedHtml = html;
+  try {
+    const themeSettings = await getThemeSettings();
+    themedHtml = injectThemeIntoEmail(html, themeSettings);
+  } catch (err) {
+    console.warn('⚠️ Theme injection skipped:', err.message);
+  }
+
   try {
     await resend.emails.send({
       from: 'FinoQz <support@finoqz.com>',
       to,
       subject,
-      html,
-      text: html.replace(/<[^>]+>/g, ""),
+      html: themedHtml,
+      text: themedHtml.replace(/<[^>]+>/g, ""),
     });
 
     logger?.info?.(`✅ Email sent to ${to} [${subject}]`);

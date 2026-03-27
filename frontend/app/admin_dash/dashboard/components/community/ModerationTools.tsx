@@ -101,12 +101,12 @@ export default function ModerationTools({ postId, postStatus }: ModerationToolsP
             onChange={(e) => setModeratorNote(e.target.value)}
             placeholder="Add internal note about this post..."
             rows={3}
-            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm resize-none"
+            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-sm resize-none"
           />
           <div className="flex gap-2">
             <button
               onClick={handleAddNote}
-              className="flex-1 px-3 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium text-sm"
+              className="flex-1 px-3 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium text-sm"
             >
               Save Note
             </button>

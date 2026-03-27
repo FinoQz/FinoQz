@@ -23,7 +23,7 @@ const achievers = [
 export default function Achievements() {
   return (
     <div className="mb-12">
-      <h2 className="text-2xl font-bold text-[#253A7B] mb-6 text-center">Learner Achievements</h2>
+      <h2 className="text-2xl font-bold text-[var(--theme-primary)] mb-6 text-center">Learner Achievements</h2>
       <div className="grid md:grid-cols-3 gap-6">
         {achievers.map((user, i) => (
           <div key={i} className="bg-white p-6 rounded-xl shadow text-center">
@@ -34,7 +34,7 @@ export default function Achievements() {
               height={80}
               className="rounded-full mx-auto mb-4"
             />
-            <h3 className="text-lg font-semibold text-[#253A7B]">{user.name}</h3>
+            <h3 className="text-lg font-semibold text-[var(--theme-primary)]">{user.name}</h3>
             <p className="text-sm text-gray-600 mt-2 italic">“{user.review}”</p>
           </div>
         ))}

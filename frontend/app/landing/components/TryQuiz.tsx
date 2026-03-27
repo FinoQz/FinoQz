@@ -124,7 +124,7 @@ export default function TryQuiz() {
     <section id="try-quiz" className="py-16 bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
       <div className="max-w-3xl mx-auto px-4 space-y-10">
         <div className="text-center">
-          <h2 className="text-4xl font-bold text-[#253A7B]">Try a Finance Quiz</h2>
+          <h2 className="text-4xl font-bold text-[var(--theme-primary)]">Try a Finance Quiz</h2>
           <p className="text-gray-600 mt-2">Select a category and test your knowledge - no login required</p>
         </div>
 
@@ -135,8 +135,8 @@ export default function TryQuiz() {
               key={cat._id}
               onClick={() => setSelectedCategoryId(cat._id)}
               className={`px-4 py-2 rounded border text-sm transition ${selectedCategoryId === cat._id
-                ? 'bg-[#253A7B] text-white border-[#253A7B]'
-                : 'border-gray-300 text-gray-700 hover:border-[#253A7B]'
+                ? 'bg-[var(--theme-primary)] text-white border-[var(--theme-primary)]'
+                : 'border-gray-300 text-gray-700 hover:border-[var(--theme-primary)]'
                 }`}
             >
               {cat.name}
@@ -148,7 +148,7 @@ export default function TryQuiz() {
         {questions.length > 0 && !showResults && !showLoginPrompt && (
           <div className="bg-white rounded-xl shadow p-6 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-[#253A7B]">
+              <h3 className="text-lg font-semibold text-[var(--theme-primary)]">
                 Question {currentQ + 1} of {questions.length}
               </h3>
               <span className="text-sm text-gray-500">{score} correct</span>
@@ -161,7 +161,7 @@ export default function TryQuiz() {
                 const isCorrect = i === currentQuestion.correctIndex;
                 const isSelected = i === selectedAnswer;
 
-                let style = 'border-gray-300 hover:border-[#253A7B]';
+                let style = 'border-gray-300 hover:border-[var(--theme-primary)]';
                 if (revealClicked) {
                   style = isCorrect
                     ? 'border-green-500 bg-green-50 text-green-700'
@@ -218,7 +218,7 @@ export default function TryQuiz() {
                         handleNext();
                       }
                     }}
-                    className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] text-sm"
+                    className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] text-sm"
                   >
                     {isLastQuestion ? 'Finish Quiz' : 'Next'}
                   </button>
@@ -240,7 +240,7 @@ export default function TryQuiz() {
         {/* Score after 5 questions */}
         {showResults && !showLoginPrompt && (
           <div className="bg-white rounded-xl shadow p-6 text-center space-y-4">
-            <h3 className="text-xl font-semibold text-[#253A7B]">Quiz Paused</h3>
+            <h3 className="text-xl font-semibold text-[var(--theme-primary)]">Quiz Paused</h3>
             <p className="text-gray-700">
               You’ve completed {LOGIN_AFTER} questions. Your score so far is <strong>{score} / {LOGIN_AFTER}</strong>.
             </p>
@@ -254,14 +254,14 @@ export default function TryQuiz() {
         {showLoginPrompt && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md space-y-4">
-              <h4 className="text-lg font-semibold text-[#253A7B]">Continue to full quiz</h4>
+              <h4 className="text-lg font-semibold text-[var(--theme-primary)]">Continue to full quiz</h4>
               <p className="text-gray-700">
                 You’ve reached the free limit of {LOGIN_AFTER} questions. Please login to unlock the full quiz and track your progress.
               </p>
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={gotoLogin}
-                  className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] text-sm"
+                  className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] text-sm"
                 >
                   Login
                 </button>

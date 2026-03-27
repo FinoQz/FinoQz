@@ -15,7 +15,7 @@ export default function EngagementHours({ hourlyData }: EngagementHoursProps) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <Clock className="w-5 h-5 text-[#253A7B]" />
+          <Clock className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">High Engagement Hours</h3>
         </div>
         <p className="text-sm text-gray-500">No engagement data available.</p>
@@ -28,7 +28,7 @@ export default function EngagementHours({ hourlyData }: EngagementHoursProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <Clock className="w-5 h-5 text-[#253A7B]" />
+        <Clock className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-sm font-semibold text-gray-700">High Engagement Hours</h3>
       </div>
 

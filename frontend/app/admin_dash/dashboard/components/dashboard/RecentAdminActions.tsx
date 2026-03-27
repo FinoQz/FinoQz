@@ -22,7 +22,7 @@ export default function RecentAdminActions() {
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
       <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-5 h-5 text-[#253A7B]" />
+        <Activity className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-lg font-semibold text-gray-900">Recent Admin Actions</h3>
       </div>
       <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">

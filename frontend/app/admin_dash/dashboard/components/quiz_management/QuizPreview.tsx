@@ -145,7 +145,7 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
           {/* Title & Category */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-[var(--theme-primary)] bg-opacity-10 text-[var(--theme-primary)] rounded-full text-sm font-medium">
                 {category || 'Uncategorized'}
               </span>
               <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getDifficultyColor()}`}>
@@ -270,7 +270,7 @@ export default function QuizPreview({ quizData, onClose }: QuizPreviewProps) {
             </button>
             <button
               onClick={handleStartQuiz}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-lg"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-lg"
             >
               Start Quiz
             </button>

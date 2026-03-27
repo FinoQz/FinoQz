@@ -107,7 +107,7 @@ export default function QuestionInsightsCard({ quizId }: QuestionInsightsCardPro
               onClick={() => setActiveView('hardest')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeView === 'hardest'
-                  ? 'bg-[#253A7B] text-white'
+                  ? 'bg-[var(--theme-primary)] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -117,7 +117,7 @@ export default function QuestionInsightsCard({ quizId }: QuestionInsightsCardPro
               onClick={() => setActiveView('time')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeView === 'time'
-                  ? 'bg-[#253A7B] text-white'
+                  ? 'bg-[var(--theme-primary)] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -127,7 +127,7 @@ export default function QuestionInsightsCard({ quizId }: QuestionInsightsCardPro
               onClick={() => setActiveView('skipped')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeView === 'skipped'
-                  ? 'bg-[#253A7B] text-white'
+                  ? 'bg-[var(--theme-primary)] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -176,7 +176,7 @@ export default function QuestionInsightsCard({ quizId }: QuestionInsightsCardPro
                         <td className="py-3 px-4 text-sm text-right font-medium text-red-600">{q.correctRate}%</td>
                         <td className="py-3 px-4 text-sm text-right text-gray-600">{formatTime(q.avgTime)}</td>
                         <td className="py-3 px-4 text-right">
-                          <button className="text-xs text-[#253A7B] hover:underline font-medium">View</button>
+                          <button className="text-xs text-[var(--theme-primary)] hover:underline font-medium">View</button>
                         </td>
                       </tr>
                     ))}
@@ -187,7 +187,7 @@ export default function QuestionInsightsCard({ quizId }: QuestionInsightsCardPro
                         <td className="py-3 px-4 text-sm text-right font-medium text-orange-600">{formatTime(q.avgTime)}</td>
                         <td className="py-3 px-4 text-sm text-right text-gray-600">{q.answeredCount}</td>
                         <td className="py-3 px-4 text-right">
-                          <button className="text-xs text-[#253A7B] hover:underline font-medium">View</button>
+                          <button className="text-xs text-[var(--theme-primary)] hover:underline font-medium">View</button>
                         </td>
                       </tr>
                     ))}
@@ -198,7 +198,7 @@ export default function QuestionInsightsCard({ quizId }: QuestionInsightsCardPro
                         <td className="py-3 px-4 text-sm text-right font-medium text-yellow-600">{q.skippedCount}</td>
                         <td className="py-3 px-4 text-sm text-right text-gray-600">{q.skipRate}%</td>
                         <td className="py-3 px-4 text-right">
-                          <button className="text-xs text-[#253A7B] hover:underline font-medium">View</button>
+                          <button className="text-xs text-[var(--theme-primary)] hover:underline font-medium">View</button>
                         </td>
                       </tr>
                     ))}

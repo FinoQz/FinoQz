@@ -37,7 +37,7 @@ export default function QuizCompletionRate() {
     <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-lg mb-6">
       <div className="flex items-center gap-3 mb-4 sm:mb-6">
         <div className="p-2 sm:p-3 bg-[#e6eafd] rounded-lg">
-          <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+          <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
         </div>
         <h3 className="text-lg sm:text-xl font-bold text-gray-800">Admin Quiz Overview</h3>
       </div>
@@ -51,34 +51,34 @@ export default function QuizCompletionRate() {
         {/* Card 1 */}
         <div className="min-w-[130px] max-w-[180px] w-full rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-shrink-0 min-h-[80px]">
           <div className="flex items-center gap-1 mb-0">
-            <ListChecks className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+            <ListChecks className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
             <span className="font-semibold text-xs sm:text-sm text-gray-800 truncate">Total Quizzes</span>
           </div>
-          <div className="text-base sm:text-lg font-bold text-[#253A7B]">{loading ? <span className="animate-pulse">...</span> : stats?.totalQuizzes ?? 0}</div>
+          <div className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">{loading ? <span className="animate-pulse">...</span> : stats?.totalQuizzes ?? 0}</div>
         </div>
         {/* Card 2 */}
         <div className="min-w-[130px] max-w-[180px] w-full rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-shrink-0 min-h-[80px]">
           <div className="flex items-center gap-1 mb-0">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
             <span className="font-semibold text-xs sm:text-sm text-gray-800 truncate">Total Attempts</span>
           </div>
-          <div className="text-base sm:text-lg font-bold text-[#253A7B]">{loading ? <span className="animate-pulse">...</span> : stats?.totalAttempts ?? 0}</div>
+          <div className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">{loading ? <span className="animate-pulse">...</span> : stats?.totalAttempts ?? 0}</div>
         </div>
         {/* Card 3 */}
         <div className="min-w-[130px] max-w-[180px] w-full rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-shrink-0 min-h-[80px]">
           <div className="flex items-center gap-1 mb-0">
-            <ActivitySquare className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+            <ActivitySquare className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
             <span className="font-semibold text-xs sm:text-sm text-gray-800 truncate">Active Quizzes</span>
           </div>
-          <div className="text-base sm:text-lg font-bold text-[#253A7B]">{loading ? <span className="animate-pulse">...</span> : stats?.activeQuizzes ?? 0}</div>
+          <div className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">{loading ? <span className="animate-pulse">...</span> : stats?.activeQuizzes ?? 0}</div>
         </div>
         {/* Card 4 */}
         <div className="min-w-[130px] max-w-[180px] w-full rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-shrink-0 min-h-[80px]">
           <div className="flex items-center gap-1 mb-0">
-            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
             <span className="font-semibold text-xs sm:text-sm text-gray-800 truncate">Most Attempted Quiz</span>
           </div>
-          <div className="text-[11px] sm:text-sm font-semibold text-[#253A7B]">
+          <div className="text-[11px] sm:text-sm font-semibold text-[var(--theme-primary)]">
             {loading ? <span className="animate-pulse">...</span> : stats?.mostAttemptedQuiz?.quizTitle || 'N/A'}
             {stats?.mostAttemptedQuiz?.attempts ? (
               <span className="ml-1 text-xs text-gray-500">({stats.mostAttemptedQuiz.attempts} attempts)</span>
@@ -88,18 +88,18 @@ export default function QuizCompletionRate() {
         {/* Card 5 */}
         <div className="min-w-[130px] max-w-[180px] w-full rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-shrink-0 min-h-[80px]">
           <div className="flex items-center gap-1 mb-0">
-            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
             <span className="font-semibold text-xs sm:text-sm text-gray-800 truncate">Quizzes Today</span>
           </div>
-          <div className="text-base sm:text-lg font-bold text-[#253A7B]">{loading ? <span className="animate-pulse">...</span> : stats?.quizzesToday ?? 0}</div>
+          <div className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">{loading ? <span className="animate-pulse">...</span> : stats?.quizzesToday ?? 0}</div>
         </div>
         {/* Card 6 */}
         <div className="min-w-[130px] max-w-[180px] w-full rounded-xl border border-gray-200 shadow p-2 sm:p-3 flex flex-col gap-0.5 sm:gap-1 flex-shrink-0 min-h-[80px]">
           <div className="flex items-center gap-1 mb-0">
-            <PieChart className="w-5 h-5 sm:w-6 sm:h-6 text-[#253A7B]" />
+            <PieChart className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--theme-primary)]" />
             <span className="font-semibold text-xs sm:text-sm text-gray-800 truncate">Avg Attempts/Quiz</span>
           </div>
-          <div className="text-base sm:text-lg font-bold text-[#253A7B]">{loading ? <span className="animate-pulse">...</span> : (stats?.avgAttemptsPerQuiz ?? 0).toFixed(1)}</div>
+          <div className="text-base sm:text-lg font-bold text-[var(--theme-primary)]">{loading ? <span className="animate-pulse">...</span> : (stats?.avgAttemptsPerQuiz ?? 0).toFixed(1)}</div>
         </div>
       </div>
       {/* Slider hint for mobile */}

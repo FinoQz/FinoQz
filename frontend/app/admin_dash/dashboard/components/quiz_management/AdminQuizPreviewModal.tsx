@@ -105,7 +105,7 @@ export default function AdminQuizPreviewModal({ quizId, onClose, onEditQuestion 
             <>
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-full text-sm font-medium">
+                  <span className="px-3 py-1 bg-[var(--theme-primary)] bg-opacity-10 text-[var(--theme-primary)] rounded-full text-sm font-medium">
                     {preview.category || 'Uncategorized'}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getDifficultyColor(preview.difficultyLevel)}`}>

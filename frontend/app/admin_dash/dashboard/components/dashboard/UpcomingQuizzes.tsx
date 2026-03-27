@@ -55,7 +55,7 @@ export default function UpcomingQuizzes() {
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 relative">
       <div className="flex items-center gap-2 mb-4">
-        <Calendar className="w-5 h-5 text-[#253A7B]" />
+        <Calendar className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-lg font-semibold text-gray-900">Upcoming Scheduled Quizzes</h3>
       </div>
 
@@ -63,8 +63,8 @@ export default function UpcomingQuizzes() {
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl animate-pulse">
-              <div className="w-12 h-12 bg-[#253A7B]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-5 h-5 text-[#253A7B]" />
+              <div className="w-12 h-12 bg-[var(--theme-primary)]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-5 h-5 text-[var(--theme-primary)]" />
               </div>
               <div className="flex-1">
                 <p className="font-medium text-gray-900 text-sm mb-1">...</p>
@@ -85,7 +85,7 @@ export default function UpcomingQuizzes() {
           upcomingQuizzes.length === 0 ? (
             <div className="flex flex-1 min-h-[220px] h-full items-center justify-center">
               <div className="flex flex-col items-center justify-center text-gray-400">
-                <Calendar className="w-12 h-12 mb-2 text-[#253A7B]/30" />
+                <Calendar className="w-12 h-12 mb-2 text-[var(--theme-primary)]/30" />
                 <p className="text-base font-medium text-gray-500 mb-1">No upcoming scheduled quizzes</p>
                 <p className="text-xs text-gray-400">All caught up! Scheduled quizzes will appear here.</p>
               </div>
@@ -98,8 +98,8 @@ export default function UpcomingQuizzes() {
                 onClick={() => setSelectedQuizId(quiz.id)}
                 title="View full quiz details"
               >
-                <div className="w-12 h-12 bg-[#253A7B]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 text-[#253A7B]" />
+                <div className="w-12 h-12 bg-[var(--theme-primary)]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-5 h-5 text-[var(--theme-primary)]" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 text-sm mb-1">{quiz.title}</p>
@@ -121,7 +121,7 @@ export default function UpcomingQuizzes() {
           )
         )}
       </div>
-      <button className="w-full mt-4 px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition text-sm font-medium">
+      <button className="w-full mt-4 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition text-sm font-medium">
         View All Scheduled
       </button>
 
@@ -130,7 +130,7 @@ export default function UpcomingQuizzes() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl p-0 w-full max-w-md relative animate-fadeIn border border-gray-200">
             <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-[#253A7B] bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition shadow"
+              className="absolute top-4 right-4 text-gray-400 hover:text-[var(--theme-primary)] bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition shadow"
               onClick={() => { setSelectedQuizId(null); setQuizDetail(null); }}
               aria-label="Close"
               style={{ zIndex: 10 }}
@@ -145,7 +145,7 @@ export default function UpcomingQuizzes() {
                   {quizDetail.coverImage && (
                     <img src={quizDetail.coverImage} alt="Quiz Cover" className="rounded-xl mb-2 max-h-28 object-cover w-full border border-gray-100 shadow-sm" />
                   )}
-                  <h2 className="text-2xl font-bold mb-1 text-[#253A7B] text-center">{quizDetail.quizTitle}</h2>
+                  <h2 className="text-2xl font-bold mb-1 text-[var(--theme-primary)] text-center">{quizDetail.quizTitle}</h2>
                   <div className="mb-2 flex items-center gap-2">
                     {quizDetail.pricingType === 'paid' ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">

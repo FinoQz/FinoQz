@@ -12,7 +12,7 @@ export default function TableFilters() {
   return (
     <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-sm space-y-4">
       <div className="flex items-center gap-3 mb-4">
-        <Filter className="w-5 h-5 text-[#253A7B]" />
+        <Filter className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-lg font-bold text-gray-900">Filter Participants</h3>
       </div>
 
@@ -25,7 +25,7 @@ export default function TableFilters() {
             placeholder="Search name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#253A7B] focus:outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[var(--theme-primary)] focus:outline-none text-sm"
           />
         </div>
 
@@ -33,7 +33,7 @@ export default function TableFilters() {
         <select
           value={paymentStatus}
           onChange={(e) => setPaymentStatus(e.target.value)}
-          className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#253A7B] focus:outline-none text-sm bg-white"
+          className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[var(--theme-primary)] focus:outline-none text-sm bg-white"
         >
           <option value="all">All Payment Status</option>
           <option value="paid">Paid</option>
@@ -45,7 +45,7 @@ export default function TableFilters() {
         <select
           value={attemptStatus}
           onChange={(e) => setAttemptStatus(e.target.value)}
-          className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#253A7B] focus:outline-none text-sm bg-white"
+          className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[var(--theme-primary)] focus:outline-none text-sm bg-white"
         >
           <option value="all">All Attempt Status</option>
           <option value="submitted">Submitted</option>
@@ -58,7 +58,7 @@ export default function TableFilters() {
           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="date"
-            className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[#253A7B] focus:outline-none text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-[var(--theme-primary)] focus:outline-none text-sm"
           />
         </div>
       </div>
@@ -74,13 +74,13 @@ export default function TableFilters() {
           max="100"
           value={scoreRange[1]}
           onChange={(e) => setScoreRange([scoreRange[0], parseInt(e.target.value)])}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#253A7B]"
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--theme-primary)]"
         />
       </div>
 
       {/* Apply/Reset */}
       <div className="flex gap-3 pt-2">
-        <button className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm">
+        <button className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium text-sm">
           Apply Filters
         </button>
         <button className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium text-sm">

@@ -104,7 +104,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                     Participants — {quizData.quizTitle}
                   </h2>
                   <div className="group relative">
-                    <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[#253A7B] cursor-help transition" />
+                    <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[var(--theme-primary)] cursor-help transition" />
                     <div className="absolute left-0 top-8 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl">
                       Use filters to find users, click view attempt to inspect answers, and use Export to download results.
                     </div>
@@ -135,7 +135,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                 onClick={() => setActiveTab('participants')}
                 className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
                   activeTab === 'participants'
-                    ? 'border-[#253A7B] text-[#253A7B]'
+                    ? 'border-[var(--theme-primary)] text-[var(--theme-primary)]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -145,7 +145,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                 onClick={() => setActiveTab('transactions')}
                 className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
                   activeTab === 'transactions'
-                    ? 'border-[#253A7B] text-[#253A7B]'
+                    ? 'border-[var(--theme-primary)] text-[var(--theme-primary)]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >

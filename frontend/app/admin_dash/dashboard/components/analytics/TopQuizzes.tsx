@@ -17,7 +17,7 @@ export default function TopQuizzes({ quizzes }: TopQuizzesProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <Award className="w-5 h-5 text-[#253A7B]" />
+        <Award className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-sm font-semibold text-gray-700">Top Performing Quizzes</h3>
       </div>
 
@@ -31,7 +31,7 @@ export default function TopQuizzes({ quizzes }: TopQuizzesProps) {
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 line-clamp-1 group-hover:text-[#253A7B] transition">
+                  <p className="text-sm font-medium text-gray-900 line-clamp-1 group-hover:text-[var(--theme-primary)] transition">
                     {quiz.title}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5">{quiz.attempts.toLocaleString()} attempts</p>
@@ -40,7 +40,7 @@ export default function TopQuizzes({ quizzes }: TopQuizzesProps) {
               <div className="pl-9">
                 <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-[#253A7B] h-1.5 rounded-full transition-all duration-500"
+                    className="bg-[var(--theme-primary)] h-1.5 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                   />
                 </div>

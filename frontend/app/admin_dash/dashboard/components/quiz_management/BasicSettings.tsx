@@ -280,7 +280,7 @@ export default function BasicSettings({
             ) : (
               <button
                 onClick={handleManualSave}
-                className="px-3 py-1 bg-[#253A7B] text-white rounded text-sm hover:bg-[#1a2a5e] transition"
+                className="px-3 py-1 bg-[var(--theme-primary)] text-white rounded text-sm hover:bg-[var(--theme-secondary)] transition"
               >
                 Save
               </button>
@@ -301,7 +301,7 @@ export default function BasicSettings({
           value={localTitle}
           onChange={(e) => setLocalTitle(e.target.value)}
           placeholder="e.g., Personal Finance Fundamentals"
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
         />
       </div>
 
@@ -314,13 +314,13 @@ export default function BasicSettings({
           <textarea
             value={localDesc}
             onChange={e => setLocalDesc(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition pr-10"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition pr-10"
             rows={4}
             placeholder="Enter quiz description"
           />
           <button
             type="button"
-            className="absolute right-3 top-3 text-gray-400 hover:text-[#253A7B] transition"
+            className="absolute right-3 top-3 text-gray-400 hover:text-[var(--theme-primary)] transition"
             onClick={handleSuggestDescription}
             disabled={loadingDesc || !quizTitle.trim()}
             title="Suggest Description with AI"
@@ -346,7 +346,7 @@ export default function BasicSettings({
           onChange={e => setLocalNumberOfQuestions(e.target.value)}
           placeholder="e.g., 20"
           min="1"
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
         />
       </div>
 
@@ -362,7 +362,7 @@ export default function BasicSettings({
               type="button"
               onClick={() => setLocalDuration(preset.toString())}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${localDuration === preset.toString()
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
             >
@@ -378,7 +378,7 @@ export default function BasicSettings({
             onChange={(e) => setLocalDuration(e.target.value)}
             placeholder="Custom duration"
             min="1"
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
           />
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function BasicSettings({
               onChange={(e) => setLocalTotalMarks(e.target.value)}
               placeholder="e.g., 100"
               min="1"
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
             />
           </div>
         </div>
@@ -413,7 +413,7 @@ export default function BasicSettings({
               type="button"
               onClick={() => setLocalAttemptLimit('1')}
               className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition ${localAttemptLimit === '1'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                 }`}
             >
@@ -423,7 +423,7 @@ export default function BasicSettings({
               type="button"
               onClick={() => setLocalAttemptLimit('unlimited')}
               className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition ${localAttemptLimit === 'unlimited'
-                ? 'bg-[#253A7B] text-white'
+                ? 'bg-[var(--theme-primary)] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                 }`}
             >
@@ -447,7 +447,7 @@ export default function BasicSettings({
               <p className="text-xs text-gray-600">Randomize question order for each attempt</p>
             </div>
           </div>
-          <div className={`w-12 h-6 rounded-full transition ${localShuffle ? 'bg-[#253A7B]' : 'bg-gray-300'}`}>
+          <div className={`w-12 h-6 rounded-full transition ${localShuffle ? 'bg-[var(--theme-primary)]' : 'bg-gray-300'}`}>
             <div className={`w-5 h-5 bg-white rounded-full mt-0.5 transition-transform ${localShuffle ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </div>
         </div>
@@ -464,7 +464,7 @@ export default function BasicSettings({
               <p className="text-xs text-gray-600">Deduct marks for incorrect answers</p>
             </div>
           </div>
-          <div className={`w-12 h-6 rounded-full transition ${localNegative ? 'bg-[#253A7B]' : 'bg-gray-300'}`}>
+          <div className={`w-12 h-6 rounded-full transition ${localNegative ? 'bg-[var(--theme-primary)]' : 'bg-gray-300'}`}>
             <div className={`w-5 h-5 bg-white rounded-full mt-0.5 transition-transform ${localNegative ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </div>
         </div>
@@ -482,7 +482,7 @@ export default function BasicSettings({
               placeholder="e.g., 0.25"
               step="0.25"
               min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
             />
             <p className="text-xs text-gray-500 mt-1">Common values: 0.25, 0.33, 0.5</p>
           </div>

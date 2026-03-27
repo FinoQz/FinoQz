@@ -319,7 +319,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
                 <h3 className="font-semibold text-gray-900 mb-2">Tags</h3>
                 <div className="flex flex-wrap gap-2">
                   {tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-lg text-sm">
+                    <span key={tag} className="px-3 py-1 bg-[var(--theme-primary)] bg-opacity-10 text-[var(--theme-primary)] rounded-lg text-sm">
                       {tag}
                     </span>
                   ))}
@@ -345,7 +345,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             </button>
             <button
               onClick={handleSubmit}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center justify-center gap-2"
             >
               <Check className="w-5 h-5" />
               {saveAsDraft ? 'Save as Draft' : 'Create Quiz'}
@@ -394,7 +394,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             {currentStep === 6 && (
               <button
                 onClick={handlePreview}
-                className="text-sm text-[#253A7B] hover:underline flex items-center gap-1 transition"
+                className="text-sm text-[var(--theme-primary)] hover:underline flex items-center gap-1 transition"
               >
                 <Eye className="w-4 h-4" />
                 Preview as student
@@ -405,7 +405,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             {Array.from({ length: totalSteps }).map((_, idx) => (
               <div
                 key={idx}
-                className={`flex-1 h-2 rounded-full transition-all ${idx + 1 <= currentStep ? 'bg-[#253A7B]' : 'bg-gray-200'
+                className={`flex-1 h-2 rounded-full transition-all ${idx + 1 <= currentStep ? 'bg-[var(--theme-primary)]' : 'bg-gray-200'
                   }`}
               />
             ))}
@@ -431,7 +431,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
             onClick={handleNext}
             disabled={!canProceed()}
             className={`px-6 py-3 rounded-xl transition font-medium flex items-center gap-2 ${canProceed()
-              ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
+              ? 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)]'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
           >

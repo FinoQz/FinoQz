@@ -93,7 +93,7 @@ export default function ViewAttemptModal({ attemptData, onClose }: ViewAttemptMo
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{attemptData.name}&apos;s Attempt</h2>
               <p className="text-sm text-gray-600 mt-1">
-                Score: <span className="font-bold text-[#253A7B]">{attemptData.score}%</span> • 
+                Score: <span className="font-bold text-[var(--theme-primary)]">{attemptData.score}%</span> • 
                 Time: {attemptData.timeTaken}
               </p>
             </div>

@@ -240,7 +240,7 @@ export default function MyQuizes() {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)] mx-auto mb-4"></div>
             <p className="text-gray-600">Loading your quizzes...</p>
           </div>
         </div>
@@ -261,7 +261,7 @@ export default function MyQuizes() {
             <p className="text-red-600 mb-4">{error}</p>
             <button 
               onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+              className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition"
             >
               Retry
             </button>
@@ -293,7 +293,7 @@ export default function MyQuizes() {
                 placeholder="Search your quizzes…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm"
+                className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition text-sm"
               />
             </div>
           </div>
@@ -308,7 +308,7 @@ export default function MyQuizes() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'highest')}
-              className="appearance-none pl-4 pr-10 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm bg-white cursor-pointer font-medium"
+              className="appearance-none pl-4 pr-10 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[var(--theme-primary)] focus:ring-2 focus:ring-[var(--theme-primary)]/20 transition text-sm bg-white cursor-pointer font-medium"
             >
               <option value="newest">Sort: Newest</option>
               <option value="oldest">Sort: Oldest</option>

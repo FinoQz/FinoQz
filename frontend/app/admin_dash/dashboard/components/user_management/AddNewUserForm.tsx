@@ -147,7 +147,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
 
   return (
     <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 border border-gray-200 shadow-lg">
-      <h2 className="text-xl sm:text-2xl font-bold text-[#253A7B] mb-6">Add New User</h2>
+      <h2 className="text-xl sm:text-2xl font-bold text-[var(--theme-primary)] mb-6">Add New User</h2>
 
       {formError && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-sm font-medium">
@@ -171,7 +171,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 bg-[#253A7B] text-white rounded-full p-1 hover:bg-[#1a2a5e] transition"
+                  className="absolute -top-2 -right-2 bg-[var(--theme-primary)] text-white rounded-full p-1 hover:bg-[var(--theme-secondary)] transition"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -182,7 +182,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               </div>
             )}
           </div>
-          <label className="cursor-pointer px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition text-sm font-medium">
+          <label className="cursor-pointer px-4 py-2 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition text-sm font-medium">
             Upload Profile Picture (Optional)
             <input
               type="file"
@@ -206,7 +206,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.fullName}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Enter full name"
             />
           </div>
@@ -222,7 +222,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.email}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Enter email address"
             />
           </div>
@@ -238,7 +238,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.mobile}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="+91 XXXXX XXXXX"
             />
           </div>
@@ -253,7 +253,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.gender}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
             >
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
@@ -272,7 +272,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.role}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -291,7 +291,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               onChange={handleInputChange}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Minimum 6 characters"
             />
           </div>
@@ -307,7 +307,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               onChange={handleInputChange}
               required
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition resize-none"
               placeholder="Enter full address"
             />
           </div>
@@ -318,7 +318,7 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`flex-1 sm:flex-none px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium ${
+            className={`flex-1 sm:flex-none px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] shadow-lg hover:shadow-xl transition-all duration-300 font-medium ${
               isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >

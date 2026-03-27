@@ -37,6 +37,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import insightRoutes from './routes/insightRoutes.js';
 import financeContentRoutes from './routes/financeContentRoutes.js';
+import themeRoutes from './routes/themeRoutes.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -149,6 +150,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/finance-content', financeContentRoutes);
+app.use('/api/theme', themeRoutes);
 
 // ✅ Celebrate validation errors
 app.use(errors());

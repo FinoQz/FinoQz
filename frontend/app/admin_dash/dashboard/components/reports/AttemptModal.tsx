@@ -143,7 +143,7 @@ export default function AttemptModal({ isOpen, onClose, attemptData, onRegrade }
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium"
+            className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium"
           >
             Close
           </button>

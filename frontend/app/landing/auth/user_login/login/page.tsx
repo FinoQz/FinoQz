@@ -5,7 +5,7 @@ import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import InputField from './components/InputField';
 import TabSwitcher from './components/TabSwitcher';
 import Link from 'next/link';
-import Image from 'next/image';
+import BrandLogo from '@/components/BrandLogo';
 import { useRouter } from 'next/navigation';
 import apiUser from '@/lib/apiUser';
 import apiAdmin from '@/lib/apiAdmin';
@@ -70,13 +70,7 @@ export default function SigninPage() {
       {/* Logo */}
       <div className="text-center mb-6">
         <div className="flex items-center justify-center gap-2">
-          <Image
-            src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg"
-            alt="FinoQz"
-            width={40}
-            height={40}
-            priority
-          />
+          <BrandLogo width={40} height={40} priority />
           <h1 className="text-2xl font-bold">FinoQz</h1>
         </div>
         <p className="text-sm text-gray-500 mt-1">

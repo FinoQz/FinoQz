@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +16,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo + Brand */}
         <Link href="/" className="flex items-center gap-3">
-          <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz Logo" width={40} height={40} unoptimized priority style={{ height: 'auto' }} />
+          <BrandLogo width={40} height={40} priority />
           <div>
             <span className="text-[1.25rem] font-semibold text-black tracking-wide">FinoQz</span>
             <p className="text-xs text-gray-600">Smart finance learning</p>
@@ -36,12 +36,12 @@ export default function Navbar() {
           <Button
             variant="ghost"
             onClick={() => router.push("/landing/auth/user_login/login")}
-            className="border border-[#253A7B] rounded-md"
+            className="border border-[var(--theme-primary)] rounded-md"
           >
             Login
           </Button>
           <Button
-            className="rounded-md bg-[#253A7B] text-white hover:bg-blue-600"
+            className="rounded-md bg-[var(--theme-primary)] text-white hover:bg-blue-600"
             onClick={() => router.push("/landing/auth/user_signup/signup")}
           >
             Get Started

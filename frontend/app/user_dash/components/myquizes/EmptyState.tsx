@@ -21,7 +21,7 @@ export default function EmptyState({ message = 'No quizzes here yet.', onExplore
       {onExplore && (
         <button
           onClick={onExplore}
-          className="px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+          className="px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
         >
           Explore Quizes
         </button>

@@ -199,7 +199,7 @@ export default function CategoryEditor() {
                     <button
                         onClick={saveCategories}
                         disabled={!dirty || loading}
-                        className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] transition text-sm disabled:opacity-50"
+                        className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm disabled:opacity-50"
                     >
                         {loading ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -212,11 +212,11 @@ export default function CategoryEditor() {
                     placeholder="Enter category name"
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded px-4 py-2 text-sm focus:ring-2 focus:ring-[#253A7B] focus:outline-none"
+                    className="flex-1 border border-gray-300 rounded px-4 py-2 text-sm focus:ring-2 focus:ring-[var(--theme-primary)] focus:outline-none"
                 />
                 <button
                     onClick={addCategory}
-                    className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] transition text-sm flex items-center gap-1"
+                    className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm flex items-center gap-1"
                 >
                     <Plus className="w-4 h-4" />
                     Add
@@ -339,7 +339,7 @@ function BulletInput({ onAdd }: { onAdd: (text: string) => void }) {
                         handleSubmit();
                     }
                 }}
-                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-[#253A7B] focus:outline-none"
+                className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-[var(--theme-primary)] focus:outline-none"
             />
             <button
                 onClick={handleSubmit}

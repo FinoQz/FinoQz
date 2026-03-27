@@ -8,7 +8,7 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-purple-50 text-gray-900">
       <Navbar />
-      <section className="py-20 text-[#253A7B]">
+      <section className="py-20 text-[var(--theme-primary)]">
         <div className="container mx-auto px-6 text-center">
           <h1 className="text-4xl font-bold mb-6">Explore Our Courses</h1>
           <p className="text-lg mb-12 max-w-2xl mx-auto">

@@ -16,40 +16,40 @@ export default function SendEnquiryForm() {
       onSubmit={handleSubmit}
       className="bg-white p-6 rounded-xl shadow text-left space-y-4 max-w-xl mx-auto"
     >
-      <h2 className="text-xl md:text-2xl font-bold text-[#253A7B] mb-3">Send an Enquiry</h2>
+      <h2 className="text-xl md:text-2xl font-bold text-[var(--theme-primary)] mb-3">Send an Enquiry</h2>
 
 
       <input
         type="text"
         placeholder="Your Name"
         required
-        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
       />
 
       <input
         type="email"
         placeholder="Your Email"
         required
-        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
       />
 
       <input
         type="text"
         placeholder="Subject"
         required
-        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
       />
 
       <textarea
         rows={4}
         placeholder="Your Message"
         required
-        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+        className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
       />
 
       <button
         type="submit"
-        className="bg-[#253A7B] text-white px-6 py-2 rounded hover:bg-[#1e2a78] transition font-semibold w-full"
+        className="bg-[var(--theme-primary)] text-white px-6 py-2 rounded hover:bg-[#1e2a78] transition font-semibold w-full"
       >
         Submit
       </button>

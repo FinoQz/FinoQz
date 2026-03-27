@@ -20,7 +20,7 @@ export default function DemoQuizEditor() {
   return (
     <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-6">
       <header className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#253A7B]">Demo Quiz Editor</h2>
+        <h2 className="text-xl font-bold text-[var(--theme-primary)]">Demo Quiz Editor</h2>
         {selectedCategory && (
           <button
             onClick={reset}
@@ -51,13 +51,13 @@ export default function DemoQuizEditor() {
         <div className="space-y-2 border-t pt-4">
           <h3 className="text-md font-semibold text-gray-800">Selected Category</h3>
           <div className="flex items-center justify-between">
-            <span className="text-[#253A7B] font-medium">{selectedCategory.name}</span>
+            <span className="text-[var(--theme-primary)] font-medium">{selectedCategory.name}</span>
             <div className="flex gap-2">
               <button
                 onClick={() => setMode('manual')}
                 className={`px-4 py-1 rounded text-sm ${
                   mode === 'manual'
-                    ? 'bg-[#253A7B] text-white'
+                    ? 'bg-[var(--theme-primary)] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -67,7 +67,7 @@ export default function DemoQuizEditor() {
                 onClick={() => setMode('ai')}
                 className={`px-4 py-1 rounded text-sm ${
                   mode === 'ai'
-                    ? 'bg-[#253A7B] text-white'
+                    ? 'bg-[var(--theme-primary)] text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >

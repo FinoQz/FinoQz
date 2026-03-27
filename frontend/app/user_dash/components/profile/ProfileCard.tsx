@@ -63,7 +63,7 @@ export default function ProfileCard({
               className="w-32 h-32 rounded-full object-cover border-4 border-gray-100 shadow-md"
             />
           ) : (
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] flex items-center justify-center text-white text-4xl font-bold border-4 border-gray-100 shadow-md">
+            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[var(--theme-primary)] to-[var(--theme-secondary)] flex items-center justify-center text-white text-4xl font-bold border-4 border-gray-100 shadow-md">
               {getInitials()}
             </div>
           )}
@@ -75,7 +75,7 @@ export default function ProfileCard({
               isHovering ? 'scale-110 shadow-xl' : ''
             } hover:bg-gray-50`}
           >
-            <Camera className="w-5 h-5 text-[#253A7B]" />
+            <Camera className="w-5 h-5 text-[var(--theme-primary)]" />
             <input
               id="profile-image-upload"
               type="file"
@@ -92,7 +92,7 @@ export default function ProfileCard({
         {/* Edit Profile Button */}
         <button 
           onClick={onEditProfile}
-          className="w-full px-4 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+          className="w-full px-4 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
         >
           <Edit className="w-4 h-4" />
           Edit Profile
@@ -103,7 +103,7 @@ export default function ProfileCard({
       <div className="mt-6 pt-6 border-t-2 border-gray-100 space-y-4">
         <div className="flex items-center gap-3 text-sm group hover:bg-gray-50 p-2 rounded-lg transition">
           <div className="p-2 bg-blue-50 rounded-lg">
-            <Mail className="w-4 h-4 text-[#253A7B]" />
+            <Mail className="w-4 h-4 text-[var(--theme-primary)]" />
           </div>
           <span className="text-gray-700">{userData.email}</span>
         </div>

@@ -147,7 +147,7 @@ export default function WhyChooseEditor() {
           <button
             onClick={handleSave}
             disabled={!dirty || loading}
-            className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] transition text-sm disabled:opacity-50"
+            className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm disabled:opacity-50"
           >
             <Save className="w-4 h-4 inline mr-1" />
             {loading ? 'Saving...' : 'Save Changes'}
@@ -172,7 +172,7 @@ export default function WhyChooseEditor() {
         />
         <button
           onClick={addReason}
-          className="bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] transition text-sm flex items-center gap-1"
+          className="bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm flex items-center gap-1"
         >
           <Plus className="w-4 h-4" />
           Add Reason

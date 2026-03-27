@@ -88,7 +88,7 @@ export default function EditQuestionModal({ question, onClose, onSuccess }: Edit
               onChange={handleInputChange}
               required
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 text-sm"
               placeholder="Enter question text"
             />
           </div>
@@ -100,13 +100,13 @@ export default function EditQuestionModal({ question, onClose, onSuccess }: Edit
             </div>
             <div className="grid grid-cols-1 gap-1">
               {formData.options.map((opt, idx) => (
-                <div key={idx} className={`flex items-center gap-2 p-1 rounded-lg border ${formData.correct === idx ? 'border-[#253A7B] bg-[#f5f8ff]' : 'border-gray-200 bg-white'} transition-all`}>
-                  <span className="inline-block w-6 h-6 rounded-full text-center font-bold text-white text-xs flex items-center justify-center bg-[#253A7B]">{String.fromCharCode(65+idx)}</span>
+                <div key={idx} className={`flex items-center gap-2 p-1 rounded-lg border ${formData.correct === idx ? 'border-[var(--theme-primary)] bg-[#f5f8ff]' : 'border-gray-200 bg-white'} transition-all`}>
+                  <span className="inline-block w-6 h-6 rounded-full text-center font-bold text-white text-xs flex items-center justify-center bg-[var(--theme-primary)]">{String.fromCharCode(65+idx)}</span>
                   <input
                     type="text"
                     value={opt}
                     onChange={e => handleOptionChange(idx, e.target.value)}
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
+                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 text-sm"
                     placeholder={`Option ${idx + 1}`}
                     required
                   />
@@ -115,7 +115,7 @@ export default function EditQuestionModal({ question, onClose, onSuccess }: Edit
                     name="correct"
                     checked={formData.correct === idx}
                     onChange={() => handleCorrectChange(idx)}
-                    className="accent-[#253A7B] w-4 h-4"
+                    className="accent-[var(--theme-primary)] w-4 h-4"
                     title="Mark as correct"
                   />
                 </div>
@@ -133,7 +133,7 @@ export default function EditQuestionModal({ question, onClose, onSuccess }: Edit
                 value={formData.marks}
                 onChange={handleInputChange}
                 min={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 text-sm"
                 required
               />
             </div>
@@ -145,7 +145,7 @@ export default function EditQuestionModal({ question, onClose, onSuccess }: Edit
                 value={formData.explanation}
                 onChange={handleInputChange}
                 rows={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent text-gray-900 text-sm"
                 placeholder="Enter explanation (optional)"
               />
             </div>
@@ -163,7 +163,7 @@ export default function EditQuestionModal({ question, onClose, onSuccess }: Edit
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+              className="flex-1 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
             >
               {loading ? 'Saving...' : 'Save'}
             </button>

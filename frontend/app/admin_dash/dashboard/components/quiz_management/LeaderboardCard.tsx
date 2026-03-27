@@ -65,7 +65,7 @@ export default function LeaderboardCard({ quizId }: LeaderboardCardProps) {
       case 3:
         return 'bg-gradient-to-br from-orange-400 to-orange-600';
       default:
-        return 'bg-[#253A7B]';
+        return 'bg-[var(--theme-primary)]';
     }
   };
 
@@ -76,7 +76,7 @@ export default function LeaderboardCard({ quizId }: LeaderboardCardProps) {
           <Trophy className="w-6 h-6 text-yellow-500" />
           <h3 className="text-lg font-bold text-gray-900">Top Performers</h3>
         </div>
-        <button className="text-sm text-[#253A7B] hover:underline font-medium">
+        <button className="text-sm text-[var(--theme-primary)] hover:underline font-medium">
           View Full Leaderboard
         </button>
       </div>

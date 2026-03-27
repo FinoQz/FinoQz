@@ -77,7 +77,7 @@ export default function ManualRefundModal({ isOpen, onClose, onSubmit }: ManualR
                 type="text"
                 value={txnId}
                 onChange={(e) => setTxnId(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 placeholder="TXN123456789"
               />
             </div>
@@ -95,7 +95,7 @@ export default function ManualRefundModal({ isOpen, onClose, onSubmit }: ManualR
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full pl-8 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 placeholder="0.00"
                 step="0.01"
                 min="0"
@@ -113,7 +113,7 @@ export default function ManualRefundModal({ isOpen, onClose, onSubmit }: ManualR
               rows={4}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent resize-none transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent resize-none transition"
               placeholder="Enter detailed reason for manual refund..."
             />
             {errors.reason && <p className="text-xs text-red-500 mt-1">{errors.reason}</p>}
@@ -130,7 +130,7 @@ export default function ManualRefundModal({ isOpen, onClose, onSubmit }: ManualR
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md"
+            className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md"
           >
             Process Refund
           </button>

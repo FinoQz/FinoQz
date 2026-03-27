@@ -159,7 +159,7 @@ export default function Analytics() {
     return (
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)] mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading analytics data...</p>
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function Analytics() {
           <p className="text-gray-600 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+            className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition"
           >
             Retry
           </button>
@@ -198,7 +198,7 @@ export default function Analytics() {
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -209,7 +209,7 @@ export default function Analytics() {
           {/* Export Button */}
           <button 
             onClick={() => handleExport('CSV')}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 text-sm"
+            className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium flex items-center gap-2 text-sm"
           >
             <Download className="w-4 h-4" />
             Export Analytics

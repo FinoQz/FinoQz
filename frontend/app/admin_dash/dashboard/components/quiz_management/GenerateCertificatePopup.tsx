@@ -118,7 +118,7 @@ export default function GenerateCertificatePopup({ quizId, onClose }: GenerateCe
                     disabled={!user.hasCompleted || user.certificateIssued || mailing === user._id}
                     onClick={() => handleGenerate(user)}
                     className={`px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-medium transition
-                      ${user.certificateIssued ? 'bg-green-100 text-green-700 cursor-not-allowed' : user.hasCompleted ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
+                      ${user.certificateIssued ? 'bg-green-100 text-green-700 cursor-not-allowed' : user.hasCompleted ? 'bg-[var(--theme-primary)] text-white hover:bg-[var(--theme-secondary)]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
                     `}
                   >
                     {user.certificateIssued ? (

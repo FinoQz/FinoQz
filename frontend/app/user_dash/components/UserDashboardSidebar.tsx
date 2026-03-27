@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import apiUser from '@/lib/apiUser';
+import { useTheme } from '@/context/ThemeProvider';
+import BrandLogo from '@/components/BrandLogo';
 import {
   LayoutDashboard,
   BookOpen,
@@ -42,6 +43,7 @@ export default function UserDashboardSidebar({
   onClose,
 }: SidebarProps) {
   const router = useRouter();
+  const { theme } = useTheme();
   const [user, setUser] = useState<{ fullName: string; email: string } | null>(null);
 
 
@@ -86,18 +88,12 @@ export default function UserDashboardSidebar({
           onClick={onClose}
           className="lg:hidden absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200 transition"
         >
-          <X className="w-6 h-6 text-[#253A7B]" />
+          <X className="w-6 h-6 text-[var(--theme-primary)]" />
         </button>
 
         <div className="p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <Image
-              src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg"
-              alt="FinoQz Logo"
-              width={48}
-              height={48}
-              className="rounded-lg"
-            />
+            <BrandLogo width={48} height={48} className="rounded-lg" />
             <div>
               <h1 className="text-[1.25rem] font-semibold text-black tracking-wide">
                 FinoQz
@@ -120,7 +116,7 @@ export default function UserDashboardSidebar({
                       onClose();
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${isActive
-                      ? 'bg-[#253A7B] text-white shadow-md'
+                      ? 'bg-[var(--theme-primary)] text-white shadow-md'
                       : 'text-gray-700 hover:bg-white hover:shadow-sm'
                       }`}
                   >
@@ -136,7 +132,7 @@ export default function UserDashboardSidebar({
         <div className="p-4 border-t border-gray-200 bg-white/50 backdrop-blur-sm space-y-3">
           <div className="flex items-center gap-3 px-3 py-2 bg-white rounded-lg shadow-sm">
             {/* Avatar */}
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] flex items-center justify-center text-white text-lg font-semibold">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold" style={{ background: `linear-gradient(to bottom right, ${theme.primaryColor}, ${theme.secondaryColor})` }}>
               {user?.fullName?.split(' ')[0]?.[0]?.toUpperCase() || 'U'}
             </div>
 

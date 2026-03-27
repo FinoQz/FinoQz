@@ -116,12 +116,12 @@ export default function MediaAdvanced({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={handleTagInputKeyDown}
               placeholder="Enter a tag"
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
             />
           </div>
           <button
             onClick={handleAddTag}
-            className="px-4 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+            className="px-4 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
           >
             Add
           </button>
@@ -131,12 +131,12 @@ export default function MediaAdvanced({
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-lg text-sm"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--theme-primary)] bg-opacity-10 text-[var(--theme-primary)] rounded-lg text-sm"
               >
                 {tag}
                 <button
                   onClick={() => handleRemoveTag(tag)}
-                  className="hover:bg-[#253A7B] hover:bg-opacity-20 rounded-full p-0.5 transition"
+                  className="hover:bg-[var(--theme-primary)] hover:bg-opacity-20 rounded-full p-0.5 transition"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -230,7 +230,7 @@ export default function MediaAdvanced({
           </div>
         </div>
         <div className={`w-12 h-6 rounded-full transition ${
-          saveAsDraft ? 'bg-[#253A7B]' : 'bg-gray-300'
+          saveAsDraft ? 'bg-[var(--theme-primary)]' : 'bg-gray-300'
         }`}>
           <div className={`w-5 h-5 bg-white rounded-full mt-0.5 transition-transform ${
             saveAsDraft ? 'translate-x-6' : 'translate-x-0.5'

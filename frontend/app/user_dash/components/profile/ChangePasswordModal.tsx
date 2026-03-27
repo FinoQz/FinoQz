@@ -86,7 +86,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSubmit }: Chang
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Enter current password"
             />
             {errors.currentPassword && (
@@ -103,7 +103,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSubmit }: Chang
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Enter new password"
             />
             {errors.newPassword && (
@@ -121,7 +121,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSubmit }: Chang
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
               placeholder="Re-enter new password"
             />
             {errors.confirmPassword && (
@@ -140,7 +140,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onSubmit }: Chang
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md"
+              className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md"
             >
               Update Password
             </button>

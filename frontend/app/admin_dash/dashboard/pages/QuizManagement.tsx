@@ -299,8 +299,8 @@ export default function QuizManagement() {
               <p className="text-sm text-gray-600 mb-1">Total Quizzes</p>
               <p className="text-2xl sm:text-3xl font-bold text-gray-900">{quizzes.length}</p>
             </div>
-            <div className="w-12 h-12 bg-[#253A7B]/10 rounded-xl flex items-center justify-center">
-              <FileText className="w-6 h-6 text-[#253A7B]" />
+            <div className="w-12 h-12 bg-[var(--theme-primary)]/10 rounded-xl flex items-center justify-center">
+              <FileText className="w-6 h-6 text-[var(--theme-primary)]" />
             </div>
           </div>
         </div>

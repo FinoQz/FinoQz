@@ -86,7 +86,7 @@ export default function ReportsTable({
                   className="p-1 hover:bg-gray-100 rounded transition"
                 >
                   {allSelected ? (
-                    <CheckSquare className="w-4 h-4 text-[#253A7B]" />
+                    <CheckSquare className="w-4 h-4 text-[var(--theme-primary)]" />
                   ) : (
                     <Square className="w-4 h-4 text-gray-400" />
                   )}
@@ -112,7 +112,7 @@ export default function ReportsTable({
                     className="p-1 hover:bg-gray-100 rounded transition"
                   >
                     {selectedAttempts.includes(attempt.id) ? (
-                      <CheckSquare className="w-4 h-4 text-[#253A7B]" />
+                      <CheckSquare className="w-4 h-4 text-[var(--theme-primary)]" />
                     ) : (
                       <Square className="w-4 h-4 text-gray-400" />
                     )}
@@ -142,21 +142,21 @@ export default function ReportsTable({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onViewAttempt(attempt.id)}
-                      className="p-1.5 text-gray-600 hover:text-[#253A7B] hover:bg-gray-100 rounded transition"
+                      className="p-1.5 text-gray-600 hover:text-[var(--theme-primary)] hover:bg-gray-100 rounded transition"
                       title="View Attempt"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onDownloadScorecard(attempt.id)}
-                      className="p-1.5 text-gray-600 hover:text-[#253A7B] hover:bg-gray-100 rounded transition"
+                      className="p-1.5 text-gray-600 hover:text-[var(--theme-primary)] hover:bg-gray-100 rounded transition"
                       title="Download Scorecard"
                     >
                       <Download className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => onRegrade(attempt.id)}
-                      className="p-1.5 text-gray-600 hover:text-[#253A7B] hover:bg-gray-100 rounded transition"
+                      className="p-1.5 text-gray-600 hover:text-[var(--theme-primary)] hover:bg-gray-100 rounded transition"
                       title="Regrade"
                     >
                       <RefreshCw className="w-4 h-4" />

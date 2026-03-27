@@ -14,7 +14,7 @@ export default function FreeVsPaidChart({ freeParticipation, paidParticipation }
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <PieChart className="w-5 h-5 text-[#253A7B]" />
+          <PieChart className="w-5 h-5 text-[var(--theme-primary)]" />
           <h3 className="text-sm font-semibold text-gray-700">Free vs Paid Quiz Participation</h3>
         </div>
         <p className="text-sm text-gray-500">No participation data available.</p>
@@ -35,7 +35,7 @@ export default function FreeVsPaidChart({ freeParticipation, paidParticipation }
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-6">
-        <PieChart className="w-5 h-5 text-[#253A7B]" />
+        <PieChart className="w-5 h-5 text-[var(--theme-primary)]" />
         <h3 className="text-sm font-semibold text-gray-700">Free vs Paid Quiz Participation</h3>
       </div>
 
@@ -69,7 +69,7 @@ export default function FreeVsPaidChart({ freeParticipation, paidParticipation }
               cy="80"
               r={radius}
               fill="none"
-              stroke="#253A7B"
+              stroke="var(--theme-primary)"
               strokeWidth="20"
               strokeDasharray={paidStrokeDasharray}
               strokeDashoffset={paidStrokeDashoffset}
@@ -87,7 +87,7 @@ export default function FreeVsPaidChart({ freeParticipation, paidParticipation }
         <div className="space-y-3 w-full">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#253A7B]"></div>
+              <div className="w-3 h-3 rounded-full bg-[var(--theme-primary)]"></div>
               <span className="text-sm text-gray-700">Paid Quizzes</span>
             </div>
             <div className="text-right">

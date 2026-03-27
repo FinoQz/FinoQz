@@ -111,7 +111,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-24 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition text-lg"
+                className="w-full pl-8 pr-24 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition text-lg"
                 placeholder="0.00"
                 step="0.01"
                 min="1000"
@@ -120,7 +120,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
               <button
                 type="button"
                 onClick={requestMax}
-                className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-[#253A7B] text-white rounded-lg text-xs font-medium hover:bg-[#1a2a5e] transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1 bg-[var(--theme-primary)] text-white rounded-lg text-xs font-medium hover:bg-[var(--theme-secondary)] transition"
               >
                 Max
               </button>
@@ -145,7 +145,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
                 type="text"
                 value={accountHolder}
                 onChange={(e) => setAccountHolder(e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 placeholder="Enter full name as per bank"
               />
               {errors.accountHolder && <p className="text-xs text-red-500 mt-1">{errors.accountHolder}</p>}
@@ -162,7 +162,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
                   type="text"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                   placeholder="Enter bank account number"
                 />
               </div>
@@ -178,7 +178,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
                 type="text"
                 value={ifscCode}
                 onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition uppercase"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition uppercase"
                 placeholder="SBIN0001234"
                 maxLength={11}
               />
@@ -206,7 +206,7 @@ export default function RequestPayoutModal({ isOpen, onClose, onSubmit, availabl
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md"
+            className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md"
           >
             Request Payout
           </button>

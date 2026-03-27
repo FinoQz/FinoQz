@@ -49,7 +49,7 @@ export default function AboutSection() {
     >
       <div className="relative z-10 container mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-[#253A7B] mb-4">Why Choose FinoQz?</h2>
+          <h2 className="text-4xl font-bold text-[var(--theme-primary)] mb-4">Why Choose FinoQz?</h2>
           <p className="text-xl text-gray-600">
             Transform your finance knowledge with our proven learning system
           </p>
@@ -78,9 +78,9 @@ export default function AboutSection() {
                   <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/0 opacity-0 group-hover:opacity-40 blur-xl transition duration-500" />
                   <CardContent className="relative z-10 p-6 space-y-4">
                     <div className="bg-white/80 p-4 rounded-lg w-fit group-hover:scale-105 transition-transform duration-300">
-                      <Icon className="h-8 w-8 text-[#253A7B]" />
+                      <Icon className="h-8 w-8 text-[var(--theme-primary)]" />
                     </div>
-                    <h3 className="text-xl font-semibold text-[#253A7B]">
+                    <h3 className="text-xl font-semibold text-[var(--theme-primary)]">
                       {reason.title}
                     </h3>
                     <p className="text-gray-600">{reason.description}</p>

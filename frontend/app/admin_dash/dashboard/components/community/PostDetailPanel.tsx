@@ -60,7 +60,7 @@ export default function PostDetailPanel({ post, onClose }: PostDetailPanelProps)
           onClick={() => setActiveTab('content')}
           className={`flex-1 px-4 py-3 font-medium transition ${
             activeTab === 'content'
-              ? 'text-[#253A7B] border-b-2 border-[#253A7B]'
+              ? 'text-[var(--theme-primary)] border-b-2 border-[var(--theme-primary)]'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -70,7 +70,7 @@ export default function PostDetailPanel({ post, onClose }: PostDetailPanelProps)
           onClick={() => setActiveTab('activity')}
           className={`flex-1 px-4 py-3 font-medium transition ${
             activeTab === 'activity'
-              ? 'text-[#253A7B] border-b-2 border-[#253A7B]'
+              ? 'text-[var(--theme-primary)] border-b-2 border-[var(--theme-primary)]'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >

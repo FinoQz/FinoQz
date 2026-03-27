@@ -73,7 +73,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-[#253A7B]">
+      <h3 className="text-lg font-semibold text-[var(--theme-primary)]">
         Add Questions to: <span className="text-gray-800">{categoryId}</span>
       </h3>
 
@@ -94,7 +94,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
               name="correct"
               checked={correctIndex === i}
               onChange={() => setCorrectIndex(i)}
-              className="accent-[#253A7B]"
+              className="accent-[var(--theme-primary)]"
             />
             <input
               type="text"
@@ -113,7 +113,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
         <button
           onClick={addQuestion}
           disabled={loading}
-          className="mt-2 bg-[#253A7B] text-white px-4 py-2 rounded hover:bg-[#1a2a5e] transition text-sm disabled:opacity-50"
+          className="mt-2 bg-[var(--theme-primary)] text-white px-4 py-2 rounded hover:bg-[var(--theme-secondary)] transition text-sm disabled:opacity-50"
         >
           <Plus className="w-4 h-4 inline mr-1" />
           {loading ? 'Saving...' : 'Add Question'}
@@ -135,7 +135,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
                       <li
                         key={j}
                         className={
-                          q.correctIndex === j ? 'text-[#253A7B] font-semibold' : ''
+                          q.correctIndex === j ? 'text-[var(--theme-primary)] font-semibold' : ''
                         }
                       >
                         {opt}

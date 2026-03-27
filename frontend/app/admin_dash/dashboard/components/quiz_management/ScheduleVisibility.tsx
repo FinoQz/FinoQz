@@ -122,8 +122,8 @@ export default function ScheduleVisibility({
             type="button"
             className={`px-4 py-2 rounded-xl border-2 font-semibold transition w-full sm:w-auto ${
               postType === 'live'
-                ? 'border-[#253A7B] bg-[#253A7B] text-white'
-                : 'border-gray-200 bg-white text-[#253A7B] hover:border-[#253A7B]'
+                ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-white'
+                : 'border-gray-200 bg-white text-[var(--theme-primary)] hover:border-[var(--theme-primary)]'
             }`}
             onClick={() => onPostTypeChange('live')}
           >
@@ -133,8 +133,8 @@ export default function ScheduleVisibility({
             type="button"
             className={`px-4 py-2 rounded-xl border-2 font-semibold transition w-full sm:w-auto ${
               postType === 'scheduled'
-                ? 'border-[#253A7B] bg-[#253A7B] text-white'
-                : 'border-gray-200 bg-white text-[#253A7B] hover:border-[#253A7B]'
+                ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-white'
+                : 'border-gray-200 bg-white text-[var(--theme-primary)] hover:border-[var(--theme-primary)]'
             }`}
             onClick={() => onPostTypeChange('scheduled')}
           >
@@ -159,7 +159,7 @@ export default function ScheduleVisibility({
                   value={startDate}
                   min={minDate}
                   onChange={(e) => onStartDateChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
               <div className="relative">
@@ -169,7 +169,7 @@ export default function ScheduleVisibility({
                   value={startTime}
                   min={isStartToday ? minTime : undefined}
                   onChange={(e) => onStartTimeChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function ScheduleVisibility({
                   value={endDate}
                   min={startDate || minDate}
                   onChange={(e) => onEndDateChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
               <div className="relative">
@@ -198,7 +198,7 @@ export default function ScheduleVisibility({
                   value={endTime}
                   min={endDate === startDate && startTime ? startTime : undefined}
                   onChange={(e) => onEndTimeChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
             </div>
@@ -217,14 +217,14 @@ export default function ScheduleVisibility({
             onClick={() => onVisibilityChange('public')}
             className={`p-4 rounded-xl border-2 cursor-pointer transition ${
               visibility === 'public'
-                ? 'border-[#253A7B] bg-white'
+                ? 'border-[var(--theme-primary)] bg-white'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <div className="flex items-start gap-3">
-              <Eye className={`w-5 h-5 mt-0.5 ${visibility === 'public' ? 'text-[#253A7B]' : 'text-gray-400'}`} />
+              <Eye className={`w-5 h-5 mt-0.5 ${visibility === 'public' ? 'text-[var(--theme-primary)]' : 'text-gray-400'}`} />
               <div>
-                <h4 className={`font-semibold text-sm mb-1 ${visibility === 'public' ? 'text-[#253A7B]' : 'text-gray-900'}`}>
+                <h4 className={`font-semibold text-sm mb-1 ${visibility === 'public' ? 'text-[var(--theme-primary)]' : 'text-gray-900'}`}>
                   Public
                 </h4>
                 <p className="text-xs text-gray-600">Visible to everyone</p>
@@ -237,14 +237,14 @@ export default function ScheduleVisibility({
             onClick={() => onVisibilityChange('private')}
             className={`p-4 rounded-xl border-2 cursor-pointer transition ${
               visibility === 'private'
-                ? 'border-[#253A7B] bg-white'
+                ? 'border-[var(--theme-primary)] bg-white'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             <div className="flex items-start gap-3">
-              <Eye className={`w-5 h-5 mt-0.5 ${visibility === 'private' ? 'text-[#253A7B]' : 'text-gray-400'}`} />
+              <Eye className={`w-5 h-5 mt-0.5 ${visibility === 'private' ? 'text-[var(--theme-primary)]' : 'text-gray-400'}`} />
               <div>
-                <h4 className={`font-semibold text-sm mb-1 ${visibility === 'private' ? 'text-[#253A7B]' : 'text-gray-900'}`}>
+                <h4 className={`font-semibold text-sm mb-1 ${visibility === 'private' ? 'text-[var(--theme-primary)]' : 'text-gray-900'}`}>
                   Private
                 </h4>
                 <p className="text-xs text-gray-600">Assigned groups only</p>
@@ -270,12 +270,12 @@ export default function ScheduleVisibility({
                 onClick={() => handleGroupToggle(group._id)}
                 className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-center gap-3 ${
                   assignedGroups.includes(group._id)
-                    ? 'border-[#253A7B] bg-white'
+                    ? 'border-[var(--theme-primary)] bg-white'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                  assignedGroups.includes(group._id) ? 'border-[#253A7B] bg-[#253A7B]' : 'border-gray-300'
+                  assignedGroups.includes(group._id) ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]' : 'border-gray-300'
                 }`}>
                   {assignedGroups.includes(group._id) && (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -284,7 +284,7 @@ export default function ScheduleVisibility({
                   )}
                 </div>
                 <Users className="w-5 h-5 text-gray-400" />
-                <span className={`text-sm font-medium ${assignedGroups.includes(group._id) ? 'text-[#253A7B]' : 'text-gray-900'}`}>
+                <span className={`text-sm font-medium ${assignedGroups.includes(group._id) ? 'text-[var(--theme-primary)]' : 'text-gray-900'}`}>
                   {group.name}
                 </span>
               </div>

@@ -58,7 +58,7 @@ export default function PaidVsFreeDonutChart({ quizId }: PaidVsFreeDonutChartPro
     const paidPercentage = total > 0 ? Math.round((paidCount / total) * 100) : 0;
     const freePercentage = total > 0 ? Math.round((freeCount / total) * 100) : 0;
     return [
-      { label: 'Paid', value: paidCount, color: 'bg-[#253A7B]', percentage: paidPercentage },
+      { label: 'Paid', value: paidCount, color: 'bg-[var(--theme-primary)]', percentage: paidPercentage },
       { label: 'Free', value: freeCount, color: 'bg-blue-400', percentage: freePercentage }
     ];
   }, [paidCount, freeCount, total]);
@@ -87,7 +87,7 @@ export default function PaidVsFreeDonutChart({ quizId }: PaidVsFreeDonutChartPro
                   cy="50"
                   r="40"
                   fill="none"
-                  stroke="#253A7B"
+                  stroke="var(--theme-primary)"
                   strokeWidth="20"
                   strokeDasharray={`${data[0].percentage * 2.51} ${251 - data[0].percentage * 2.51}`}
                   className="transition-all"

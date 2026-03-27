@@ -62,7 +62,7 @@ export default function RevenueChart() {
                 <span className="text-sm font-medium text-gray-600 w-12">{item.day}</span>
                 <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#253A7B] to-[#1a2a5e] h-full rounded-full flex items-center justify-end pr-3 transition-all"
+                    className="bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] h-full rounded-full flex items-center justify-end pr-3 transition-all"
                     style={{ width: `${maxRevenue > 0 ? (item.revenue / maxRevenue) * 100 : 0}%` }}
                   >
                     <span className="text-xs font-bold text-white">₹{(item.revenue / 1000).toFixed(0)}k</span>

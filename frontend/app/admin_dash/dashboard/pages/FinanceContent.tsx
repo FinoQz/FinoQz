@@ -226,7 +226,7 @@ export default function FinanceContent() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md"
+          className="flex items-center justify-center gap-2 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md"
         >
           <Plus className="w-5 h-5" />
           Add New Content
@@ -254,7 +254,7 @@ export default function FinanceContent() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2.5 rounded-lg font-medium text-sm whitespace-nowrap transition ${
                 activeTab === tab.id
-                  ? 'bg-[#253A7B] text-white shadow-sm'
+                  ? 'bg-[var(--theme-primary)] text-white shadow-sm'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -274,7 +274,7 @@ export default function FinanceContent() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title or category..."
-              className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
             />
           </div>
           <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium">

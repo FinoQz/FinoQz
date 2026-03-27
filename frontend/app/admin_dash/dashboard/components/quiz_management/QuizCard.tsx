@@ -89,7 +89,7 @@ export default function QuizCard({
           {onEdit && (
             <button
               onClick={() => onEdit(quiz)}
-              className="flex items-center gap-1 px-3 py-1.5 text-[#253A7B] hover:bg-[#253A7B]/10 rounded-lg transition text-sm font-medium"
+              className="flex items-center gap-1 px-3 py-1.5 text-[var(--theme-primary)] hover:bg-[var(--theme-primary)]/10 rounded-lg transition text-sm font-medium"
               title="Edit quiz"
             >
               <Edit2 className="w-4 h-4" />

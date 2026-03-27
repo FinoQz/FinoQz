@@ -58,7 +58,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
       <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[#253A7B]" />
+            <Calendar className="w-5 h-5 text-[var(--theme-primary)]" />
             <h3 className="text-lg font-bold text-gray-900">Schedule Report</h3>
           </div>
           <button
@@ -82,7 +82,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
                   onClick={() => setSchedule({ ...schedule, frequency: freq as ScheduleConfig["frequency"] })}
                   className={`px-4 py-2 rounded-lg border-2 font-medium text-sm capitalize transition ${
                     schedule.frequency === freq
-                      ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]'
+                      ? 'border-[var(--theme-primary)] bg-blue-50 text-[var(--theme-primary)]'
                       : 'border-gray-200 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -101,7 +101,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
               type="time"
               value={schedule.time}
               onChange={(e) => setSchedule({ ...schedule, time: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
             />
           </div>
 
@@ -113,7 +113,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
             <select
               value={schedule.reportType}
               onChange={(e) => setSchedule({ ...schedule, reportType: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
             >
               <option value="summary">Summary Report</option>
               <option value="detailed">Detailed Report</option>
@@ -127,7 +127,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
               type="checkbox"
               checked={schedule.includePII}
               onChange={(e) => setSchedule({ ...schedule, includePII: e.target.checked })}
-              className="w-4 h-4 text-[#253A7B] border-gray-300 rounded focus:ring-[#253A7B]"
+              className="w-4 h-4 text-[var(--theme-primary)] border-gray-300 rounded focus:ring-[var(--theme-primary)]"
             />
             <span className="text-sm text-gray-700">Include user PII in report</span>
           </label>
@@ -146,12 +146,12 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
                   onChange={(e) => setEmailInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddEmail()}
                   placeholder="Enter email address"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
                 />
               </div>
               <button
                 onClick={handleAddEmail}
-                className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium text-sm"
+                className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium text-sm"
               >
                 Add
               </button>
@@ -196,7 +196,7 @@ export default function ScheduleReportModal({ isOpen, onClose, onSchedule }: Sch
           <button
             onClick={handleSchedule}
             disabled={schedule.recipients.length === 0}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Schedule Report
           </button>

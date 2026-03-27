@@ -3,7 +3,7 @@
 import apiUser from '@/lib/apiUser';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import BrandLogo from '@/components/BrandLogo';
 import InputField from './components/InputField';
 import ProgressBar from './components/ProgressBar';
 import axios from 'axios';
@@ -136,13 +136,7 @@ export default function VerifyMobileOtpPage() {
       {/* Header */}
       <div className="text-center mb-6">
         <div className="flex items-center justify-center gap-2">
-          <Image
-            src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg"
-            alt="FinoQz Logo"
-            width={40}
-            height={40}
-            priority
-          />
+          <BrandLogo width={40} height={40} priority />
           <h1 className="text-2xl font-bold">FinoQz</h1>
         </div>
         <p className="text-sm text-gray-500 mt-1">

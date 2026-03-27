@@ -28,7 +28,7 @@ export default function FiltersBar({
         <select
           value={selectedCategory}
           onChange={(e) => onCategoryChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="all">All Categories</option>
           <option value="personal-finance">Personal Finance</option>
@@ -40,7 +40,7 @@ export default function FiltersBar({
         <select
           value={selectedQuiz}
           onChange={(e) => onQuizChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="all">All Quizzes</option>
           <option value="financial-basics">Financial Management Basics</option>
@@ -51,7 +51,7 @@ export default function FiltersBar({
         <select
           value={selectedUserType}
           onChange={(e) => onUserTypeChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] text-sm"
         >
           <option value="all">All Users</option>
           <option value="free">Free Users</option>

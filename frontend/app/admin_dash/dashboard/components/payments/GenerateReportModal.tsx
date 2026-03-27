@@ -83,7 +83,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b-2 border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#253A7B] rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-[var(--theme-primary)] rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -109,7 +109,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
                   key={type.value}
                   className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition ${
                     reportType === type.value
-                      ? 'border-[#253A7B] bg-blue-50'
+                      ? 'border-[var(--theme-primary)] bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -119,14 +119,14 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
                     value={type.value}
                     checked={reportType === type.value}
                     onChange={(e) => setReportType(e.target.value)}
-                    className="mt-1 w-4 h-4 text-[#253A7B]"
+                    className="mt-1 w-4 h-4 text-[var(--theme-primary)]"
                   />
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{type.label}</p>
                     <p className="text-xs text-gray-600 mt-0.5">{type.desc}</p>
                   </div>
                   {reportType === type.value && (
-                    <CheckCircle className="w-5 h-5 text-[#253A7B] flex-shrink-0" />
+                    <CheckCircle className="w-5 h-5 text-[var(--theme-primary)] flex-shrink-0" />
                   )}
                 </label>
               ))}
@@ -145,7 +145,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
               {errors.dateFrom && <p className="text-xs text-red-500 mt-1">{errors.dateFrom}</p>}
@@ -161,7 +161,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                  className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition"
                 />
               </div>
               {errors.dateTo && <p className="text-xs text-red-500 mt-1">{errors.dateTo}</p>}
@@ -177,7 +177,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
               <select
                 value={format}
                 onChange={(e) => setFormat(e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition bg-white"
               >
                 <option value="pdf">PDF Document</option>
                 <option value="excel">Excel Spreadsheet</option>
@@ -192,7 +192,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
               <select
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value)}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition bg-white"
               >
                 <option value="date">Date</option>
                 <option value="method">Payment Method</option>
@@ -214,7 +214,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
                   type="checkbox"
                   checked={includeRefunds}
                   onChange={(e) => setIncludeRefunds(e.target.checked)}
-                  className="w-4 h-4 text-[#253A7B] rounded"
+                  className="w-4 h-4 text-[var(--theme-primary)] rounded"
                 />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Refunded Transactions</p>
@@ -227,7 +227,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
                   type="checkbox"
                   checked={includeFailedTxns}
                   onChange={(e) => setIncludeFailedTxns(e.target.checked)}
-                  className="w-4 h-4 text-[#253A7B] rounded"
+                  className="w-4 h-4 text-[var(--theme-primary)] rounded"
                 />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Failed Transactions</p>
@@ -255,7 +255,7 @@ export default function GenerateReportModal({ isOpen, onClose, onGenerate }: Gen
           </button>
           <button
             onClick={handleGenerate}
-            className="flex-1 px-6 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+            className="flex-1 px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium shadow-sm hover:shadow-md flex items-center justify-center gap-2"
           >
             <Download className="w-4 h-4" />
             Generate Report

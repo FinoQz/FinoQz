@@ -34,7 +34,7 @@ export default function QuizFilters({ onSearch, onStatusChange, onApply }: QuizF
           placeholder="Search by title…"
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition text-sm"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition text-sm"
         />
       </div>
 
@@ -43,8 +43,8 @@ export default function QuizFilters({ onSearch, onStatusChange, onApply }: QuizF
         <select
           value={selectedStatus}
           onChange={(e) => handleStatusChange(e.target.value as QuizStatus)}
-          className="appearance-none w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition text-sm bg-white pr-10 shadow-sm font-medium text-gray-700
-            hover:border-[#253A7B] hover:bg-gray-50 focus:bg-white"
+          className="appearance-none w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[var(--theme-primary)] focus:border-transparent transition text-sm bg-white pr-10 shadow-sm font-medium text-gray-700
+            hover:border-[var(--theme-primary)] hover:bg-gray-50 focus:bg-white"
           style={{
             boxShadow: '0 4px 16px rgba(37, 58, 123, 0.08)',
             cursor: 'pointer',

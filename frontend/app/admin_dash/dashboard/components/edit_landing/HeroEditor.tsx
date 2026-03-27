@@ -157,7 +157,7 @@ export default function HeroEditor() {
         <button
           onClick={handleSave}
           disabled={loading}
-          className="bg-[#253A7B] text-white px-5 py-2 rounded-md hover:bg-[#1a2a5e] transition text-sm disabled:opacity-50"
+          className="bg-[var(--theme-primary)] text-white px-5 py-2 rounded-md hover:bg-[var(--theme-secondary)] transition text-sm disabled:opacity-50"
         >
           {loading ? 'Saving...' : 'Save Changes'}
         </button>
@@ -186,7 +186,7 @@ export default function HeroEditor() {
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full text-sm border border-gray-300 rounded px-3 py-2 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-[#253A7B] file:text-white hover:file:bg-[#1a2a5e]"
+              className="w-full text-sm border border-gray-300 rounded px-3 py-2 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-[var(--theme-primary)] file:text-white hover:file:bg-[var(--theme-secondary)]"
             />
             {imagePreview && (
               <button
@@ -250,14 +250,14 @@ export default function HeroEditor() {
             <p className="text-sm text-gray-600">{tagline}</p>
             <a
               href={buttonLink}
-              className="inline-block mt-4 bg-[#253A7B] text-white px-4 py-2 rounded-md text-sm hover:bg-[#1a2a5e] transition"
+              className="inline-block mt-4 bg-[var(--theme-primary)] text-white px-4 py-2 rounded-md text-sm hover:bg-[var(--theme-secondary)] transition"
             >
               {buttonText}
             </a>
             <div className="flex flex-wrap gap-6 pt-6">
               {stats.map((stat, i) => (
                 <div key={i} className="min-w-[80px]">
-                  <p className="text-base md:text-2xl font-bold text-[#253A7B]">{stat.value}</p>
+                  <p className="text-base md:text-2xl font-bold text-[var(--theme-primary)]">{stat.value}</p>
                   <p className="text-xs md:text-sm text-gray-500">{stat.label}</p>
                 </div>
               ))}
@@ -285,7 +285,7 @@ function FormField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-300 rounded px-4 py-2 text-sm focus:ring-2 focus:ring-[#253A7B] focus:outline-none"
+        className="w-full border border-gray-300 rounded px-4 py-2 text-sm focus:ring-2 focus:ring-[var(--theme-primary)] focus:outline-none"
       />
     </div>
   );

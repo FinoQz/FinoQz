@@ -51,7 +51,7 @@ export default function Community() {
       <div className="absolute bottom-0 right-0 w-60 h-60 bg-purple-300 opacity-20 rounded-full blur-3xl" />
 
       <div className="relative z-10 container mx-auto px-6">
-        <h2 className="text-4xl font-bold text-[#253A7B] mb-12 text-center">Community Insights</h2>
+        <h2 className="text-4xl font-bold text-[var(--theme-primary)] mb-12 text-center">Community Insights</h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left: Community Posts */}
@@ -62,19 +62,19 @@ export default function Community() {
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="group relative p-6 rounded-2xl bg-gradient-to-br from-[#f0f4ff] to-[#e2e6f9] shadow-md hover:shadow-xl hover:ring-2 hover:ring-[#253A7B]/30 transition-all duration-300 cursor-pointer"
+                className="group relative p-6 rounded-2xl bg-gradient-to-br from-[#f0f4ff] to-[#e2e6f9] shadow-md hover:shadow-xl hover:ring-2 hover:ring-[var(--theme-primary)]/30 transition-all duration-300 cursor-pointer"
               >
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-full bg-[#253A7B] flex items-center justify-center shadow-md">
+                  <div className="w-14 h-14 rounded-full bg-[var(--theme-primary)] flex items-center justify-center shadow-md">
                     <User className="h-7 w-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-[#253A7B]">{post.title}</h3>
+                    <h3 className="font-semibold text-lg text-[var(--theme-primary)]">{post.title}</h3>
                     <p className="text-gray-500 text-sm">by {post.author}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-[#253A7B] font-medium">
-                  <Heart className="h-4 w-4 fill-[#253A7B] text-white" />
+                <div className="flex items-center gap-2 text-[var(--theme-primary)] font-medium">
+                  <Heart className="h-4 w-4 fill-[var(--theme-primary)] text-white" />
                   {post.likes} Likes
                 </div>
               </motion.div>
@@ -91,7 +91,7 @@ export default function Community() {
                   className="bg-white rounded-xl shadow-md p-6 border border-gray-200"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-[#253A7B] font-semibold">{review.name}</h4>
+                    <h4 className="text-[var(--theme-primary)] font-semibold">{review.name}</h4>
                     <div className="flex gap-1">
                       {Array.from({ length: review.rating }).map((_, j) => (
                         <Star key={j} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
@@ -105,13 +105,13 @@ export default function Community() {
 
             {/* Comment Box */}
             <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-              <h4 className="text-[#253A7B] font-semibold mb-2">Share your thoughts</h4>
+              <h4 className="text-[var(--theme-primary)] font-semibold mb-2">Share your thoughts</h4>
               <textarea
                 rows={4}
                 placeholder="Write your comment..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
               />
 
               {/* Star Rating Input */}
@@ -129,7 +129,7 @@ export default function Community() {
 
               <button
                 onClick={handleSubmit}
-                className="mt-4 bg-[#253A7B] text-white px-5 py-2 rounded-full hover:bg-blue-700 transition"
+                className="mt-4 bg-[var(--theme-primary)] text-white px-5 py-2 rounded-full hover:bg-blue-700 transition"
               >
                 Submit Review
               </button>

@@ -29,7 +29,7 @@ export default function ContentFilters({ activeFilter, onFilterChange }: Content
             onClick={() => onFilterChange(filter.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
               isActive
-                ? 'bg-[#253A7B] text-white shadow-md'
+                ? 'bg-[var(--theme-primary)] text-white shadow-md'
                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >

@@ -82,7 +82,7 @@ export default function AnalyticsPanel({ stats }: AnalyticsPanelProps) {
       <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900">Most Viewed Content</h3>
-          <TrendingUp className="w-5 h-5 text-[#253A7B]" />
+          <TrendingUp className="w-5 h-5 text-[var(--theme-primary)]" />
         </div>
         
         <div className="space-y-3">
@@ -91,7 +91,7 @@ export default function AnalyticsPanel({ stats }: AnalyticsPanelProps) {
               key={index}
               className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
             >
-              <div className="flex items-center justify-center w-8 h-8 bg-[#253A7B] text-white rounded-lg font-bold text-sm">
+              <div className="flex items-center justify-center w-8 h-8 bg-[var(--theme-primary)] text-white rounded-lg font-bold text-sm">
                 {index + 1}
               </div>
               <div className="flex-1 min-w-0">

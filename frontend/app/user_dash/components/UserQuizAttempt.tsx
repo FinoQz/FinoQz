@@ -366,7 +366,7 @@ export default function UserQuizAttempt({
     return (
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading quiz questions...</p>
         </div>
       </div>
@@ -380,7 +380,7 @@ export default function UserQuizAttempt({
           <p className="text-red-600 mb-4">{questionsError}</p>
           <button
             onClick={fetchQuestions}
-            className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+            className="px-6 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition"
           >
             Retry
           </button>
@@ -472,7 +472,7 @@ export default function UserQuizAttempt({
           <div className="flex gap-3">
             <button
               onClick={handleExitConfirm}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
             >
               Back to Quizzes
             </button>
@@ -539,7 +539,7 @@ export default function UserQuizAttempt({
             </button>
             <button
               onClick={handleSubmitConfirm}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium"
             >
               Submit
             </button>
@@ -604,7 +604,7 @@ export default function UserQuizAttempt({
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="px-3 py-1 bg-[#f9f9f9] bg-opacity-10 text-[#253A7B] rounded-lg text-sm font-medium">
+                    <span className="px-3 py-1 bg-[#f9f9f9] bg-opacity-10 text-[var(--theme-primary)] rounded-lg text-sm font-medium">
                       Question {currentQuestionIndex + 1}
                     </span>
                     <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
@@ -634,14 +634,14 @@ export default function UserQuizAttempt({
                     onClick={() => handleAnswerSelect(index)}
                     className={`w-full p-4 rounded-xl border-2 text-left transition ${
                       answers[currentQuestion.id] === index
-                        ? 'border-[#253A7B] bg-white'
+                        ? 'border-[var(--theme-primary)] bg-white'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                         answers[currentQuestion.id] === index
-                          ? 'border-[#253A7B] bg-[#253A7B]'
+                          ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)]'
                           : 'border-gray-300'
                       }`}>
                         {answers[currentQuestion.id] === index && (
@@ -679,7 +679,7 @@ export default function UserQuizAttempt({
               ) : (
                 <button
                   onClick={handleNext}
-                  className="px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2"
+                  className="px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center gap-2"
                 >
                   Next
                   <ArrowRight className="w-5 h-5" />
@@ -715,7 +715,7 @@ export default function UserQuizAttempt({
                       onClick={() => handleQuestionNavigate(index)}
                       className={`aspect-square rounded-lg font-semibold text-sm transition ${
                         currentQuestionIndex === index
-                          ? 'bg-[#253A7B] text-white ring-2 ring-[#253A7B] ring-offset-2'
+                          ? 'bg-[var(--theme-primary)] text-white ring-2 ring-[var(--theme-primary)] ring-offset-2'
                           : status === 'answered'
                           ? 'bg-green-100 text-green-700 hover:bg-green-200'
                           : status === 'flagged'
@@ -793,7 +793,7 @@ export default function UserQuizAttempt({
                       }}
                       className={`aspect-square rounded-lg font-semibold text-sm transition ${
                         currentQuestionIndex === index
-                          ? 'bg-[#253A7B] text-white ring-2 ring-[#253A7B] ring-offset-2'
+                          ? 'bg-[var(--theme-primary)] text-white ring-2 ring-[var(--theme-primary)] ring-offset-2'
                           : status === 'answered'
                           ? 'bg-green-100 text-green-700 hover:bg-green-200'
                           : status === 'flagged'

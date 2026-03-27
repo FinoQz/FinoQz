@@ -78,7 +78,7 @@ export default function QuizCategories() {
     <section id="categories" className="py-20 md:py-24 bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 text-[#253A7B]">Explore Quiz Categories</h2>
+          <h2 className="text-4xl font-bold mb-4 text-[var(--theme-primary)]">Explore Quiz Categories</h2>
           <p className="text-xl text-gray-600">Master various finance topics through structured learning paths</p>
         </div>
 
@@ -101,7 +101,7 @@ export default function QuizCategories() {
                 <div className="h-full flex items-stretch">
                   <Card className="rounded-2xl shadow-md hover:shadow-lg transition w-full">
                     <CardHeader>
-                      <CardTitle className="text-lg font-semibold text-[#253A7B]">{cat.name}</CardTitle>
+                      <CardTitle className="text-lg font-semibold text-[var(--theme-primary)]">{cat.name}</CardTitle>
                       <CardDescription className="text-sm text-gray-600">{cat.description}</CardDescription>
                     </CardHeader>
                     <CardContent>

@@ -160,7 +160,7 @@ export default function CommunityPosts() {
           <div className="mb-6">
             <button
               onClick={() => setActiveTab('all')}
-              className="text-[#253A7B] hover:underline text-sm mb-2"
+              className="text-[var(--theme-primary)] hover:underline text-sm mb-2"
             >
               ← Back to Posts
             </button>
@@ -174,13 +174,13 @@ export default function CommunityPosts() {
                 <input
                   type="text"
                   placeholder="Enter post title"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]">
+                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]">
                   <option value="Announcements">Announcements</option>
                   <option value="Tips">Tips</option>
                   <option value="Updates">Updates</option>
@@ -193,7 +193,7 @@ export default function CommunityPosts() {
                 <textarea
                   rows={8}
                   placeholder="Write your post content..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                 />
               </div>
 
@@ -204,7 +204,7 @@ export default function CommunityPosts() {
                     setActiveTab('all');
                     setTimeout(() => setActionStatus(''), 3000);
                   }}
-                  className="px-6 py-2.5 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium"
+                  className="px-6 py-2.5 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium"
                 >
                   Publish Post
                 </button>
@@ -248,7 +248,7 @@ export default function CommunityPosts() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold text-gray-600 uppercase">Total Posts</h3>
-            <FileText className="w-4 h-4 text-[#253A7B]" />
+            <FileText className="w-4 h-4 text-[var(--theme-primary)]" />
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
         </div>
@@ -280,7 +280,7 @@ export default function CommunityPosts() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold text-gray-600 uppercase">Engagement</h3>
-            <ThumbsUp className="w-4 h-4 text-[#253A7B]" />
+            <ThumbsUp className="w-4 h-4 text-[var(--theme-primary)]" />
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.totalEngagement}</p>
         </div>
@@ -288,7 +288,7 @@ export default function CommunityPosts() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold text-gray-600 uppercase">Total Views</h3>
-            <Eye className="w-4 h-4 text-[#253A7B]" />
+            <Eye className="w-4 h-4 text-[var(--theme-primary)]" />
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.totalViews.toLocaleString()}</p>
         </div>
@@ -309,7 +309,7 @@ export default function CommunityPosts() {
                 onClick={() => setActiveTab(tab.key as TabType)}
                 className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap transition ${
                   activeTab === tab.key
-                    ? 'border-[#253A7B] text-[#253A7B]'
+                    ? 'border-[var(--theme-primary)] text-[var(--theme-primary)]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -328,13 +328,13 @@ export default function CommunityPosts() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search posts..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
             />
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
           >
             <option value="all">All Categories</option>
             <option value="Announcements">Announcements</option>
@@ -344,7 +344,7 @@ export default function CommunityPosts() {
           </select>
           <button
             onClick={() => setActiveTab('create-new')}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 justify-center"
+            className="px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium flex items-center gap-2 justify-center"
           >
             <Plus className="w-4 h-4" />
             Create Post
@@ -355,7 +355,7 @@ export default function CommunityPosts() {
         <div className="divide-y divide-gray-200">
           {loading ? (
             <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-3"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--theme-primary)] mx-auto mb-3"></div>
               <p className="text-gray-600">Loading posts...</p>
             </div>
           ) : error ? (
@@ -364,7 +364,7 @@ export default function CommunityPosts() {
               <p className="text-red-600 mb-2">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="text-sm text-[#253A7B] hover:underline"
+                className="text-sm text-[var(--theme-primary)] hover:underline"
               >
                 Try again
               </button>
@@ -384,7 +384,7 @@ export default function CommunityPosts() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           {post.isPinned && (
-                            <Pin className="w-4 h-4 text-[#253A7B] fill-current" />
+                            <Pin className="w-4 h-4 text-[var(--theme-primary)] fill-current" />
                           )}
                           <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
                             {post.title}

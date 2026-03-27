@@ -73,7 +73,7 @@ export default function Certificates() {
             </div>
 
             <div className="flex gap-3">
-              <button className="flex-1 px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium text-sm flex items-center justify-center gap-2">
+              <button className="flex-1 px-4 py-2 bg-[var(--theme-primary)] text-white rounded-lg hover:bg-[var(--theme-secondary)] transition font-medium text-sm flex items-center justify-center gap-2">
                 <Download className="w-4 h-4" />
                 Download
               </button>

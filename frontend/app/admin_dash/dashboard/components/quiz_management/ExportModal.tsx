@@ -50,7 +50,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
                     onClick={() => setFormat(fmt as  'csv' | 'xlsx' | 'pdf')}
                     className={`p-3 rounded-xl border-2 text-center font-medium text-sm transition ${
                       format === fmt
-                        ? 'border-[#253A7B] bg-[#253A7B] text-white'
+                        ? 'border-[var(--theme-primary)] bg-[var(--theme-primary)] text-white'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                     }`}
                   >
@@ -69,7 +69,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
                   type="checkbox"
                   checked={includeAnswers}
                   onChange={(e) => setIncludeAnswers(e.target.checked)}
-                  className="w-5 h-5 accent-[#253A7B] cursor-pointer"
+                  className="w-5 h-5 accent-[var(--theme-primary)] cursor-pointer"
                 />
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 text-sm">Include Answers</p>
@@ -82,7 +82,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
                   type="checkbox"
                   checked={includePersonalData}
                   onChange={(e) => setIncludePersonalData(e.target.checked)}
-                  className="w-5 h-5 accent-[#253A7B] cursor-pointer"
+                  className="w-5 h-5 accent-[var(--theme-primary)] cursor-pointer"
                 />
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 text-sm">Include Personal Data</p>
@@ -110,7 +110,7 @@ export default function ExportModal({ quizId, onClose }: ExportModalProps) {
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-[var(--theme-primary)] text-white rounded-xl hover:bg-[var(--theme-secondary)] transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {exporting ? (
                 <>

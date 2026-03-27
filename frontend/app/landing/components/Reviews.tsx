@@ -81,7 +81,7 @@ export default function Reviews() {
       <div className="absolute bottom-0 left-0 w-60 h-60 bg-blue-300 opacity-20 rounded-full blur-3xl" />
 
       <div className="relative z-10 container mx-auto px-6">
-        <h2 className="text-4xl font-bold text-[#253A7B] mb-4 text-center">
+        <h2 className="text-4xl font-bold text-[var(--theme-primary)] mb-4 text-center">
           What Our Community Says
         </h2>
         <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
@@ -91,7 +91,7 @@ export default function Reviews() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Left: Featured Reviews */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-semibold text-[#253A7B] mb-6">Featured Reviews</h3>
+            <h3 className="text-2xl font-semibold text-[var(--theme-primary)] mb-6">Featured Reviews</h3>
             
             {reviews.length === 0 ? (
               <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to share your experience!</p>
@@ -106,7 +106,7 @@ export default function Reviews() {
                     className="bg-white rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[#253A7B] font-semibold text-lg">{review.name}</h4>
+                      <h4 className="text-[var(--theme-primary)] font-semibold text-lg">{review.name}</h4>
                       <div className="flex gap-1">
                         {Array.from({ length: review.rating }).map((_, j) => (
                           <Star key={j} className="h-4 w-4 text-yellow-500 fill-yellow-500" />
@@ -130,7 +130,7 @@ export default function Reviews() {
           {/* Right: Write a Review */}
           <div className="sticky top-24 h-fit">
             <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
-              <h3 className="text-2xl font-semibold text-[#253A7B] mb-2">Write a Review</h3>
+              <h3 className="text-2xl font-semibold text-[var(--theme-primary)] mb-2">Write a Review</h3>
               <p className="text-gray-600 text-sm mb-6">Share your experience with FinoQz</p>
               
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,7 +144,7 @@ export default function Reviews() {
                     placeholder="Anonymous"
                     value={newReview.name}
                     onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                     maxLength={50}
                   />
                 </div>
@@ -159,7 +159,7 @@ export default function Reviews() {
                     placeholder="your.email@example.com"
                     value={newReview.email}
                     onChange={(e) => setNewReview({ ...newReview, email: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
                   />
                 </div>
 
@@ -193,7 +193,7 @@ export default function Reviews() {
                     placeholder="Share your experience with FinoQz..."
                     value={newReview.reviewText}
                     onChange={(e) => setNewReview({ ...newReview, reviewText: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#253A7B] resize-none"
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)] resize-none"
                     maxLength={1000}
                     required
                   />
@@ -206,7 +206,7 @@ export default function Reviews() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#253A7B] text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+                  className="w-full bg-[var(--theme-primary)] text-white px-6 py-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Review'}
                 </button>
