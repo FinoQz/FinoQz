@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, UserCircle, Layout, Activity, Award, TrendingUp, Search, Layers } from "lucide-react";
+import { Check, UserCircle, Layout, Activity, Award, TrendingUp, Layers } from "lucide-react";
 
 export default function PlatformContent() {
   const whatWeDoItems = [
@@ -106,7 +106,7 @@ export default function PlatformContent() {
       
       <div className="text-center pt-8">
         <p className="text-lg md:text-xl text-gray-400 font-medium italic">
-          "This is active learning, not passive content."
+          &quot;This is active learning, not passive content.&quot;
         </p>
       </div>
     </div>

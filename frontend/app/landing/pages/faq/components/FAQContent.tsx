@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 interface FAQ {
   q: string;
@@ -196,11 +196,11 @@ export default function FAQContent() {
             
             <div className="relative border-y border-blue-100/50 py-6 md:py-8 px-4 md:px-12 space-y-4">
                <span className="block text-[#253A7B] font-serif text-2xl md:text-5xl italic font-medium tracking-tight">
-                 "Start Testing Your <span className="text-blue-600 relative inline-block">Investment IQ
+                 &quot;Start Testing Your <span className="text-blue-600 relative inline-block">Investment IQ
                    <svg className="absolute -bottom-1 md:-bottom-2 left-0 w-full h-1 text-blue-200/50" viewBox="0 0 100 10" preserveAspectRatio="none">
                      <path d="M0 5 Q 25 0, 50 5 T 100 5" fill="none" stroke="currentColor" strokeWidth="4" />
                    </svg>
-                 </span>"
+                 </span>&quot;
                </span>
                <div className="flex items-center justify-center gap-2 md:gap-3 pt-4 md:pt-6 text-[9px] md:text-[11px] font-bold tracking-[0.2em] md:tracking-[0.4em] text-gray-400 uppercase">
                   <div className="w-6 md:w-10 h-px bg-gray-200" />

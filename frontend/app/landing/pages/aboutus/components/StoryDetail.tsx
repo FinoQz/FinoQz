@@ -64,7 +64,7 @@ export default function StoryDetail() {
           <div className="inline-block relative">
             <div className="absolute -inset-4 bg-blue-50/50 rounded-full blur-2xl -z-10" />
             <p className="text-xl md:text-2xl font-serif italic text-[#253A7B] font-medium border-x-2 border-blue-100 px-8 py-2">
-              "Because in investing, <span className="text-blue-600">clarity</span> beats information."
+              &quot;Because in investing, <span className="text-blue-600">clarity</span> beats information.&quot;
             </p>
           </div>
         </motion.div>
