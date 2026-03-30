@@ -1,0 +1,160 @@
+
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { celebrate, Joi, errors } from 'celebrate';
+import adminAuth from '../middlewares/adminAuth.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import * as c from '../controllers/quizController.js';
+
+const router = express.Router();
+
+const createSchema = celebrate({
+  body: Joi.object({
+    category: Joi.string().required(),
+    pricingType: Joi.string().valid('free', 'paid').required(),
+    price: Joi.when('pricingType', {
+      is: 'paid',
+      then: Joi.number().min(1).required(),
+      otherwise: Joi.number().default(0)
+    }),
+    couponCode: Joi.string().allow(''),
+    allowOfflinePayment: Joi.boolean(),
+
+    quizTitle: Joi.string().min(3).required(),
+    description: Joi.string().min(10).required(),
+    duration: Joi.number().min(1).required(),
+    totalMarks: Joi.number().min(1).required(),
+    numberOfQuestions: Joi.number().min(1).required(),
+    attemptLimit: Joi.string().valid('unlimited', '1').required(),
+    shuffleQuestions: Joi.boolean(),
+    negativeMarking: Joi.boolean(),
+    negativePerWrong: Joi.number().min(0),
+
+    postType: Joi.string().valid('live','scheduled').default('live'),
+    startDate: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+    startTime: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+    endDate: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+    endTime: Joi.when('postType', {
+      is: 'scheduled',
+      then: Joi.string().required(),
+      otherwise: Joi.string().allow('').optional()
+    }),
+
+    visibility: Joi.string().valid('public','unlisted','private').required(),
+    assignedGroups: Joi.when('visibility', {
+      is: 'private',
+      then: Joi.array().items(Joi.string()).min(1).required(),
+      otherwise: Joi.array().items(Joi.string()).default([])
+    }),
+
+    coverImage: Joi.string().allow(''),
+    tags: Joi.array().items(Joi.string()).default([]),
+    difficultyLevel: Joi.string().valid('easy','medium','hard').required(),
+
+    saveAsDraft: Joi.boolean().default(false),
+
+    coupon: Joi.object({
+      code: Joi.string().allow(''),
+      discountType: Joi.string().valid('percentage', 'flat'),
+      discountValue: Joi.number().min(0),
+      visibility: Joi.string().valid('all', 'new_users', 'existing_users')
+    }).optional()
+  })
+});
+
+const updateSchema = celebrate({
+  body: Joi.object({
+    category: Joi.string(),
+    quizTitle: Joi.string(),
+    description: Joi.string(),
+    duration: Joi.number(),
+    totalMarks: Joi.number(),
+    numberOfQuestions: Joi.number(),
+    attemptLimit: Joi.string().valid('unlimited', '1'),
+    shuffleQuestions: Joi.boolean(),
+    negativeMarking: Joi.boolean(),
+    negativePerWrong: Joi.number(),
+    pricingType: Joi.string().valid('free', 'paid'),
+    price: Joi.number(),
+    couponCode: Joi.string().allow(''),
+    allowOfflinePayment: Joi.boolean(),
+    startDate: Joi.string(),
+    startTime: Joi.string(),
+    endDate: Joi.string(),
+    endTime: Joi.string(),
+    visibility: Joi.string().valid('public','unlisted','private'),
+    assignedGroups: Joi.array().items(Joi.string()),
+    coverImage: Joi.string().allow(''),
+    tags: Joi.array().items(Joi.string()),
+    difficultyLevel: Joi.string().valid('easy','medium','hard'),
+    status: Joi.string().valid('draft','published'),
+    coupon: Joi.object({
+      code: Joi.string().allow(''),
+      discountType: Joi.string().valid('percentage', 'flat'),
+      discountValue: Joi.number().min(0),
+      visibility: Joi.string().valid('all', 'new_users', 'existing_users')
+    }).optional()
+  })
+});
+
+const statusSchema = celebrate({
+  body: Joi.object({ status: Joi.string().valid('draft','published').required() })
+});
+
+const listLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Admin routes
+router.post('/admin/quizzes', adminAuth, writeLimiter, createSchema, c.createQuiz);
+router.get('/admin/quizzes', adminAuth, listLimiter, c.listAdmin);
+router.get('/admin/quizzes/:id', adminAuth, c.getAdminById);
+router.put('/admin/quizzes/:id', adminAuth, writeLimiter, updateSchema, c.updateQuiz);
+router.post('/admin/quizzes/:id/status', adminAuth, writeLimiter, statusSchema, c.setStatus);
+router.delete('/admin/quizzes/:id', adminAuth, writeLimiter, c.deleteQuiz);
+
+// AI description generator
+router.post('/admin/generate-description', adminAuth, celebrate({
+  body: Joi.object({ quizTitle: Joi.string().min(3).required() })
+}), c.generateDescriptionHandler);
+
+// AI quiz question generator
+router.post('/admin/generate-questions', adminAuth, c.generateQuestions);
+
+// Public routes (user panel)
+router.get('/quizzes', authMiddleware(), listLimiter, c.listPublic);
+router.get('/quizzes/:id', authMiddleware(), c.getById);
+router.get('/:quizId/questions', authMiddleware(), c.getQuizQuestions);
+router.get('/quizzes/:quizId/questions', authMiddleware(), c.getQuizQuestions);
+router.get('/:quizId/preview', authMiddleware(), c.getQuizPreview);
+router.get('/quizzes/:quizId/preview', authMiddleware(), c.getQuizPreview);
+router.get('/my-quizzes', authMiddleware(), c.getMyQuizzes);
+router.post('/quizzes/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
+router.post('/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
+
+// Celebrate error handler
+router.use(errors());
+
+export default router;

@@ -1,0 +1,962 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { 
+  DollarSign, 
+  TrendingUp, 
+  CheckCircle, 
+  XCircle, 
+  Download, 
+  FileText, 
+  RefreshCw,
+  Search,
+  Filter,
+  Calendar,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
+import TransactionDetailModal from '../components/payments/TransactionDetailModal';
+import ManualRefundModal from '../components/payments/ManualRefundModal';
+import GenerateReportModal, { ReportConfig } from '../components/payments/GenerateReportModal';
+import RequestPayoutModal from '../components/payments/RequestPayoutModal';
+import Toast from '../components/payments/Toast';
+import apiAdmin from '@/lib/apiAdmin';
+
+type Transaction = {
+  id: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  quizId: {
+    _id: string;
+    title: string;
+  };
+  amount: number;
+  currency: string;
+  status: 'success' | 'pending' | 'failed' | 'refunded';
+  paymentMethod: string;
+  gatewayTransactionId: string;
+  createdAt: string;
+  completedAt?: string;
+  refundHistory?: {
+    date: string;
+    amount: number;
+    reason: string;
+    adminUser: string;
+  }[];
+};
+
+type TransactionStats = {
+  totalRevenue: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  pendingTransactions: number;
+};
+
+type TransformedTransaction = {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string;
+  amount: number;
+  status: 'success' | 'pending' | 'failed' | 'refunded';
+  method: string;
+  date: string;
+  quizId: string;
+  quizTitle: string;
+  gatewayTxnId: string;
+  gatewayResponse: string;
+  refundHistory?: {
+    date: string;
+    amount: number;
+    reason: string;
+    adminUser: string;
+  }[];
+};
+
+type ApiResponse = {
+  transactions: Transaction[];
+  totalPages: number;
+  currentPage: number;
+  total: number;
+  stats: TransactionStats;
+};
+
+export default function PaymentsRevenue() {
+  const formatNumber = (value?: number) => Number(value || 0).toLocaleString();
+  const formatCurrency = (value?: number) => `₹${formatNumber(value)}`;
+  const [selectedTransaction, setSelectedTransaction] = useState<TransformedTransaction | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [dateRange, setDateRange] = useState('7');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [methodFilter, setMethodFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTxns, setSelectedTxns] = useState<string[]>([]);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+
+  // API state
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<TransactionStats>({
+    totalRevenue: 0,
+    successfulTransactions: 0,
+    failedTransactions: 0,
+    pendingTransactions: 0,
+  });
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const limit = 10;
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [currentPage, dateRange, statusFilter, methodFilter]);
+
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params: Record<string, string | number> = {
+        page: currentPage,
+        limit,
+      };
+
+      if (dateRange !== 'all') {
+        params.dateRange = dateRange;
+      }
+
+      if (statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+
+      if (methodFilter !== 'all') {
+        params.method = methodFilter;
+      }
+
+      const response = await apiAdmin.get<ApiResponse>('/api/transactions/all', { params });
+      
+      setTransactions(response.data.transactions);
+      setStats(response.data.stats);
+      setTotalPages(response.data.totalPages);
+      setTotalTransactions(response.data.total);
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to fetch transactions';
+      setError(errorMessage);
+      setToast({ type: 'error', message: 'Failed to load transactions. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getTransactionUser = (txn: Transaction) => ({
+    name: txn.userId?.name || 'N/A',
+    email: txn.userId?.email || 'N/A',
+  });
+
+  const getTransactionQuiz = (txn: Transaction) => ({
+    title: txn.quizId?.title || 'N/A',
+  });
+
+  const revenueBreakdown = [
+    { method: 'Razorpay - UPI', percentage: 45, amount: 1281442 },
+    { method: 'Razorpay - Card', percentage: 30, amount: 854295 },
+    { method: 'Stripe', percentage: 20, amount: 569530 },
+    { method: 'PhonePe', percentage: 5, amount: 142383 },
+  ];
+
+  const transformTransactionForModal = (txn: Transaction) => {
+    const user = getTransactionUser(txn);
+    const quiz = getTransactionQuiz(txn);
+    return {
+      id: txn.id,
+      userId: txn.userId?._id || '',
+      userName: user.name,
+      email: user.email,
+      amount: txn.amount,
+      status: txn.status,
+      method: txn.paymentMethod,
+      date: formatDate(txn.createdAt),
+      quizId: txn.quizId?._id || '',
+      quizTitle: quiz.title,
+      gatewayTxnId: txn.gatewayTransactionId,
+      gatewayResponse: JSON.stringify({ status: txn.status }),
+      refundHistory: txn.refundHistory,
+    };
+  };
+
+  const handleViewDetails = (txn: Transaction) => {
+    const transformedTxn = transformTransactionForModal(txn);
+    setSelectedTransaction(transformedTxn);
+    setShowDetailModal(true);
+  };
+
+  const handleRefund = (txnId: string, reason: string) => {
+    // In production, make API call here
+    setToast({ type: 'success', message: `Refund processed successfully for transaction ${txnId}` });
+    setShowDetailModal(false);
+    // Update transaction status in state (for demo)
+    // In production, refetch from API
+  };
+
+  const handleManualRefund = (txnId: string, amount: number, reason: string) => {
+    // In production, make API call here
+    setToast({ 
+      type: 'success', 
+      message: `Manual refund of ${formatCurrency(amount)} processed for ${txnId}` 
+    });
+  };
+
+  const handleGenerateReport = (config: ReportConfig) => {
+    // In production, make API call to generate report
+    console.log('Generating report with config:', config);
+    
+    const reportTypeName = 
+      config.reportType === 'summary' ? 'Revenue Summary' :
+      config.reportType === 'detailed' ? 'Detailed Transactions' :
+      config.reportType === 'refunds' ? 'Refunds Report' :
+      config.reportType === 'gateway' ? 'Gateway Analysis' : 'User Payment History';
+    
+    setToast({ 
+      type: 'success', 
+      message: `${reportTypeName} is being generated...` 
+    });
+
+    // Generate report data
+    setTimeout(() => {
+      generateAndDownloadReport(config, reportTypeName);
+      setToast({ type: 'success', message: 'Report downloaded successfully!' });
+    }, 1500);
+  };
+
+  const generateAndDownloadReport = (config: ReportConfig, reportName: string) => {
+    let content = '';
+    
+    if (config.format === 'csv') {
+      // Generate CSV content
+      content = generateCSVReport(config);
+      downloadFile(content, `${reportName}_${config.dateFrom}_to_${config.dateTo}.csv`, 'text/csv');
+    } else if (config.format === 'excel') {
+      // Generate Excel-compatible CSV
+      content = generateCSVReport(config);
+      downloadFile(content, `${reportName}_${config.dateFrom}_to_${config.dateTo}.csv`, 'text/csv');
+    } else {
+      // Generate PDF (HTML preview for now)
+      content = generatePDFReport(config, reportName);
+      downloadFile(content, `${reportName}_${config.dateFrom}_to_${config.dateTo}.html`, 'text/html');
+    }
+  };
+
+  const generateCSVReport = (config: ReportConfig) => {
+    let csv = '';
+    
+    if (config.reportType === 'summary') {
+      csv = 'Revenue Summary Report\n';
+      csv += `Generated: ${new Date().toLocaleString()}\n`;
+      csv += `Period: ${config.dateFrom} to ${config.dateTo}\n\n`;
+      csv += 'Metric,Value\n';
+      csv += `Total Revenue,${formatCurrency(stats.totalRevenue)}\n`;
+      csv += `Total Transactions,${totalTransactions}\n`;
+      csv += `Successful Payments,${stats.successfulTransactions}\n`;
+      csv += `Failed Payments,${stats.failedTransactions + stats.pendingTransactions}\n\n`;
+      csv += 'Payment Method,Percentage,Amount\n';
+      revenueBreakdown.forEach(item => {
+        csv += `${item.method},${item.percentage}%,${formatCurrency(item.amount)}\n`;
+      });
+    } else if (config.reportType === 'detailed') {
+      csv = 'Transaction ID,User,Email,Amount,Status,Method,Date,Quiz\n';
+      transactions.forEach(txn => {
+        if (!config.includeFailedTxns && txn.status === 'failed') return;
+        if (!config.includeRefunds && txn.status === 'refunded') return;
+        const user = getTransactionUser(txn);
+        const quiz = getTransactionQuiz(txn);
+        csv += `${txn.id},"${user.name}",${user.email},${formatCurrency(txn.amount)},${txn.status},${txn.paymentMethod},${formatDate(txn.createdAt)},"${quiz.title}"\n`;
+      });
+    } else if (config.reportType === 'refunds') {
+      csv = 'Transaction ID,User,Amount,Refund Date,Reason,Processed By\n';
+      transactions.filter(t => t.status === 'refunded').forEach(txn => {
+        const refund = txn.refundHistory?.[0];
+        if (refund) {
+          const user = getTransactionUser(txn);
+          csv += `${txn.id},"${user.name}",${formatCurrency(refund.amount)},${refund.date},"${refund.reason}",${refund.adminUser}\n`;
+        }
+      });
+    } else if (config.reportType === 'gateway') {
+      csv = 'Payment Method,Transaction Count,Total Amount,Success Rate\n';
+      revenueBreakdown.forEach(item => {
+        const txnCount = Math.floor(item.percentage * 12);
+        csv += `${item.method},${txnCount},${formatCurrency(item.amount)},${Math.floor(90 + Math.random() * 10)}%\n`;
+      });
+    } else {
+      csv = 'User ID,User Name,Email,Total Spent,Transaction Count,Last Payment\n';
+      transactions.slice(0, 5).forEach(txn => {
+        const user = getTransactionUser(txn);
+        csv += `${txn.userId?._id || 'N/A'},"${user.name}",${user.email},${formatCurrency(txn.amount)},1,${formatDate(txn.createdAt)}\n`;
+      });
+    }
+    
+    return csv;
+  };
+
+  const generatePDFReport = (config: ReportConfig, reportName: string) => {
+    let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${reportName}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+    .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #253A7B; padding-bottom: 20px; }
+    .header h1 { color: #253A7B; margin: 0; font-size: 28px; }
+    .header p { color: #666; margin: 5px 0; }
+    .section { margin: 30px 0; }
+    .section h2 { color: #253A7B; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th { background: #253A7B; color: white; padding: 12px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #e5e7eb; }
+    tr:hover { background: #f9fafb; }
+    .summary-card { display: inline-block; padding: 15px 25px; margin: 10px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid #253A7B; }
+    .summary-card h3 { margin: 0; color: #253A7B; font-size: 24px; }
+    .summary-card p { margin: 5px 0 0 0; color: #666; font-size: 14px; }
+    .footer { margin-top: 50px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${reportName}</h1>
+    <p>Generated on: ${new Date().toLocaleString()}</p>
+    <p>Period: ${config.dateFrom} to ${config.dateTo}</p>
+    <p>Grouped by: ${config.groupBy.charAt(0).toUpperCase() + config.groupBy.slice(1)}</p>
+  </div>
+`;
+
+    if (config.reportType === 'summary') {
+      html += `
+  <div class="section">
+    <h2>Revenue Overview</h2>
+    <div class="summary-card">
+      <h3>${formatCurrency(stats.totalRevenue)}</h3>
+      <p>Total Revenue</p>
+    </div>
+    <div class="summary-card">
+      <h3>${totalTransactions}</h3>
+      <p>Total Transactions</p>
+    </div>
+    <div class="summary-card">
+      <h3>${stats.successfulTransactions}</h3>
+      <p>Successful Payments</p>
+    </div>
+    <div class="summary-card">
+      <h3>${stats.failedTransactions + stats.pendingTransactions}</h3>
+      <p>Failed/Pending</p>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2>Payment Method Breakdown</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Method</th>
+          <th>Percentage</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${revenueBreakdown.map(item => `
+        <tr>
+          <td>${item.method}</td>
+          <td>${item.percentage}%</td>
+          <td>${formatCurrency(item.amount)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+    } else if (config.reportType === 'detailed') {
+      html += `
+  <div class="section">
+    <h2>Detailed Transaction Records</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>User</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Method</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${transactions.filter(txn => {
+          if (!config.includeFailedTxns && txn.status === 'failed') return false;
+          if (!config.includeRefunds && txn.status === 'refunded') return false;
+          return true;
+        }).map(txn => {
+          const user = getTransactionUser(txn);
+          return `
+        <tr>
+          <td>${txn.id}</td>
+          <td>${user.name}<br><small style="color: #666;">${user.email}</small></td>
+          <td>${formatCurrency(txn.amount)}</td>
+          <td><span style="padding: 4px 8px; border-radius: 4px; background: ${
+            txn.status === 'success' ? '#dcfce7; color: #166534' :
+            txn.status === 'pending' ? '#fef3c7; color: #854d0e' :
+            txn.status === 'failed' ? '#fee2e2; color: #991b1b' :
+            '#f3f4f6; color: #374151'
+          };">${txn.status}</span></td>
+          <td>${txn.paymentMethod}</td>
+          <td>${formatDate(txn.createdAt)}</td>
+        </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+    }
+
+    html += `
+  <div class="footer">
+    <p>This is a system-generated report from FinoQz Payment Management System</p>
+    <p>For support, contact: support@finoqz.com</p>
+  </div>
+</body>
+</html>`;
+
+    return html;
+  };
+
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const toggleSelectTxn = (id: string) => {
+    setSelectedTxns(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedTxns(prev =>
+      prev.length === transactions.length ? [] : transactions.map(t => t.id)
+    );
+  };
+
+  const handleExportCSV = () => {
+    const csv = generateQuickCSV();
+    const today = new Date().toISOString().split('T')[0];
+    downloadFile(csv, `Transactions_Export_${today}.csv`, 'text/csv');
+    setToast({ type: 'success', message: 'Transaction data exported successfully!' });
+  };
+
+  const generateQuickCSV = () => {
+    let csv = 'Transaction ID,User Name,Email,Amount,Status,Payment Method,Date,Quiz Title,Gateway Txn ID\n';
+    
+    const txnsToExport = selectedTxns.length > 0 
+      ? transactions.filter(t => selectedTxns.includes(t.id))
+      : transactions;
+    
+    txnsToExport.forEach(txn => {
+      const user = getTransactionUser(txn);
+      const quiz = getTransactionQuiz(txn);
+      csv += `${txn.id},"${user.name}",${user.email},₹${txn.amount},${txn.status},"${txn.paymentMethod}",${formatDate(txn.createdAt)},"${quiz.title}",${txn.gatewayTransactionId}\n`;
+    });
+    
+    return csv;
+  };
+
+  const handleRequestPayout = (amount: number, accountDetails: string) => {
+    // In production, make API call to process payout request
+    console.log('Payout request:', { amount, accountDetails });
+    setToast({ 
+      type: 'success', 
+      message: `Payout request of ${formatCurrency(amount)} submitted successfully! You'll receive confirmation within 2-3 business days.` 
+    });
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="max-w-[1600px] mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Payments & Revenue</h1>
+            <p className="text-gray-600 mt-1">Manage transactions, refunds, and revenue reports</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="px-4 py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Generate Report
+            </button>
+            <button
+              onClick={() => setShowRefundModal(true)}
+              className="px-4 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 shadow-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Manual Refund
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-blue-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</h3>
+            <p className="text-sm text-gray-600 mt-1">Total Revenue</p>
+          </div>
+
+          <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FileText className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totalTransactions)}</h3>
+            <p className="text-sm text-gray-600 mt-1">Total Transactions</p>
+          </div>
+
+          <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(stats.successfulTransactions)}</h3>
+            <p className="text-sm text-gray-600 mt-1">Successful Payments</p>
+          </div>
+
+          <div className="bg-white rounded-xl border-2 border-gray-200 p-5 hover:shadow-md transition">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(stats.pendingTransactions + stats.failedTransactions)}</h3>
+            <p className="text-sm text-gray-600 mt-1">Pending / Failed</p>
+          </div>
+        </div>
+
+        {/* Main Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Transactions */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Filters */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+                  >
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="success">Success</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <select
+                    value={methodFilter}
+                    onChange={(e) => setMethodFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm bg-white"
+                  >
+                    <option value="all">All Methods</option>
+                    <option value="razorpay">Razorpay</option>
+                    <option value="stripe">Stripe</option>
+                    <option value="upi">UPI</option>
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search..."
+                    className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-sm"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  onClick={fetchTransactions}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                {error && (
+                  <p className="text-sm text-red-600">{error}</p>
+                )}
+              </div>
+
+              {selectedTxns.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200 flex items-center gap-3">
+                  <span className="text-sm text-gray-600">{selectedTxns.length} selected</span>
+                  <button className="text-sm text-[#253A7B] hover:underline font-medium">
+                    Export Selected
+                  </button>
+                  <button className="text-sm text-red-600 hover:underline font-medium">
+                    Bulk Refund
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Transactions Table */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b-2 border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={transactions.length > 0 && selectedTxns.length === transactions.length}
+                          onChange={toggleSelectAll}
+                          className="w-4 h-4 rounded border-gray-300"
+                          disabled={loading || transactions.length === 0}
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Txn ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Method</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <Loader2 className="w-8 h-8 text-[#253A7B] animate-spin" />
+                            <p className="text-gray-600">Loading transactions...</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <XCircle className="w-8 h-8 text-red-500" />
+                            <p className="text-red-600">{error}</p>
+                            <button
+                              onClick={fetchTransactions}
+                              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : transactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                          No transactions found
+                        </td>
+                      </tr>
+                    ) : (
+                      transactions.map((txn, idx) => {
+                        const user = getTransactionUser(txn);
+                        // Use txn.id if present and unique, otherwise fallback to index for uniqueness
+                        const rowKey = txn.id && txn.id !== 'N/A' ? txn.id : `${user.name}-${user.email}-${idx}`;
+                        return (
+                          <tr key={rowKey} className="hover:bg-gray-50 transition">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedTxns.includes(txn.id)}
+                                onChange={() => toggleSelectTxn(txn.id)}
+                                className="w-4 h-4 rounded border-gray-300"
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-mono text-gray-900">{txn.id}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                <p className="text-xs text-gray-600">{user.email}</p>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm font-semibold text-gray-900">{formatCurrency(txn.amount)}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                                txn.status === 'success' ? 'bg-green-100 text-green-700' :
+                                txn.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                txn.status === 'failed' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {txn.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-700">{txn.paymentMethod}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-gray-600">{formatDate(txn.createdAt)}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => handleViewDetails(txn)}
+                                className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4 text-gray-600" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="border-t-2 border-gray-200 px-4 py-3 flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Showing {transactions.length > 0 ? ((currentPage - 1) * limit + 1) : 0}-{Math.min(currentPage * limit, totalTransactions)} of {formatNumber(totalTransactions)} transactions
+                </p>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className="p-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button 
+                        key={`page-btn-${pageNum}`}
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={loading}
+                        className={`px-3 py-1.5 rounded-lg font-medium text-sm transition ${
+                          currentPage === pageNum 
+                            ? 'bg-[#253A7B] text-white' 
+                            : 'border-2 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  {totalPages > 5 && <span className="text-gray-500">...</span>}
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || loading}
+                    className="p-2 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Revenue Summary */}
+          <div className="space-y-4">
+            {/* Revenue Chart */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900">Revenue Trend</h3>
+                <select className="text-xs border border-gray-200 rounded-lg px-2 py-1">
+                  <option>Last 7 days</option>
+                  <option>Last 30 days</option>
+                  <option>Last 90 days</option>
+                </select>
+              </div>
+              <div className="h-32 flex items-end justify-between gap-1">
+                {[40, 65, 45, 80, 60, 90, 75].map((height, i) => (
+                  <div key={`bar-${height}-${i}`} className="flex-1 bg-[#253A7B] rounded-t-lg opacity-80 hover:opacity-100 transition" style={{ height: `${height}%` }} />
+                ))}
+              </div>
+              <div className="mt-3 text-center">
+                <p className="text-xs text-gray-600">Daily revenue over selected period</p>
+              </div>
+            </div>
+
+            {/* Payment Method Breakdown */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Payment Methods</h3>
+              <div className="space-y-3">
+                {revenueBreakdown.map((item) => (
+                  <div key={item.method}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-700">{item.method}</span>
+                      <span className="text-sm font-semibold text-gray-900">{item.percentage}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#253A7B]" style={{ width: `${item.percentage}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">{formatCurrency(item.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Quick Stats</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Avg Transaction</span>
+                  <span className="text-sm font-semibold text-gray-900">₹2,291</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Refund Rate</span>
+                  <span className="text-sm font-semibold text-red-600">3.2%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Net Revenue</span>
+                  <span className="text-sm font-semibold text-green-600">₹2,761,344</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payouts */}
+            <div className="bg-white rounded-xl border-2 border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Settlement Status</h3>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Last Payout</span>
+                  <span className="font-medium text-gray-900">Nov 25, 2024</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Amount</span>
+                  <span className="font-semibold text-green-600">₹450,000</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Status</span>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">Completed</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPayoutModal(true)}
+                className="w-full px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm"
+              >
+                Request Payout
+              </button>
+            </div>
+
+            {/* Permissions Note */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <p className="text-xs text-yellow-800">
+                <span className="font-semibold">Finance Role Required:</span> Only users with Finance role can process refunds and view sensitive data.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      <TransactionDetailModal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        transaction={selectedTransaction}
+        onRefund={handleRefund}
+      />
+
+      <ManualRefundModal
+        isOpen={showRefundModal}
+        onClose={() => setShowRefundModal(false)}
+        onSubmit={handleManualRefund}
+      />
+
+      <GenerateReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onGenerate={handleGenerateReport}
+      />
+
+      <RequestPayoutModal
+        isOpen={showPayoutModal}
+        onClose={() => setShowPayoutModal(false)}
+        onSubmit={handleRequestPayout}
+        availableBalance={2761344}
+      />
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
+  );
+}
