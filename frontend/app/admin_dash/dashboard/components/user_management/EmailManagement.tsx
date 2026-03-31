@@ -19,6 +19,11 @@ interface EmailManagementProps {
 }
 
 export default function EmailManagement({ onStatusChange }: EmailManagementProps) {
+  const toLocalInputValue = (date: Date) => {
+    const tzOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+    return new Date(date.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+  };
+
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,13 +151,15 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
     onStatusChange?.("Scheduling email...");
 
     try {
+      const scheduledForIso = new Date(scheduledFor).toISOString();
+
       await apiAdmin.post(
         "api/admin/panel/schedule-email",
         {
           recipients: selectedUsers,
           subject: emailSubject,
           body: emailBody,
-          scheduledFor,
+          scheduledFor: scheduledForIso,
         },
         { withCredentials: true }
       );
@@ -445,7 +452,7 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
               type="datetime-local"
               value={scheduledFor}
               onChange={(e) => setScheduledFor(e.target.value)}
-              min={new Date().toISOString().slice(0, 16)}
+              min={toLocalInputValue(new Date())}
               className="flex-1 px-3 py-2 border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-[#253A7B]"
             />
             <button

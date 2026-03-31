@@ -33,6 +33,12 @@ export default function ScheduledEmails({
   onStatusChange,
   refreshKey,
 }: ScheduledEmailsProps) {
+  const toLocalInputValue = (dateLike: string | Date) => {
+    const date = typeof dateLike === "string" ? new Date(dateLike) : dateLike;
+    const tzOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+    return new Date(date.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+  };
+
   const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -222,9 +228,7 @@ export default function ScheduledEmails({
                       type="datetime-local"
                       value={
                         editData?.scheduledFor
-                          ? new Date(editData.scheduledFor)
-                              .toISOString()
-                              .slice(0, 16)
+                          ? toLocalInputValue(editData.scheduledFor)
                           : ""
                       }
                       onChange={(e) =>
