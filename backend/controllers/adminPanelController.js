@@ -656,7 +656,7 @@ export const blockUser = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { status: "Inactive" },
+      { status: "blocked" },
       { new: true }
     );
 
@@ -687,7 +687,7 @@ export const unblockUser = async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { status: "Active" },
+      { status: "approved" },
       { new: true }
     );
 

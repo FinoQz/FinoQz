@@ -41,7 +41,10 @@ const userSchema = new mongoose.Schema({
       'pending_mobile_verification',
       'awaiting_admin_approval',
       'approved',
-      'rejected'
+      'rejected',
+      'blocked',
+      'Active',
+      'Inactive'
     ],
     default: 'pending_email_verification'
   },

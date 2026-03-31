@@ -32,6 +32,18 @@ export const login = async (req, res) => {
       });
     }
 
+    if (user.status === "blocked" || user.status === "Inactive") {
+      return res.status(403).json({
+        message: "Your account is blocked. Please contact support.",
+      });
+    }
+
+    // Backward compatibility for older unblock flow that saved status as "Active"
+    if (user.status === "Active") {
+      user.status = "approved";
+      await user.save();
+    }
+
     if (user.status !== "approved") {
       return res.status(403).json({
         message: "Account not approved yet",
@@ -100,6 +112,19 @@ export const verifyLoginOtp = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "User not found" });
+
+    if (user.status === "blocked" || user.status === "Inactive") {
+      return res.status(403).json({ message: "Your account is blocked. Please contact support." });
+    }
+
+    if (user.status === "Active") {
+      user.status = "approved";
+      await user.save();
+    }
+
+    if (user.status !== "approved") {
+      return res.status(403).json({ message: "Account not approved yet" });
+    }
 
     const redisKey = `user:loginOtp:${email}`;
     const stored = await redis.get(redisKey);
