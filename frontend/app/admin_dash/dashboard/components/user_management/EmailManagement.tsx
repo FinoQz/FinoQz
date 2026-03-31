@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Mail, Send, X, CheckSquare, Square, Search } from "lucide-react";
+import { Mail, Send, CheckSquare, Square, Search, Sparkles, Eye, Calendar } from "lucide-react";
 import apiAdmin from "@/lib/apiAdmin"; // ✅ cookie-based axios instance
+import EmailPreviewModal from "./EmailPreviewModal";
+import ScheduledEmails from "@/app/admin_dash/dashboard/components/user_management/ScheduledEmails";
 
 interface User {
   _id: string;
@@ -23,7 +25,14 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showAiDraft, setShowAiDraft] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGeneratingAiDraft, setIsGeneratingAiDraft] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
+  const [scheduledEmailsRefreshKey, setScheduledEmailsRefreshKey] = useState(0);
 
   // ✅ Fetch users from backend using cookies
   useEffect(() => {
@@ -114,6 +123,87 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
       setIsSending(false);
     }
   };
+
+  const handleScheduleEmail = async () => {
+    if (selectedUsers.length === 0) {
+      onStatusChange?.("Please select at least one user");
+      return;
+    }
+    if (!emailSubject.trim()) {
+      onStatusChange?.("Please enter email subject");
+      return;
+    }
+    if (!emailBody.trim()) {
+      onStatusChange?.("Please enter email message");
+      return;
+    }
+    if (!scheduledFor) {
+      onStatusChange?.("Please select date and time");
+      return;
+    }
+
+    setIsSending(true);
+    onStatusChange?.("Scheduling email...");
+
+    try {
+      await apiAdmin.post(
+        "api/admin/panel/schedule-email",
+        {
+          recipients: selectedUsers,
+          subject: emailSubject,
+          body: emailBody,
+          scheduledFor,
+        },
+        { withCredentials: true }
+      );
+
+      onStatusChange?.("Email scheduled successfully!");
+      setEmailSubject("");
+      setEmailBody("");
+      setSelectedUsers([]);
+      setScheduledFor("");
+      setShowSchedule(false);
+      setScheduledEmailsRefreshKey((prev) => prev + 1);
+
+      setTimeout(() => {
+        onStatusChange?.("");
+      }, 3000);
+    } catch (err) {
+      console.error("Error scheduling email:", err);
+      onStatusChange?.("Failed to schedule email");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleGenerateAiDraft = async () => {
+    if (!aiPrompt.trim()) {
+      onStatusChange?.("Please enter AI prompt");
+      return;
+    }
+
+    setIsGeneratingAiDraft(true);
+    onStatusChange?.("Generating AI draft...");
+
+    try {
+      const res = await apiAdmin.post(
+        "api/admin/panel/generate-email-draft",
+        { prompt: aiPrompt },
+        { withCredentials: true }
+      );
+
+      setEmailSubject(res.data?.subject || "");
+      setEmailBody(res.data?.body || "");
+      setShowAiDraft(false);
+      onStatusChange?.("AI draft generated. You can edit it before sending.");
+    } catch (err) {
+      console.error("AI draft generation failed:", err);
+      onStatusChange?.("Failed to generate AI draft");
+    } finally {
+      setIsGeneratingAiDraft(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -217,11 +307,41 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
 
         {/* Email Compose */}
         <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Compose Email
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Compose Email</h3>
+            <button
+              onClick={() => setShowAiDraft((prev) => !prev)}
+              className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-[#253A7B] hover:bg-blue-50 transition flex items-center gap-1"
+              type="button"
+            >
+              <Sparkles className="w-3.5 h-3.5" /> AI Draft
+            </button>
+          </div>
 
           <div className="space-y-4">
+            {showAiDraft && (
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 space-y-2">
+                <label className="block text-xs font-semibold text-blue-900">Tell AI what email you want</label>
+                <textarea
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="Example: Write a short email to approved users about new finance quizzes this week with a friendly tone."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg text-sm focus:ring-2 focus:ring-[#253A7B] focus:border-transparent resize-none"
+                />
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleGenerateAiDraft}
+                    disabled={isGeneratingAiDraft}
+                    type="button"
+                    className="px-3 py-1.5 bg-[#253A7B] text-white rounded-lg text-xs font-semibold hover:bg-[#1a2a5e] disabled:opacity-60"
+                  >
+                    {isGeneratingAiDraft ? "Generating..." : "Generate"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Recipients Info */}
             <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
               <p className="text-sm text-gray-600">
@@ -262,26 +382,88 @@ export default function EmailManagement({ onStatusChange }: EmailManagementProps
             </div>
 
             {/* Send Button */}
-            <button
-              onClick={handleSendEmail}
-              disabled={isSending || selectedUsers.length === 0}
-              className={`w-full px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 ${isSending || selectedUsers.length === 0
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
-                }`}
-            >
-              <Send className="w-5 h-5" />
-              {isSending
-                ? "Sending..."
-                : `Send Email${selectedUsers.length > 0
-                  ? ` to ${selectedUsers.length} User${selectedUsers.length > 1 ? "s" : ""
-                  }`
-                  : ""
-                }`}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPreview(true)}
+                disabled={!emailSubject.trim() || !emailBody.trim()}
+                className={`flex-1 px-6 py-3 bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 ${!emailSubject.trim() || !emailBody.trim()
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                  }`}
+              >
+                <Eye className="w-5 h-5" />
+                Preview
+              </button>
+
+              <button
+                onClick={() => setShowSchedule((prev) => !prev)}
+                disabled={!emailSubject.trim() || !emailBody.trim()}
+                className={`flex-1 px-6 py-3 bg-orange-100 text-orange-800 rounded-xl hover:bg-orange-200 shadow-lg hover:shadow-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 ${!emailSubject.trim() || !emailBody.trim()
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                  }`}
+              >
+                <Calendar className="w-5 h-5" />
+                Schedule
+              </button>
+
+              <button
+                onClick={handleSendEmail}
+                disabled={isSending || selectedUsers.length === 0}
+                className={`flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium flex items-center justify-center gap-2 ${isSending || selectedUsers.length === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                  }`}
+              >
+                <Send className="w-5 h-5" />
+                {isSending
+                  ? "Sending..."
+                  : `Send Email${selectedUsers.length > 0
+                    ? ` to ${selectedUsers.length} User${selectedUsers.length > 1 ? "s" : ""
+                    }`
+                    : ""
+                  }`}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Email Preview Modal */}
+      <EmailPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        subject={emailSubject}
+        body={emailBody}
+      />
+
+      {showSchedule && (
+        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 space-y-3">
+          <p className="text-sm font-semibold text-orange-900">Schedule for later</p>
+          <div className="flex gap-2">
+            <input
+              type="datetime-local"
+              value={scheduledFor}
+              onChange={(e) => setScheduledFor(e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+              className="flex-1 px-3 py-2 border border-orange-200 rounded-lg text-sm focus:ring-2 focus:ring-[#253A7B]"
+            />
+            <button
+              onClick={handleScheduleEmail}
+              disabled={isSending}
+              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg text-sm font-semibold hover:bg-[#1a2a5e] disabled:opacity-60"
+            >
+              {isSending ? "Scheduling..." : "Schedule"}
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Scheduled Emails Card */}
+      <ScheduledEmails
+        onStatusChange={onStatusChange}
+        refreshKey={scheduledEmailsRefreshKey}
+      />
     </div>
   );
 }

@@ -2,6 +2,9 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
 import sendEmail from "../utils/sendEmail.js";
+import ScheduledEmail from "../models/ScheduledEmail.js";
+import adminBulkEmailTemplate from "../emailTemplates/adminBulkEmail.js";
+import mongoose from "mongoose";
 const isSecure = process.env.REDIS_URL?.startsWith("rediss://");
 
 // Export the job handler as a named export
@@ -104,6 +107,73 @@ export async function handleEmailJob(job) {
       }
       return;
     }
+
+    // ✅ Scheduled bulk email (delayed job)
+    if (job.name === "scheduledBulkEmail") {
+      const { scheduledEmailId } = job.data || {};
+
+      let scheduledEmail = null;
+
+      if (scheduledEmailId && mongoose.Types.ObjectId.isValid(String(scheduledEmailId))) {
+        scheduledEmail = await ScheduledEmail.findById(String(scheduledEmailId));
+      }
+
+      if (!scheduledEmail && job?.id) {
+        scheduledEmail = await ScheduledEmail.findOne({ jobId: String(job.id) });
+      }
+
+      if (!scheduledEmail && typeof job?.id === "string" && job.id.startsWith("scheduled-email-")) {
+        const fallbackId = job.id.replace("scheduled-email-", "");
+        if (mongoose.Types.ObjectId.isValid(fallbackId)) {
+          scheduledEmail = await ScheduledEmail.findById(fallbackId);
+        }
+      }
+
+      if (!scheduledEmail) {
+        throw new Error(`Scheduled email not found for job ${job.id} (scheduledEmailId=${scheduledEmailId || "N/A"})`);
+      }
+
+      if (scheduledEmail.status !== "pending") {
+        console.log(`ℹ️ Skipping scheduled email ${scheduledEmailId}; status=${scheduledEmail.status}`);
+        return;
+      }
+
+      if (!Array.isArray(scheduledEmail.recipientEmails) || scheduledEmail.recipientEmails.length === 0) {
+        scheduledEmail.status = "failed";
+        scheduledEmail.errorMessage = "No recipients found for scheduled email";
+        await scheduledEmail.save();
+        throw new Error(`No recipients found for scheduled email ${scheduledEmail._id}`);
+      }
+
+      const html = adminBulkEmailTemplate(scheduledEmail.body);
+
+      try {
+        for (const email of scheduledEmail.recipientEmails || []) {
+          if (!email) continue;
+          await sendEmail({
+            to: email,
+            subject: scheduledEmail.subject,
+            html,
+          });
+          console.log(`✅ Scheduled email sent to ${email}`);
+        }
+
+        scheduledEmail.status = "sent";
+        scheduledEmail.sentAt = new Date();
+        scheduledEmail.errorMessage = null;
+        await scheduledEmail.save();
+      } catch (err) {
+        scheduledEmail.status = "failed";
+        scheduledEmail.errorMessage = err?.message || "Unknown send error";
+        await scheduledEmail.save();
+        console.error(`❌ Scheduled email failed: ${scheduledEmailId}`, err);
+        throw err;
+      }
+
+      return;
+    }
+
+    throw new Error(`Unhandled email job type: ${job.name}`);
 
     // ✅ User Approved Email
     if (job.name === "userApproved") {

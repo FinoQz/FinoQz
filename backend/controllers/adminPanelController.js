@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Group from '../models/Group.js';
+import ScheduledEmail from '../models/ScheduledEmail.js';
 import bcrypt from "bcrypt";
 import sendEmail from '../utils/sendEmail.js';
 import approvalSuccessTemplate from '../emailTemplates/userApprovalSuccessTemplate.js';
@@ -14,6 +15,18 @@ import userDeletedTemplate from "../emailTemplates/userDeletedTemplate.js";
 import cloudinary from '../utils/cloudinary.js';
 import redis from '../utils/redis.js';
 import mongoose from 'mongoose';
+import Groq from 'groq-sdk';
+
+let groqClient = null;
+const getGroqClient = () => {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY is not set');
+  }
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  }
+  return groqClient;
+};
 
 
 const buildDashboardStats = async () => {
@@ -745,6 +758,211 @@ export const getGroups = async (req, res) => {
   }
 };
 
+// ✅ SCHEDULED EMAIL FUNCTIONS
+
+// Create/Schedule an email
+export const scheduleEmail = async (req, res) => {
+  try {
+    const { subject, body, recipients, scheduledFor } = req.body;
+
+    if (!subject || !body || !recipients || recipients.length === 0) {
+      return res.status(400).json({ message: 'Subject, body, and recipients are required' });
+    }
+
+    if (!scheduledFor) {
+      return res.status(400).json({ message: 'Schedule date and time are required' });
+    }
+
+    const scheduledDate = new Date(scheduledFor);
+    if (scheduledDate < new Date()) {
+      return res.status(400).json({ message: 'Cannot schedule email for past date/time' });
+    }
+
+    // Get recipient emails
+    const users = await User.find({ _id: { $in: recipients } }).select('email');
+    const recipientEmails = users.map(u => u.email);
+
+    const scheduledEmail = new ScheduledEmail({
+      subject,
+      body,
+      recipients,
+      recipientEmails,
+      scheduledFor: scheduledDate,
+      createdBy: req.adminId,
+      status: 'pending',
+    });
+
+    await scheduledEmail.save();
+
+    const delayMs = Math.max(0, scheduledDate.getTime() - Date.now());
+    const scheduledJob = await emailQueue.add(
+      'scheduledBulkEmail',
+      {
+        scheduledEmailId: String(scheduledEmail._id),
+      },
+      {
+        delay: delayMs,
+        jobId: `scheduled-email-${scheduledEmail._id}`,
+      }
+    );
+
+    scheduledEmail.jobId = String(scheduledJob.id);
+    await scheduledEmail.save();
+
+    console.log('📅 Email scheduled for:', scheduledDate, 'job:', scheduledEmail.jobId);
+
+    res.status(201).json({
+      message: 'Email scheduled successfully',
+      scheduledEmail,
+    });
+  } catch (err) {
+    console.error('❌ Schedule email error:', err);
+    res.status(500).json({ message: 'Failed to schedule email' });
+  }
+};
+
+// Get all scheduled emails for admin
+export const getScheduledEmails = async (req, res) => {
+  try {
+    const scheduledEmails = await ScheduledEmail.find({ createdBy: req.adminId })
+      .populate('recipients', 'fullName email')
+      .sort({ createdAt: -1 });
+
+    res.json(scheduledEmails);
+  } catch (err) {
+    console.error('❌ Get scheduled emails error:', err);
+    res.status(500).json({ message: 'Failed to fetch scheduled emails' });
+  }
+};
+
+// Update scheduled email (only if pending)
+export const updateScheduledEmail = async (req, res) => {
+  try {
+    const { scheduledEmailId } = req.params;
+    const { subject, body, recipients, scheduledFor } = req.body;
+
+    const scheduledEmail = await ScheduledEmail.findById(scheduledEmailId);
+    if (!scheduledEmail) {
+      return res.status(404).json({ message: 'Scheduled email not found' });
+    }
+
+    if (scheduledEmail.status !== 'pending') {
+      return res.status(400).json({ message: 'Can only edit pending scheduled emails' });
+    }
+
+    if (scheduledFor) {
+      const scheduledDate = new Date(scheduledFor);
+      if (scheduledDate < new Date()) {
+        return res.status(400).json({ message: 'Cannot schedule email for past date/time' });
+      }
+      scheduledEmail.scheduledFor = scheduledDate;
+    }
+
+    if (subject) scheduledEmail.subject = subject;
+    if (body) scheduledEmail.body = body;
+
+    if (recipients && recipients.length > 0) {
+      const users = await User.find({ _id: { $in: recipients } }).select('email');
+      scheduledEmail.recipientEmails = users.map(u => u.email);
+      scheduledEmail.recipients = recipients;
+    }
+
+    // Remove old delayed job (if present) and re-schedule with latest data.
+    if (scheduledEmail.jobId) {
+      const existingJob = await emailQueue.getJob(scheduledEmail.jobId);
+      if (existingJob) {
+        await existingJob.remove();
+      }
+    }
+
+    const delayMs = Math.max(0, new Date(scheduledEmail.scheduledFor).getTime() - Date.now());
+    const rescheduledJob = await emailQueue.add(
+      'scheduledBulkEmail',
+      {
+        scheduledEmailId: String(scheduledEmail._id),
+      },
+      {
+        delay: delayMs,
+        jobId: `scheduled-email-${scheduledEmail._id}`,
+      }
+    );
+
+    scheduledEmail.jobId = String(rescheduledJob.id);
+
+    await scheduledEmail.save();
+
+    res.json({
+      message: 'Scheduled email updated successfully',
+      scheduledEmail,
+    });
+  } catch (err) {
+    console.error('❌ Update scheduled email error:', err);
+    res.status(500).json({ message: 'Failed to update scheduled email' });
+  }
+};
+
+// Cancel scheduled email
+export const cancelScheduledEmail = async (req, res) => {
+  try {
+    const { scheduledEmailId } = req.params;
+
+    const scheduledEmail = await ScheduledEmail.findById(scheduledEmailId);
+    if (!scheduledEmail) {
+      return res.status(404).json({ message: 'Scheduled email not found' });
+    }
+
+    if (scheduledEmail.status !== 'pending') {
+      return res.status(400).json({ message: 'Can only cancel pending scheduled emails' });
+    }
+
+    if (scheduledEmail.jobId) {
+      const existingJob = await emailQueue.getJob(scheduledEmail.jobId);
+      if (existingJob) {
+        await existingJob.remove();
+      }
+    }
+
+    await ScheduledEmail.deleteOne({ _id: scheduledEmailId });
+
+    res.json({
+      message: 'Scheduled email cancelled and removed successfully',
+    });
+  } catch (err) {
+    console.error('❌ Cancel scheduled email error:', err);
+    res.status(500).json({ message: 'Failed to cancel scheduled email' });
+  }
+};
+
+// Delete scheduled email (remove from card/list)
+export const deleteScheduledEmail = async (req, res) => {
+  try {
+    const { scheduledEmailId } = req.params;
+
+    const scheduledEmail = await ScheduledEmail.findById(scheduledEmailId);
+    if (!scheduledEmail) {
+      return res.status(404).json({ message: 'Scheduled email not found' });
+    }
+
+    if (String(scheduledEmail.createdBy) !== String(req.adminId)) {
+      return res.status(403).json({ message: 'Not allowed to delete this scheduled email' });
+    }
+
+    if (scheduledEmail.jobId) {
+      const existingJob = await emailQueue.getJob(scheduledEmail.jobId);
+      if (existingJob) {
+        await existingJob.remove();
+      }
+    }
+
+    await ScheduledEmail.deleteOne({ _id: scheduledEmailId });
+
+    return res.json({ message: 'Scheduled email deleted successfully' });
+  } catch (err) {
+    console.error('❌ Delete scheduled email error:', err);
+    return res.status(500).json({ message: 'Failed to delete scheduled email' });
+  }
+};
+
 // Update group
 export const updateGroup = async (req, res) => {
   try {
@@ -804,6 +1022,98 @@ export const sendBulkEmail = async (req, res) => {
   } catch (err) {
     console.error("Bulk email error:", err);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const generateBulkEmailDraft = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    if (!prompt || !String(prompt).trim()) {
+      return res.status(400).json({ message: 'Prompt is required' });
+    }
+
+    const groq = getGroqClient();
+    const fullPrompt = `You are an email writing assistant for a finance learning platform named FinoQz.
+Generate a professional bulk-email draft based on the user prompt.
+
+User prompt:
+${String(prompt).trim()}
+
+Return ONLY valid JSON with this exact shape:
+{
+  "subject": "...",
+  "body": "..."
+}
+
+Rules:
+- Keep subject concise and clear.
+- Body should be polite, readable, and ready to send.
+- Do not include markdown, code fences, or extra keys.`;
+
+    const modelsToTry = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'gemma-7b-it',
+      'mixtral-8x7b-32768',
+    ];
+
+    let content = '';
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model: modelName,
+          temperature: 0.6,
+          max_tokens: 700,
+          messages: [{ role: 'user', content: fullPrompt }],
+        });
+        content = completion.choices?.[0]?.message?.content || '';
+        if (content.trim()) break;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!content.trim()) {
+      console.error('generateBulkEmailDraft model failure:', lastError);
+      return res.status(500).json({ message: 'AI service unavailable. Please try again.' });
+    }
+
+    if (content.startsWith('```json')) {
+      content = content.slice(7, -3).trim();
+    } else if (content.startsWith('```')) {
+      content = content.slice(3, -3).trim();
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      const subjectMatch = content.match(/subject\s*:\s*(.+)/i);
+      const bodyMatch = content.match(/body\s*:\s*([\s\S]+)/i);
+
+      const fallbackSubject = subjectMatch?.[1]?.trim();
+      const fallbackBody = bodyMatch?.[1]?.trim() || content.trim();
+
+      parsed = {
+        subject: fallbackSubject || 'Important update from FinoQz',
+        body: fallbackBody,
+      };
+    }
+
+    const subject = String(parsed?.subject || '').trim();
+    const body = String(parsed?.body || '').trim();
+
+    if (!subject || !body) {
+      return res.status(500).json({ message: 'AI could not generate a valid email draft' });
+    }
+
+    return res.json({ subject, body });
+  } catch (err) {
+    console.error('generateBulkEmailDraft error:', err);
+    return res.status(500).json({ message: 'Failed to generate email draft' });
   }
 };
 

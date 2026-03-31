@@ -21,7 +21,13 @@ import {
   updateGroup,
   deleteGroup,
   getUserGrowthData,
-  getLiveUsers
+  getLiveUsers,
+  generateBulkEmailDraft,
+  scheduleEmail,
+  getScheduledEmails,
+  updateScheduledEmail,
+  cancelScheduledEmail,
+  deleteScheduledEmail
 } from '../controllers/adminPanelController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import requireAdmin from '../middlewares/requireAdmin.js';
@@ -50,6 +56,14 @@ router.delete('/user/:userId', authMiddleware('admin'), requireAdmin, deleteUser
 router.post("/add-user", authMiddleware("admin"), requireAdmin, upload.single("profilePicture"), addNewUser);
 
 router.post("/send-email", authMiddleware("admin"), requireAdmin, sendBulkEmail);
+router.post("/generate-email-draft", authMiddleware("admin"), requireAdmin, generateBulkEmailDraft);
+
+// ✅ Scheduled Email Routes
+router.post("/schedule-email", authMiddleware("admin"), requireAdmin, scheduleEmail);
+router.get("/scheduled-emails", authMiddleware("admin"), requireAdmin, getScheduledEmails);
+router.put("/scheduled-emails/:scheduledEmailId", authMiddleware("admin"), requireAdmin, updateScheduledEmail);
+router.post("/scheduled-emails/:scheduledEmailId/cancel", authMiddleware("admin"), requireAdmin, cancelScheduledEmail);
+router.delete("/scheduled-emails/:scheduledEmailId", authMiddleware("admin"), requireAdmin, deleteScheduledEmail);
 
 
 router.get('/monthly-users', authMiddleware('admin'), requireAdmin, getMonthlyUsers);
