@@ -9,6 +9,7 @@ const DemoQuizQuestionSchema = new mongoose.Schema({
   question: { type: String, required: true },
   options: [{ type: String, required: true }],
   correctIndex: { type: Number, required: true },
+  explanation: { type: String, required: true, trim: true },
 }, { timestamps: true });
 
 export default mongoose.model('DemoQuizQuestion', DemoQuizQuestionSchema);

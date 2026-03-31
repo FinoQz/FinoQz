@@ -6,6 +6,7 @@ import apiAdmin from '@/lib/apiAdmin';
 
 interface QuizAIFormProps {
   categoryId: string;
+  onQuestionsUpdated?: () => void | Promise<void>;
 }
 
 interface AIQuestion {
@@ -13,9 +14,10 @@ interface AIQuestion {
   question: string;
   options: string[];
   correctIndex: number;
+  explanation: string;
 }
 
-export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
+export default function QuizAIForm({ categoryId, onQuestionsUpdated }: QuizAIFormProps) {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState(5);
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,7 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
 
       const questions: AIQuestion[] = res.data || [];
       setGenerated(questions);
+      await Promise.resolve(onQuestionsUpdated?.());
     } catch (err) {
       console.error('Failed to generate quiz', err);
     } finally {
@@ -91,6 +94,9 @@ export default function QuizAIForm({ categoryId }: QuizAIFormProps) {
                   </li>
                 ))}
               </ul>
+              <p className="mt-3 text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded px-3 py-2">
+                {q.explanation}
+              </p>
             </div>
           ))}
         </div>

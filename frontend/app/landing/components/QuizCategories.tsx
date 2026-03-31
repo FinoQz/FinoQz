@@ -6,6 +6,7 @@ import { Check, BookOpen, Layers, Globe, Zap, Heart } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
 type RemoteCategory = {
+  _id?: string;
   id?: string;
   name?: string;
   description?: string;
@@ -40,14 +41,13 @@ export default function QuizCategories() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const res = await apiAdmin.get('api/admin/landing');
+        const res = await apiAdmin.get('api/admin/demo-quiz/public/categories');
         if (!mounted) return;
-        const data = res.data || {};
-        const remoteCats: RemoteCategory[] = Array.isArray(data.categories) ? data.categories : [];
+        const remoteCats: RemoteCategory[] = Array.isArray(res.data) ? res.data : [];
         const mapped: LocalCategory[] = remoteCats.map((rc, idx) => {
           const pal = palette[idx % palette.length];
           return {
-            id: rc.id || `cat-${idx}`,
+            id: rc._id || rc.id || `cat-${idx}`,
             name: rc.name || `Category ${idx + 1}`,
             description: rc.description || '',
             topics: Array.isArray(rc.bullets) ? rc.bullets : [],

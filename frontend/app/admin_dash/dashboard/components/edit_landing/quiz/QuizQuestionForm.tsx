@@ -6,6 +6,7 @@ import apiAdmin from '@/lib/apiAdmin';
 
 interface QuizQuestionFormProps {
   categoryId: string;
+  onQuestionsUpdated?: () => void | Promise<void>;
 }
 
 interface Question {
@@ -13,13 +14,15 @@ interface Question {
   question: string;
   options: string[];
   correctIndex: number;
+  explanation: string;
 }
 
-export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) {
+export default function QuizQuestionForm({ categoryId, onQuestionsUpdated }: QuizQuestionFormProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [newOptions, setNewOptions] = useState<string[]>(['', '', '', '']);
   const [correctIndex, setCorrectIndex] = useState<number | null>(null);
+  const [newExplanation, setNewExplanation] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,7 +42,8 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
     if (
       !newQuestion.trim() ||
       newOptions.some((opt) => !opt.trim()) ||
-      correctIndex === null
+      correctIndex === null ||
+      !newExplanation.trim()
     )
       return;
 
@@ -48,16 +52,22 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
       question: newQuestion.trim(),
       options: newOptions.map((opt) => opt.trim()),
       correctIndex,
+      explanation: newExplanation.trim(),
     };
 
     try {
+      setLoading(true);
       const res = await apiAdmin.post('api/admin/demo-quiz/questions', payload);
       setQuestions((prev) => [...prev, res.data]);
       setNewQuestion('');
       setNewOptions(['', '', '', '']);
       setCorrectIndex(null);
+      setNewExplanation('');
+      await Promise.resolve(onQuestionsUpdated?.());
     } catch (err) {
       console.error('Failed to add question', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +76,7 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
     try {
       await apiAdmin.delete(`api/admin/demo-quiz/questions/${_id}`);
       setQuestions((prev) => prev.filter((q) => q._id !== _id));
+      await Promise.resolve(onQuestionsUpdated?.());
     } catch (err) {
       console.error('Failed to delete question', err);
     }
@@ -110,6 +121,14 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
           </div>
         ))}
 
+        <textarea
+          placeholder="Enter explanation shown to users after answer reveal"
+          value={newExplanation}
+          onChange={(e) => setNewExplanation(e.target.value)}
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          rows={3}
+        />
+
         <button
           onClick={addQuestion}
           disabled={loading}
@@ -142,6 +161,9 @@ export default function QuizQuestionForm({ categoryId }: QuizQuestionFormProps) 
                       </li>
                     ))}
                   </ul>
+                  <p className="mt-3 text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded px-3 py-2">
+                    {q.explanation}
+                  </p>
                 </div>
                 <button
                   onClick={() => removeQuestion(q._id)}

@@ -157,11 +157,6 @@ export default function TryQuiz() {
     setShowExplanation(false);
   };
 
-  const gotoLogin = () => {
-    handleRestart();
-    router.push('/landing/auth/user_login/login');
-  };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     const x = (e.clientX / window.innerWidth - 0.5) * 60;
     const y = (e.clientY / window.innerHeight - 0.5) * 60;
