@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import apiAdmin from '@/lib/apiAdmin';
+import { Button } from '@/components/ui/button';
 
 type Question = {
   _id?: string;
@@ -42,10 +44,13 @@ export default function TryQuiz() {
   const [mounted, setMounted] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  // Safety for Portals
+  // Safety for Portals & Prefetching
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Prefetch auth routes for near-instant transitions later
+    router.prefetch('/landing/auth/user_login/login');
+    router.prefetch('/landing/auth/user_signup/signup');
+  }, [router]);
 
   // Body Scroll Lock when Modals are Open (Aggressive)
   useEffect(() => {
@@ -61,7 +66,7 @@ export default function TryQuiz() {
       document.documentElement.style.overflow = 'auto';
       document.documentElement.style.height = 'auto';
     }
-    return () => { 
+    return () => {
       document.body.style.overflow = 'auto';
       document.body.style.height = 'auto';
       document.documentElement.style.overflow = 'auto';
@@ -158,7 +163,7 @@ export default function TryQuiz() {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    const x = (e.clientX / window.innerWidth - 0.5) * 60; 
+    const x = (e.clientX / window.innerWidth - 0.5) * 60;
     const y = (e.clientY / window.innerHeight - 0.5) * 60;
     setMousePos({ x, y });
   };
@@ -168,8 +173,8 @@ export default function TryQuiz() {
   const hideOuterLayout = showResults || showLoginPrompt;
 
   return (
-    <section 
-      id="try-quiz" 
+    <section
+      id="try-quiz"
       className={`pt-12 pb-4 bg-transparent relative overflow-hidden transition-all duration-500 ${hideOuterLayout ? 'z-[1000]' : 'z-10'}`}
       onMouseMove={handleMouseMove}
     >
@@ -197,7 +202,7 @@ export default function TryQuiz() {
 
               <div className="w-full max-w-3xl mx-auto flex flex-col items-center gap-4">
                 <div className="w-full flex items-center flex-nowrap overflow-x-auto gap-2 pb-2 justify-start md:justify-center scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  <style dangerouslySetInnerHTML={{__html: `::-webkit-scrollbar { display: none; }`}} />
+                  <style dangerouslySetInnerHTML={{ __html: `::-webkit-scrollbar { display: none; }` }} />
                   <span className="text-sm text-gray-500 mr-2 shrink-0">Quiz Categories:</span>
                   {categories.map(cat => (
                     <button key={cat._id} onClick={() => setSelectedCategoryId(cat._id)} disabled={loading} className={`shrink-0 px-3 py-1.5 rounded-md border text-xs transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${selectedCategoryId === cat._id ? 'border-[#253A7B] text-[#253A7B] bg-white/80 shadow-md backdrop-blur-sm font-medium' : 'border-gray-200/50 bg-white/40 text-gray-600 hover:border-gray-300 hover:bg-white/60'}`}>
@@ -216,8 +221,8 @@ export default function TryQuiz() {
         {!hideOuterLayout && (
           loading ? (
             <div className="flex flex-col items-center justify-center p-12 bg-white/40 backdrop-blur-xl border border-white/60 rounded-3xl max-w-2xl mx-auto shadow-sm min-h-[300px]">
-               <div className="w-8 h-8 border-4 border-[#253A7B]/20 border-t-[#253A7B] rounded-full animate-spin mb-4"></div>
-               <p className="text-[#253A7B] font-medium text-sm animate-pulse">Gathering questions...</p>
+              <div className="w-8 h-8 border-4 border-[#253A7B]/20 border-t-[#253A7B] rounded-full animate-spin mb-4"></div>
+              <p className="text-[#253A7B] font-medium text-sm animate-pulse">Gathering questions...</p>
             </div>
           ) : questions.length > 0 && !showResults && (
             <motion.div key={currentQ} initial={{ opacity: 0, scale: 0.98, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-3xl shadow-sm p-5 md:p-6 space-y-4 max-w-2xl mx-auto relative overflow-hidden group">
@@ -276,27 +281,27 @@ export default function TryQuiz() {
             {showResults && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/10 backdrop-blur-[8px] flex items-center justify-center z-[99999] p-6">
                 <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="bg-white/95 backdrop-blur-3xl border border-white/60 rounded-[2.25rem] shadow-[0_40px_80px_-30px_rgba(37,58,123,0.1)] p-6 w-full max-w-[240px] text-center space-y-4 relative overflow-hidden">
-                    <button onClick={() => { setShowResults(false); handleRestart(); }} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                    <div className="space-y-0.5">
-                      <span className="text-[8px] font-medium tracking-[0.4em] text-blue-500 uppercase">IQ Assessment</span>
-                      <h2 className="text-base font-medium text-gray-800 tracking-tight">Your Score</h2>
+                  <button onClick={() => { setShowResults(false); handleRestart(); }} className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] font-medium tracking-[0.4em] text-blue-500 uppercase">IQ Assessment</span>
+                    <h2 className="text-base font-medium text-gray-800 tracking-tight">Your Score</h2>
+                  </div>
+                  <div className="relative inline-flex items-center justify-center p-5 bg-gray-50/50 rounded-full border border-gray-100">
+                    <div className="text-4xl font-medium text-[#253A7B] tracking-tighter tabular-nums leading-none">
+                      {score}<span className="text-gray-300 font-light text-2xl mx-1">/</span><span className="text-gray-400">{questions.length}</span>
                     </div>
-                    <div className="relative inline-flex items-center justify-center p-5 bg-gray-50/50 rounded-full border border-gray-100">
-                      <div className="text-4xl font-medium text-[#253A7B] tracking-tighter tabular-nums leading-none">
-                        {score}<span className="text-gray-300 font-light text-2xl mx-1">/</span><span className="text-gray-400">{questions.length}</span>
+                  </div>
+                  <div className="space-y-4 pt-1">
+                    <button onClick={() => { setShowResults(false); setShowLoginPrompt(true); }} className="w-full bg-[#253A7B] text-white py-2.5 rounded-xl hover:bg-[#1a2a5e] text-[8px] font-medium uppercase tracking-[0.2em] transition-all shadow-md active:scale-95">Continue</button>
+                    <div className="flex flex-col gap-2">
+                      <div className="w-full bg-gray-100/50 h-0.5 rounded-full overflow-hidden relative">
+                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 7, ease: "linear" }} className="absolute top-0 left-0 h-full bg-blue-500/40" />
                       </div>
+                      <p className="text-[8px] font-medium text-gray-300 tracking-[0.1em]">Generating personal report...</p>
                     </div>
-                    <div className="space-y-4 pt-1">
-                       <button onClick={() => { setShowResults(false); setShowLoginPrompt(true); }} className="w-full bg-[#253A7B] text-white py-2.5 rounded-xl hover:bg-[#1a2a5e] text-[8px] font-medium uppercase tracking-[0.2em] transition-all shadow-md active:scale-95">Continue</button>
-                       <div className="flex flex-col gap-2">
-                         <div className="w-full bg-gray-100/50 h-0.5 rounded-full overflow-hidden relative">
-                            <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ duration: 7, ease: "linear" }} className="absolute top-0 left-0 h-full bg-blue-500/40" />
-                         </div>
-                         <p className="text-[8px] font-medium text-gray-300 tracking-[0.1em]">Generating personal report...</p>
-                       </div>
-                    </div>
+                  </div>
                 </motion.div>
               </motion.div>
             )}
@@ -309,22 +314,39 @@ export default function TryQuiz() {
             {showLoginPrompt && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/10 backdrop-blur-[8px] flex items-center justify-center z-[99999] p-6">
                 <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="bg-white/95 backdrop-blur-3xl border border-white/60 rounded-[2.25rem] shadow-[0_50px_100px_-30px_rgba(0,0,0,0.08)] p-8 w-full max-w-[300px] space-y-6 relative">
-                    <button onClick={() => { setShowLoginPrompt(false); handleRestart(); }} className="absolute top-5 right-5 text-gray-300 hover:text-gray-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                    <div className="text-center space-y-4">
-                      <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto shadow-sm shadow-blue-100">
-                        <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz" width={20} height={20} unoptimized />
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="text-xl font-medium text-gray-900 tracking-tight text-center">Access Locked</h4>
-                        <p className="text-gray-400 text-[10px] leading-relaxed font-normal text-center px-4">Sign in to access your detailed performance metrics and global certification.</p>
-                      </div>
+                  <button onClick={() => { setShowLoginPrompt(false); handleRestart(); }} className="absolute top-5 right-5 text-gray-300 hover:text-gray-500 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                  <div className="text-center space-y-4">
+                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto shadow-sm shadow-blue-100">
+                      <Image src="https://res.cloudinary.com/dwbbsvsrq/image/upload/v1767085055/finoqz_std7w8.svg" alt="FinoQz" width={20} height={20} unoptimized />
                     </div>
-                    <div className="space-y-4">
-                      <button onClick={gotoLogin} className="w-full bg-[#253A7B] text-white py-3.5 rounded-2xl hover:bg-[#1a2a5e] text-[9px] font-medium uppercase tracking-[0.2em] transition-all shadow-md active:scale-95">Sign In Now</button>
-                      <p className="text-center text-[9px] text-gray-400 font-normal tracking-wide">New here? <span className="text-blue-600 font-medium cursor-pointer hover:underline" onClick={() => router.push('/landing/auth/user_login/signup')}>Create Free Account</span></p>
+                    <div className="space-y-1">
+                      <h4 className="text-xl font-medium text-gray-900 tracking-tight text-center">Access Locked</h4>
+                      <p className="text-gray-400 text-[10px] leading-relaxed font-normal text-center px-4">Sign in to access more quizzes</p>
                     </div>
+                  </div>
+                  <div className="space-y-4">
+                    <Button 
+                      asChild
+                      className="w-full bg-[#253A7B] text-white py-3.5 rounded-2xl hover:bg-[#1a2a5e] text-[10px] font-medium uppercase tracking-[0.2em] transition-all shadow-md active:scale-95 h-auto"
+                      onClick={() => handleRestart()}
+                    >
+                      <Link href="/landing/auth/user_login/login">
+                        Sign In Now
+                      </Link>
+                    </Button>
+                    <p className="text-center text-[9px] text-gray-400 font-normal tracking-wide">
+                      New here?{' '}
+                      <Link 
+                        href="/landing/auth/user_signup/signup"
+                        className="text-blue-600 font-medium cursor-pointer hover:underline"
+                        onClick={() => handleRestart()}
+                      >
+                        Create Free Account
+                      </Link>
+                    </p>
+                  </div>
                 </motion.div>
               </motion.div>
             )}

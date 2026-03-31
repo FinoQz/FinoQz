@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import Image from 'next/image';
 import InputField from './components/InputField';
@@ -44,6 +45,14 @@ export default function SignupPage() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const router = useRouter();
+ 
+  // Prefetch possible next steps for instantaneous transitions
+  useEffect(() => {
+    router.prefetch('/landing/auth/user_signup/verify_email_otp');
+    router.prefetch('/landing/auth/user_signup/add_mobile');
+    router.prefetch('/landing/auth/user_signup/verify_mobile_otp');
+    router.prefetch('/landing/auth/user_login/login');
+  }, [router]);
 
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -186,12 +195,12 @@ export default function SignupPage() {
 
               <p className="text-sm text-gray-500 mt-4 text-center">
                 Already have an account?{' '}
-                <a
+                <Link
                   href="/landing/auth/user_login/login"
-                  className="text-blue-600 font-semibold"
+                  className="text-blue-600 font-semibold hover:underline"
                 >
                   Login here
-                </a>
+                </Link>
               </p>
             </div>
           </div>
@@ -213,9 +222,9 @@ export default function SignupPage() {
 
       {/* Back to Home */}
       <p className="text-sm text-gray-500 mt-4 text-center">
-        <a href="/landing" className="text-gray-500 hover:text-indigo-600 text-sm">
+        <Link href="/landing" className="text-gray-500 hover:text-indigo-600 text-sm">
           ← Back to Home
-        </a>
+        </Link>
       </p>
     </div>
   );

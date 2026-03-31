@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import InputField from './components/InputField';
 import TabSwitcher from './components/TabSwitcher';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import apiUser from '@/lib/apiUser';
@@ -12,6 +12,12 @@ import apiAdmin from '@/lib/apiAdmin';
 
 export default function SigninPage() {
   const router = useRouter();
+  
+  // Prefetch next steps for instantaneous transitions
+  useEffect(() => {
+    router.prefetch('/landing/auth/user_login/verify_admin_otp');
+    router.prefetch('/landing/auth/user_login/verify_signin_otp');
+  }, [router]);
 
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
   const [emailOrUsername, setEmailOrUsername] = useState('');

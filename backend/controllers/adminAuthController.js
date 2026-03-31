@@ -128,7 +128,7 @@ export const verifyOtp = async (req, res) => {
         fingerprint,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '30m' }
+      { expiresIn: '24h' }
     );
 
     const refreshToken = jwt.sign(
@@ -138,7 +138,7 @@ export const verifyOtp = async (req, res) => {
     );
 
     await Promise.all([
-      redis.set(`session:${admin._id}`, accessToken, 'EX', 30 * 60),
+      redis.set(`session:${admin._id}`, accessToken, 'EX', 24 * 60 * 60),
       redis.set(
         `admin:refresh:${admin._id}`,
         refreshToken,
@@ -158,7 +158,7 @@ export const verifyOtp = async (req, res) => {
     res.cookie('adminToken', accessToken, {
       ...cookieOptions,
       httpOnly: true,
-      maxAge: 30 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie('adminRefresh', refreshToken, {
@@ -171,7 +171,7 @@ export const verifyOtp = async (req, res) => {
     res.cookie('adminSessionVisible', 'true', {
       ...cookieOptions,
       httpOnly: false,
-      maxAge: 30 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.clearCookie('pendingAdminEmail', {
@@ -259,14 +259,14 @@ export const refreshToken = async (req, res) => {
         fingerprint,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '30m' }
+      { expiresIn: '24h' }
     );
 
     await redis.set(
       `session:${admin._id}`,
       newAccessToken,
       'EX',
-      30 * 60
+      24 * 60 * 60
     );
 
     const cookieOptions = {
@@ -279,7 +279,7 @@ export const refreshToken = async (req, res) => {
     res.cookie('adminToken', newAccessToken, {
       ...cookieOptions,
       httpOnly: true,
-      maxAge: 30 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.json({

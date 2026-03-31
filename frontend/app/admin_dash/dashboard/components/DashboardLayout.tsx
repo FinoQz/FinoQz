@@ -3,6 +3,7 @@
 import React, { ReactNode, useState } from 'react';
 import DashboardSidebar from './DashboardSidebar';
 import { Menu } from 'lucide-react';
+import SessionMonitor from './SessionMonitor';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -19,6 +20,9 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Session Manager (Hidden monitor) */}
+      <SessionMonitor />
+      
       {/* Sidebar */}
       <DashboardSidebar
         activePage={activePage}

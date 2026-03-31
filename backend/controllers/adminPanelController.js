@@ -427,7 +427,8 @@ export const getPendingUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'awaiting_admin_approval' })
       .select('_id fullName email mobile createdAt status emailVerified mobileVerified')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(60); // ✅ Limit to 60 for performance
 
     res.json(users);
   } catch (err) {
@@ -442,7 +443,8 @@ export const getApprovedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'approved' })
       .select('_id fullName email mobile createdAt approvedBy approvedAt') // ✅ added approvedAt
-      .sort({ approvedAt: -1 }); // ✅ optional: latest approved first
+      .sort({ approvedAt: -1 })
+      .limit(60); // ✅ Limit to 60 for performance
 
     res.json(users);
   } catch (err) {
@@ -455,7 +457,9 @@ export const getApprovedUsers = async (req, res) => {
 export const getRejectedUsers = async (req, res) => {
   try {
     const users = await User.find({ status: 'rejected' })
-      .select('_id fullName email mobile createdAt');
+      .select('_id fullName email mobile createdAt')
+      .sort({ createdAt: -1 })
+      .limit(60); // ✅ Limit to 60 for performance
 
     res.json(users);
   } catch (err) {

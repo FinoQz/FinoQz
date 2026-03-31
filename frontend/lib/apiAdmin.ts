@@ -6,4 +6,17 @@ const apiAdmin = axios.create({
   withCredentials: true, // ✅ Send cookies like adminToken automatically
 });
 
+// ✅ Add interceptor to catch session expiration
+apiAdmin.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('finoqz-admin-unauthorized'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiAdmin;

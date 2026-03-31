@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import apiUser from "@/lib/apiUser";
 import axios from "axios";
@@ -10,6 +10,11 @@ export default function ForgotPasswordForm() {
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
+
+  // Prefetch verification route for an instant experience later
+  useEffect(() => {
+    router.prefetch("/landing/auth/user_login/forgot_password/verify_reset_otp");
+  }, [router]);
 
   const handleSubmit = async () => {
     if (!email.trim()) {

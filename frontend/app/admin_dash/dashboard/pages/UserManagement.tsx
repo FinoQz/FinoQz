@@ -13,6 +13,7 @@ import GroupManagement from '../components/user_management/GroupManagement';
 import { UserPlus, Mail, Users } from 'lucide-react';
 import { useSearchParams } from "next/navigation";
 import { io, Socket } from 'socket.io-client';
+import ManagementSkeleton from '../components/user_management/ManagementSkeleton';
 
 interface User {
   _id: string;
@@ -44,31 +45,83 @@ export default function UserManagement() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [rejectedUsers, setRejectedUsers] = useState<RejectedUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Track loading per category
+  const [loadingStates, setLoadingStates] = useState({
+    pending: false,
+    approved: false,
+    rejected: false,
+    initial: true
+  });
+
   const [actionStatus, setActionStatus] = useState('');
   const socketRef = useRef<Socket | null>(null);
 
-  // ✅ Initial fetch
+  // ✅ 1. Initial Fetch (Active Tab Only)
   useEffect(() => {
-    const fetchAllUsers = async () => {
+    const fetchActiveTabData = async () => {
+      setLoadingStates(prev => ({ ...prev, initial: true }));
       try {
-        const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-          apiAdmin.get('api/admin/panel/pending-users'),
-          apiAdmin.get('api/admin/panel/approved-users'),
-          apiAdmin.get('api/admin/panel/rejected-users'),
-        ]);
-        setPendingUsers(pendingRes.data || []);
-        setApprovedUsers(approvedRes.data || []);
-        setRejectedUsers(rejectedRes.data || []);
+        if (activeTab === 'pending') {
+          const res = await apiAdmin.get('api/admin/panel/pending-users');
+          setPendingUsers(res.data || []);
+        } else if (activeTab === 'approved') {
+          const res = await apiAdmin.get('api/admin/panel/approved-users');
+          setApprovedUsers(res.data || []);
+        } else if (activeTab === 'rejected') {
+          const res = await apiAdmin.get('api/admin/panel/rejected-users');
+          setRejectedUsers(res.data || []);
+        } else if (activeTab === 'all') {
+          // AllUsersTable handles its own fetching
+        }
       } catch (err) {
-        console.error("Error fetching users:", err);
+        console.error("Error fetching active tab data:", err);
       } finally {
-        setLoading(false);
+        setLoadingStates(prev => ({ ...prev, initial: false }));
       }
     };
 
-    fetchAllUsers(); // ✅ only once on mount
-  }, []);
+    fetchActiveTabData();
+  }, [activeTab]);
+
+  // ✅ 2. Background Prefetch (After initial mount)
+  useEffect(() => {
+    const prefetchOtherData = async () => {
+      try {
+        const fetchPending = async () => {
+          if (activeTab !== 'pending' && pendingUsers.length === 0) {
+            const res = await apiAdmin.get('api/admin/panel/pending-users');
+            setPendingUsers(res.data || []);
+          }
+        };
+
+        const fetchApproved = async () => {
+          if (activeTab !== 'approved' && approvedUsers.length === 0) {
+            const res = await apiAdmin.get('api/admin/panel/approved-users');
+            setApprovedUsers(res.data || []);
+          }
+        };
+
+        const fetchRejected = async () => {
+          if (activeTab !== 'rejected' && rejectedUsers.length === 0) {
+            const res = await apiAdmin.get('api/admin/panel/rejected-users');
+            setRejectedUsers(res.data || []);
+          }
+        };
+
+        // Run in series to avoid network congestion
+        await fetchPending();
+        await fetchApproved();
+        await fetchRejected();
+      } catch (err) {
+        console.warn("Background prefetch error:", err);
+      }
+    };
+
+    if (!loadingStates.initial) {
+      prefetchOtherData();
+    }
+  }, [loadingStates.initial]);
 
   // ✅ WebSocket listener for real-time updates
   useEffect(() => {
@@ -196,66 +249,66 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* Content */}
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-gray-600">Loading users...</p>
-        </div>
-      ) : (
-        <>
-          {activeTab === 'add-new' && <AddNewUserForm onSuccess={handleAddUserSuccess} onStatusChange={setActionStatus} />}
-          {activeTab === 'email-users' && <EmailManagement onStatusChange={setActionStatus} />}
+      {/* Content Rendering Logic */}
+      {activeTab === 'add-new' && <AddNewUserForm onSuccess={handleAddUserSuccess} onStatusChange={setActionStatus} />}
+      {activeTab === 'email-users' && <EmailManagement onStatusChange={setActionStatus} />}
+      {activeTab === 'groups' && <GroupManagement />}
 
-          {activeTab === 'groups' && <GroupManagement />}
-
-          {activeTab === 'pending' && (
-            pendingUsers.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-                <div className="text-[#253A7B] text-lg font-medium">No pending users</div>
-                <p className="text-gray-500 text-sm mt-2">All signups have been reviewed</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingUsers.map(user => (
-                  <HoverDetails key={user._id} user={user} onAction={handleAction} />
-                ))}
-              </div>
-            )
-          )}
-
-          {activeTab === 'approved' && (
-            approvedUsers.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-                <div className="text-gray-600 text-lg font-medium">No approved users yet</div>
-                <p className="text-gray-500 text-sm mt-2">Approved users will appear here</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {approvedUsers.map(user => (
-                  <ApprovedUserCard key={user._id} user={user} />
-                ))}
-              </div>
-            )
-          )}
-
-          {activeTab === 'rejected' && (
-            rejectedUsers.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-                <div className="text-gray-600 text-lg font-medium">No rejected users yet</div>
-                <p className="text-gray-500 text-sm mt-2">Rejected users will appear here</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {rejectedUsers.map(user => (
-                  <RejectedUserCard key={user._id} user={user} />
-                ))}
-              </div>
-            )
-          )}
-
-          {activeTab === 'all' && <AllUsersTable />}
-        </>
+      {/* Pending Tab */}
+      {activeTab === 'pending' && (
+        loadingStates.initial && pendingUsers.length === 0 ? (
+          <ManagementSkeleton />
+        ) : pendingUsers.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
+            <div className="text-[#253A7B] text-lg font-medium">No pending users</div>
+            <p className="text-gray-500 text-sm mt-2">All signups have been reviewed</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingUsers.map(user => (
+              <HoverDetails key={user._id} user={user} onAction={handleAction} />
+            ))}
+          </div>
+        )
       )}
+
+      {/* Approved Tab */}
+      {activeTab === 'approved' && (
+        loadingStates.initial && approvedUsers.length === 0 ? (
+          <ManagementSkeleton />
+        ) : approvedUsers.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
+            <div className="text-gray-600 text-lg font-medium">No approved users yet</div>
+            <p className="text-gray-500 text-sm mt-2">Approved users will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {approvedUsers.map(user => (
+              <ApprovedUserCard key={user._id} user={user} />
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Rejected Tab */}
+      {activeTab === 'rejected' && (
+        loadingStates.initial && rejectedUsers.length === 0 ? (
+          <ManagementSkeleton />
+        ) : rejectedUsers.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
+            <div className="text-gray-600 text-lg font-medium">No rejected users yet</div>
+            <p className="text-gray-500 text-sm mt-2">Rejected users will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {rejectedUsers.map(user => (
+              <RejectedUserCard key={user._id} user={user} />
+            ))}
+          </div>
+        )
+      )}
+
+      {activeTab === 'all' && <AllUsersTable />}
 
       <StatusMessage message={actionStatus} />
     </div>

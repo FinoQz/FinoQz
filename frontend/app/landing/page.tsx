@@ -57,18 +57,32 @@ function Preloader() {
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(true);
+  const [shouldShowLoader, setShouldShowLoader] = useState(false);
 
   useEffect(() => {
+    // Check if the preloader has already been shown in this session
+    const hasLoaded = sessionStorage.getItem('finoqz_pref_loaded');
+    
+    if (hasLoaded) {
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise, it's the first time; prepare to show the loader
+    setShouldShowLoader(true);
+
     const timer = setTimeout(() => {
       setLoading(false);
+      sessionStorage.setItem('finoqz_pref_loaded', 'true');
     }, 1800); // Wait enough time for the intro animation
+    
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-gray-900 font-sans selection:bg-[#253A7B] selection:text-white">
       <AnimatePresence>
-        {loading && <Preloader key="preloader" />}
+        {loading && shouldShowLoader && <Preloader key="preloader" />}
       </AnimatePresence>
 
       {/* Render unconditionally so TryQuiz fetches its network data while the Preloader plays! */}

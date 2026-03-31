@@ -108,17 +108,21 @@ export default function Navbar() {
         {/* Desktop Buttons */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
           <Button
+            asChild
             variant="ghost"
-            onClick={() => router.push("/landing/auth/user_login/login")}
             className="rounded-full text-sm font-bold text-gray-600 hover:bg-black/5 hover:text-gray-900 px-5"
           >
-            Login
+            <Link href="/landing/auth/user_login/login">
+              Login
+            </Link>
           </Button>
           <Button
+            asChild
             className="rounded-full bg-[#253A7B] text-white hover:bg-[#1a2a5e] hover:shadow-md transition-all text-sm font-bold px-6"
-            onClick={() => router.push("/landing/auth/user_signup/signup")}
           >
-            Get Started
+            <Link href="/landing/auth/user_signup/signup">
+              Get Started
+            </Link>
           </Button>
         </div>
 
@@ -179,23 +183,23 @@ export default function Navbar() {
 
             <div className="flex flex-col gap-2">
               <Button
+                asChild
                 variant="ghost"
                 className="w-full justify-center px-4 py-5 text-sm font-bold text-gray-700 rounded-2xl hover:bg-black/5"
-                onClick={() => {
-                  router.push("/landing/auth/user_login/login");
-                  toggleMenu();
-                }}
+                onClick={toggleMenu}
               >
-                Login
+                <Link href="/landing/auth/user_login/login">
+                  Login
+                </Link>
               </Button>
               <Button
+                asChild
                 className="w-full justify-center px-4 py-5 text-sm font-bold rounded-2xl bg-[#253A7B] text-white hover:bg-[#1a2a5e]"
-                onClick={() => {
-                  router.push("/landing/auth/user_signup/signup");
-                  toggleMenu();
-                }}
+                onClick={toggleMenu}
               >
-                Get Started
+                <Link href="/landing/auth/user_signup/signup">
+                  Get Started
+                </Link>
               </Button>
             </div>
           </motion.div>
