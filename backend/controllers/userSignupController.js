@@ -39,6 +39,9 @@ export const initiateSignup = async (req, res) => {
         message: "Email already registered. Resume signup.",
         status: existingUser.status,
         nextStep:
+          existingUser.status === "pending_email_verification"
+            ? "verify_email_otp"
+            :
           existingUser.status === "email_verified"
             ? "mobile_password"
             : existingUser.status === "pending_mobile_verification"
@@ -123,11 +126,53 @@ export const verifyEmailOtp = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log("⚠️ User already exists during OTP verify");
-      return res.status(409).json({
-        message: "Email already registered. Resume signup.",
-        status: existingUser.status,
+      if (existingUser.status !== "pending_email_verification") {
+        console.log("⚠️ User already exists during OTP verify");
+        return res.status(409).json({
+          message: "Email already registered. Resume signup.",
+          status: existingUser.status,
+        });
+      }
+
+      existingUser.emailVerified = true;
+      existingUser.status = "pending_mobile_verification";
+      await existingUser.save();
+
+      const mobileOtp = generateOTP();
+      await redis.set(
+        `user:mobileOtp:${email}`,
+        JSON.stringify({ otp: mobileOtp, mobile: existingUser.mobile }),
+        "EX",
+        600
+      );
+
+      await redis.del(redisKey);
+
+      await logActivity({
+        req,
+        actorType: "user",
+        actorId: existingUser._id,
+        action: "signup_email_verified",
+        meta: {
+          email,
+          device: getDeviceInfo(req)
+        }
       });
+
+      return res
+        .cookie('tempOtp', mobileOtp, {
+          httpOnly: false,
+          maxAge: 2 * 60 * 1000,
+          path: '/',
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          domain: process.env.NODE_ENV === 'production' ? '.finoqz.com' : undefined,
+        })
+        .json({
+          message: "Email verified. Continue with mobile OTP popup.",
+          nextStep: "verify_mobile_otp",
+          ...(process.env.NODE_ENV !== 'production' && { otp: mobileOtp }),
+        });
     }
 
     const user = new User({
@@ -351,7 +396,7 @@ export const verifyMobileOtp = async (req, res) => {
     }
 
     user.mobileVerified = true;
-    user.status = "awaiting_admin_approval";
+    user.status = user.createdByAdmin ? "approved" : "awaiting_admin_approval";
     await user.save();
     await redis.del(redisKey);
 
@@ -386,32 +431,36 @@ export const verifyMobileOtp = async (req, res) => {
       console.log("📡 Emitted dashboard:stats from verifyMobileOtp");
     }
 
-    try {
-      await emailQueue.add("userAwaitingApproval", {
-        to: user.email,
-        subject: "FinoQz Signup Complete — Awaiting Approval",
-        html: awaitingApprovalTemplate({
-          fullName: user.fullName,
-          email: user.email,
-        }),
-      });
+    if (!user.createdByAdmin) {
+      try {
+        await emailQueue.add("userAwaitingApproval", {
+          to: user.email,
+          subject: "FinoQz Signup Complete — Awaiting Approval",
+          html: awaitingApprovalTemplate({
+            fullName: user.fullName,
+            email: user.email,
+          }),
+        });
 
-      await emailQueue.add("adminApprovalRequest", {
-        to: "info.finoqz@gmail.com",
-        subject: "New User Awaiting Approval",
-        html: approvalRequestTemplate({
-          fullName: user.fullName,
-          email: user.email,
-          mobile: mobile || user.mobile,
-        }),
-      });
+        await emailQueue.add("adminApprovalRequest", {
+          to: "info.finoqz@gmail.com",
+          subject: "New User Awaiting Approval",
+          html: approvalRequestTemplate({
+            fullName: user.fullName,
+            email: user.email,
+            mobile: mobile || user.mobile,
+          }),
+        });
 
-      console.log("📨 Approval emails queued");
-    } catch (queueErr) {
-      console.error("❌ Queue error:", queueErr);
+        console.log("📨 Approval emails queued");
+      } catch (queueErr) {
+        console.error("❌ Queue error:", queueErr);
+      }
+
+      return res.json({ message: "Mobile OTP verified — awaiting admin approval" });
     }
 
-    return res.json({ message: "Mobile OTP verified — awaiting admin approval" });
+    return res.json({ message: "Mobile OTP verified — account approved", nextStep: "login" });
   } catch (err) {
     console.error("❌ verifyMobileOtp error:", err);
     return res.status(500).json({ message: "Server error during OTP verification" });

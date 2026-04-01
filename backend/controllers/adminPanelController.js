@@ -586,7 +586,11 @@ export const deleteUser = async (req, res) => {
 // ✅ ADD NEW USER (Admin-created)
 export const addNewUser = async (req, res) => {
   try {
-    const { fullName, email, mobile, gender, address, role, password } = req.body;
+    const { fullName, email, mobile, password } = req.body;
+
+    if (!fullName || !email || !mobile || !password) {
+      return res.status(400).json({ message: "Full name, email, mobile and password are required" });
+    }
 
     // ✅ Check if email already exists
     const existingEmail = await User.findOne({ email });
@@ -603,30 +607,17 @@ export const addNewUser = async (req, res) => {
     // ✅ Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // ✅ Upload profile picture to Cloudinary if provided
-    let profilePictureUrl = null;
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "profiles",
-        public_id: `user_${email}`,
-        overwrite: true,
-      });
-      profilePictureUrl = result.secure_url;
-    }
-
-    // ✅ Create new user
+    // ✅ Create new user in verification-required state
     const newUser = new User({
       fullName,
       email,
       mobile,
-      gender,
-      address,
-      role,
+      role: "user",
       passwordHash,
-      status: "approved",
-      emailVerified: true,
-      mobileVerified: true,
-      profilePicture: profilePictureUrl,
+      status: "pending_email_verification",
+      emailVerified: false,
+      mobileVerified: false,
+      createdByAdmin: true,
     });
 
     await newUser.save();
@@ -655,7 +646,10 @@ export const addNewUser = async (req, res) => {
       console.error("❌ newUserWelcome queue error:", queueErr);
     }
 
-    return res.json({ message: "User created successfully", user: newUser });
+    return res.json({
+      message: "User created successfully. User can login with credentials and complete OTP verification.",
+      user: newUser
+    });
   } catch (err) {
     console.error("Add user error:", err);
     return res.status(500).json({ message: "Server error adding user" });

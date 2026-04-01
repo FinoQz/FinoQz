@@ -56,6 +56,9 @@ const userSchema = new mongoose.Schema({
 
   role: { type: String, default: "user" },
 
+  // Tracks users created directly by admin panel so verification flow can auto-approve post OTPs.
+  createdByAdmin: { type: Boolean, default: false },
+
   emailVerified: { type: Boolean, default: false },
   mobileVerified: { type: Boolean, default: false }
 });

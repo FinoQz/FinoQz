@@ -156,6 +156,14 @@ export default function VerifyMobileOtpPage() {
       {tempOtp && (
         <div className="absolute inset-0 flex items-center justify-center z-50">
           <div className="bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg text-center max-w-sm w-full mx-4 relative">
+            <button
+              type="button"
+              onClick={() => setTempOtp(null)}
+              className="absolute top-2 right-2 text-green-800 hover:text-green-900 font-bold text-sm"
+              aria-label="Close OTP popup"
+            >
+              ×
+            </button>
             <p className="font-semibold">Temporary OTP (testing)</p>
             <p className="text-2xl font-bold tracking-widest mt-1">{tempOtp}</p>
             <p className="text-xs text-gray-500 mt-2">

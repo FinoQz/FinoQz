@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Upload } from 'lucide-react';
-import Image from 'next/image';
 import axios from 'axios';
 import apiAdmin from '@/lib/apiAdmin';
 
@@ -10,11 +8,7 @@ interface NewUserForm {
   fullName: string;
   email: string;
   mobile: string;
-  gender: string;
-  address: string;
-  role: string;
   password: string;
-  profilePicture?: File | null;
 }
 
 interface AddNewUserFormProps {
@@ -27,28 +21,11 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
     fullName: '',
     email: '',
     mobile: '',
-    gender: '',
-    address: '',
-    role: 'user',
     password: '',
-    profilePicture: null,
   });
 
-  const [profilePreview, setProfilePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewUserForm({ ...newUserForm, profilePicture: file });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -57,23 +34,13 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
     setNewUserForm({ ...newUserForm, [name]: value });
   };
 
-  const handleRemoveImage = () => {
-    setProfilePreview('');
-    setNewUserForm({ ...newUserForm, profilePicture: null });
-  };
-
   const handleReset = () => {
     setNewUserForm({
       fullName: '',
       email: '',
       mobile: '',
-      gender: '',
-      address: '',
-      role: 'user',
       password: '',
-      profilePicture: null,
     });
-    setProfilePreview('');
     setFormError(null);
   };
 
@@ -84,40 +51,13 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
     onStatusChange?.('Adding new user...');
 
     try {
-      let uploadedImageUrl = '';
-      if (newUserForm.profilePicture) {
-        const imageData = new FormData();
-        imageData.append('file', newUserForm.profilePicture);
-        imageData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-        imageData.append('folder', 'finoqz/users');
-
-        const cloudRes = await fetch(
-          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-          {
-            method: 'POST',
-            body: imageData,
-          }
-        );
-
-        const cloudData = await cloudRes.json();
-        uploadedImageUrl = cloudData.secure_url;
-      }
-
-      const formData = new FormData();
-      formData.append('fullName', newUserForm.fullName);
-      formData.append('email', newUserForm.email);
-      formData.append('mobile', newUserForm.mobile);
-      formData.append('gender', newUserForm.gender);
-      formData.append('address', newUserForm.address);
-      formData.append('role', newUserForm.role);
-      formData.append('password', newUserForm.password);
-      formData.append('profilePicture', uploadedImageUrl);
-
-      await apiAdmin.post('api/admin/panel/add-user', formData, {
+      await apiAdmin.post('api/admin/panel/add-user', {
+        fullName: newUserForm.fullName,
+        email: newUserForm.email,
+        mobile: newUserForm.mobile,
+        password: newUserForm.password,
+      }, {
         withCredentials: true,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       });
 
       onStatusChange?.('User added successfully!');
@@ -149,6 +89,10 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
     <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 border border-gray-200 shadow-lg">
       <h2 className="text-xl sm:text-2xl font-bold text-[#253A7B] mb-6">Add New User</h2>
 
+      <div className="mb-4 px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-sm">
+        Users created here can login only after verifying both email and mobile OTP.
+      </div>
+
       {formError && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-sm font-medium">
           {formError}
@@ -156,43 +100,6 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Profile Picture Upload */}
-        <div className="flex flex-col items-center gap-4 mb-6">
-          <div className="relative w-24 h-24 sm:w-32 sm:h-32">
-            {profilePreview ? (
-              <>
-                <Image
-                  src={profilePreview}
-                  alt="Profile preview"
-                  fill
-                  sizes="(max-width: 640px) 6rem, 8rem"
-                  className="rounded-full object-cover border-4 border-gray-200"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 bg-[#253A7B] text-white rounded-full p-1 hover:bg-[#1a2a5e] transition"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </>
-            ) : (
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-4 border-gray-200">
-                <Upload className="w-8 h-8 text-gray-500" />
-              </div>
-            )}
-          </div>
-          <label className="cursor-pointer px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition text-sm font-medium">
-            Upload Profile Picture (Optional)
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </label>
-        </div>
-
         {/* Form Fields Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Full Name */}
@@ -227,10 +134,10 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
             />
           </div>
 
-          {/* Phone */}
+          {/* Mobile */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone <span className="text-red-500">*</span>
+              Mobile <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
@@ -238,45 +145,10 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.mobile}
               onChange={handleInputChange}
               required
+              pattern="[6-9][0-9]{9}"
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              placeholder="+91 XXXXX XXXXX"
+              placeholder="10-digit mobile number"
             />
-          </div>
-
-                    {/* Gender */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Gender <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="gender"
-              value={newUserForm.gender}
-              onChange={handleInputChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          {/* Role */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Role <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="role"
-              value={newUserForm.role}
-              onChange={handleInputChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
 
           {/* Initial Password */}
@@ -293,22 +165,6 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               minLength={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
               placeholder="Minimum 6 characters"
-            />
-          </div>
-
-          {/* Address */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="address"
-              value={newUserForm.address}
-              onChange={handleInputChange}
-              required
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
-              placeholder="Enter full address"
             />
           </div>
         </div>

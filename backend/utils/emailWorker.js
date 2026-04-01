@@ -173,8 +173,6 @@ export async function handleEmailJob(job) {
       return;
     }
 
-    throw new Error(`Unhandled email job type: ${job.name}`);
-
     // ✅ User Approved Email
     if (job.name === "userApproved") {
       const { to, subject, html } = job.data;
@@ -307,6 +305,8 @@ export async function handleEmailJob(job) {
       }
       return;
     }
+
+    throw new Error(`Unhandled email job type: ${job.name}`);
 
 
 

@@ -7,6 +7,7 @@ import emailQueue from '../utils/emailQueue.js';
 import logActivity from '../utils/logActivity.js';
 import generateOTP from '../utils/generateOTP.js';
 import signinOtpTemplate from '../emailTemplates/signinotpTemplate.js';
+import userOtpTemplate from '../emailTemplates/userOtpTemplate.js';
 import getDeviceInfo from '../utils/getDeviceInfo.js';
 import { emitLiveUserStats } from '../utils/emmiters.js';
 import crypto from 'crypto';
@@ -44,17 +45,78 @@ export const login = async (req, res) => {
       await user.save();
     }
 
-    if (user.status !== "approved") {
-      return res.status(403).json({
-        message: "Account not approved yet",
-      });
-    }
-
     const match = await bcrypt.compare(password, user.passwordHash);
 
     if (!match) {
       return res.status(401).json({
         message: "Invalid email or password",
+      });
+    }
+
+    // Admin-created users must complete verification before normal login OTP.
+    if (user.createdByAdmin && !user.emailVerified && user.status === "pending_email_verification") {
+      const emailOtp = generateOTP();
+
+      await redis.set(
+        `user:emailOtp:${email}`,
+        JSON.stringify({ otp: emailOtp, fullName: user.fullName }),
+        "EX",
+        600
+      );
+
+      await emailQueue.add("userEmailOtp", {
+        to: email,
+        subject: "FinoQz Email Verification OTP",
+        html: userOtpTemplate(emailOtp),
+      });
+
+      return res.status(403).json({
+        message: "Please verify your email first. OTP sent to your email.",
+        nextStep: "verify_email_otp",
+        status: user.status,
+      });
+    }
+
+    if (user.createdByAdmin && user.emailVerified && !user.mobileVerified && user.status === "pending_mobile_verification") {
+      const mobileOtp = generateOTP();
+
+      await redis.set(
+        `user:mobileOtp:${email}`,
+        JSON.stringify({ otp: mobileOtp, mobile: user.mobile }),
+        "EX",
+        600
+      );
+
+      // Temporary testing flow: do not send mobile OTP over email, show via popup cookie.
+      return res
+        .cookie('tempOtp', mobileOtp, {
+          httpOnly: false,
+          maxAge: 2 * 60 * 1000,
+          path: '/',
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+          domain: process.env.NODE_ENV === 'production' ? '.finoqz.com' : undefined,
+        })
+        .status(403)
+        .json({
+          message: "Please verify your mobile first. OTP is available in popup.",
+          nextStep: "verify_mobile_otp",
+          status: user.status,
+          ...(process.env.NODE_ENV !== 'production' && { otp: mobileOtp }),
+        });
+    }
+
+    if (!user.emailVerified || !user.mobileVerified) {
+      return res.status(403).json({
+        message: "Please complete email and mobile verification before login.",
+        nextStep: "resume_signup_verification",
+        status: user.status,
+      });
+    }
+
+    if (user.status !== "approved") {
+      return res.status(403).json({
+        message: "Account not approved yet",
       });
     }
 
@@ -120,6 +182,14 @@ export const verifyLoginOtp = async (req, res) => {
     if (user.status === "Active") {
       user.status = "approved";
       await user.save();
+    }
+
+    if (!user.emailVerified || !user.mobileVerified) {
+      return res.status(403).json({
+        message: "Please complete email and mobile verification before login.",
+        nextStep: "resume_signup_verification",
+        status: user.status,
+      });
     }
 
     if (user.status !== "approved") {

@@ -25,6 +25,10 @@ const newUserWelcomeTemplate = ({ fullName, email, password }) => `
           Your account has been successfully created by our admin team! 🎉 You're all set to start your journey into financial literacy and master the world of personal finance.
         </p>
 
+        <p style="font-size: 14px; color: #555; margin: 0 0 20px; line-height: 1.8;">
+          Please use the credentials below to start login. On your first login attempt, you will be asked to verify email OTP first, then mobile OTP.
+        </p>
+
         <!-- Login Credentials Section -->
         <div style="background: linear-gradient(135deg, #f0f4ff 0%, #f9faff 100%); border-left: 4px solid #253A7B; padding: 24px; border-radius: 12px; margin: 28px 0; border: 1px solid #e5e7eb;">
           <p style="font-size: 12px; color: #666; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 16px;">Your Login Credentials</p>

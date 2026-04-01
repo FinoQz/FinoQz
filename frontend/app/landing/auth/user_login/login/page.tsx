@@ -34,6 +34,10 @@ export default function SigninPage() {
     setFormError('');
     setLoading(true);
 
+    if (activeTab === 'user') {
+      document.cookie = `userEmail=${emailOrUsername}; path=/; max-age=1200`;
+    }
+
     try {
       if (activeTab === 'admin') {
         await apiAdmin.post(
@@ -52,21 +56,48 @@ export default function SigninPage() {
           { withCredentials: true }
         );
 
-        document.cookie = `userEmail=${emailOrUsername}; path=/; max-age=300`;
-
         setTimeout(() => {
           router.push('/landing/auth/user_login/verify_signin_otp');
         }, 1600);
       }
     } catch (err: unknown) {
-      setLoading(false);
-      const errorMessage =
+      const responseData =
         err && typeof err === 'object'
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          ? (err as {
+              response?: {
+                status?: number;
+                data?: { message?: string; nextStep?: string; status?: string };
+              };
+            }).response
           : undefined;
-      setFormError(
-        errorMessage || 'Invalid credentials'
-      );
+
+      const nextStep = responseData?.data?.nextStep;
+      const userStatus = responseData?.data?.status;
+
+      if (activeTab === 'user' && (nextStep === 'verify_email_otp' || nextStep === 'verify_mobile_otp' || nextStep === 'resume_signup_verification')) {
+        if (nextStep === 'verify_email_otp') {
+          router.push('/landing/auth/user_signup/verify_email_otp');
+          return;
+        }
+
+        if (nextStep === 'verify_mobile_otp') {
+          router.push('/landing/auth/user_signup/verify_mobile_otp');
+          return;
+        }
+
+        // Resume flow fallback based on status
+        if (userStatus === 'pending_mobile_verification') {
+          router.push('/landing/auth/user_signup/verify_mobile_otp');
+          return;
+        }
+
+        router.push('/landing/auth/user_signup/verify_email_otp');
+        return;
+      }
+
+      setLoading(false);
+      const errorMessage = responseData?.data?.message;
+      setFormError(errorMessage || 'Invalid credentials');
     }
   };
 
