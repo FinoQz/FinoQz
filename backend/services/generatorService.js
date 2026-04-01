@@ -40,9 +40,10 @@ export const generateFromPrompt = async (prompt, numQuestions = 3, topic = '') =
 Generate exactly ${numQuestions} multiple-choice questions for a quiz about "${topic}".
 Do NOT return less than ${numQuestions} questions. If the content is insufficient, create additional questions based on the topic.
 Each question must have: text, options (array), correct (index), explanation (string).
+Use 1-4 or A-D for the correct answer marker in returned data.
 Keep options and explanations short.
 Return ONLY valid JSON array, no markdown, no extra text.
-Format: [{"text": "...", "options": ["..."], "correct": 0, "explanation": "..."}]
+Format: [{"text": "...", "options": ["..."], "correct": 1, "explanation": "..."}]
 Prompt: ${prompt}
 `.trim();
   let output = '';
@@ -61,7 +62,11 @@ Prompt: ${prompt}
     ? questions.map(q => ({
         text: String(q.text || '').trim(),
         options: Array.isArray(q.options) ? q.options.map(String) : ['', '', '', ''],
-        correct: typeof q.correct === 'number' ? q.correct : 0,
+        correct: typeof q.correct === 'number'
+          ? (q.correct >= 1 && q.correct <= 4 ? q.correct - 1 : 0)
+          : typeof q.answerLetter === 'string'
+            ? ['A', 'B', 'C', 'D'].indexOf(q.answerLetter.trim().toUpperCase())
+            : 0,
         explanation: q.explanation ? String(q.explanation) : ''
       }))
     : [];
@@ -105,7 +110,7 @@ Extract exactly ${numQuestions} multiple-choice questions (with explanation) fro
 ${chunk}
 If the content is insufficient, create additional questions based on the topic "${topic}".
 Return ONLY valid JSON array, no markdown, no extra text.
-Format: [{"text": "...", "options": ["..."], "correct": 0, "explanation": "..."}]
+Format: [{"text": "...", "options": ["..."], "correct": 1, "explanation": "..."}]
 `.trim();
     let output = '';
     let questions = [];

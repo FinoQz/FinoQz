@@ -138,6 +138,31 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
     setShowPreview(true);
   };
   const handleSubmit = async () => {
+    if (!selectedCategory) {
+      alert('Please select a category.');
+      return;
+    }
+
+    if (!quizTitle.trim() || quizTitle.trim().length < 3) {
+      alert('Quiz title must be at least 3 characters.');
+      return;
+    }
+
+    if (!description.trim() || description.trim().length < 10) {
+      alert('Description must be at least 10 characters.');
+      return;
+    }
+
+    if (Number(duration) < 1 || Number(totalMarks) < 1 || Number(numberOfQuestions) < 1) {
+      alert('Duration, total marks, and number of questions must be at least 1.');
+      return;
+    }
+
+    if (pricingType === 'paid' && Number(price) < 1) {
+      alert('For paid quizzes, price must be at least 1.');
+      return;
+    }
+
     const quizData = {
       category: selectedCategory,
       pricingType,
@@ -188,9 +213,20 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       } else {
         alert(`Error: ${data?.message || 'Failed to create quiz'}`);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('❌ Error creating quiz:', err);
-      alert('Server error creating quiz');
+
+      const maybeResponse =
+        err && typeof err === 'object'
+          ? (err as { response?: { data?: { message?: string; error?: string; details?: unknown } } }).response
+          : undefined;
+
+      const message =
+        maybeResponse?.data?.message ||
+        maybeResponse?.data?.error ||
+        'Server error creating quiz';
+
+      alert(message);
     }
   };
 

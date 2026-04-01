@@ -255,7 +255,7 @@ export default function DemoQuizEditor() {
                         <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100 flex gap-4">
                           <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />
                           <p className="text-xs text-blue-800 leading-relaxed font-bold italic">
-                            Tip: Only Excel/CSV files are supported. Use columns: question, option1, option2, option3, option4, correct (0-3), explanation.
+                            Tip: Only Excel/CSV files are supported. Use columns: question, optionA/option1, optionB/option2, optionC/option3, optionD/option4, correct (1-4 or A-D), explanation.
                           </p>
                         </div>
                       </div>

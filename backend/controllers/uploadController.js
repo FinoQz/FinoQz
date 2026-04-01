@@ -12,6 +12,24 @@ import XLSX from 'xlsx';
 const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } }); // 15MB
 
+const normalizeCorrectIndex = (value) => {
+  if (value === null || value === undefined) return null;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  if (/^[1-4]$/.test(raw)) {
+    return Number(raw) - 1;
+  }
+
+  const letterIndex = ['A', 'B', 'C', 'D'].indexOf(raw.toUpperCase());
+  if (letterIndex >= 0) {
+    return letterIndex;
+  }
+
+  return null;
+};
+
 // POST /api/upload/pdf (multipart/form-data, field name "pdf")
 export const uploadPdf = [
   upload.single('pdf'),
@@ -139,19 +157,36 @@ export const uploadExcel = [
       const pick = (r, keys) =>
         keys.map((k) => r[k]).find((v) => v !== undefined && v !== null && String(v).trim() !== '') ?? '';
 
-      const normalized = rows
-        .map((r) => ({
-          text: String(pick(r, ['text', 'question', 'q'])).trim(),
-          options: [
-            String(pick(r, ['optionA', 'option1', 'a', 'A'])).trim(),
-            String(pick(r, ['optionB', 'option2', 'b', 'B'])).trim(),
-            String(pick(r, ['optionC', 'option3', 'c', 'C'])).trim(),
-            String(pick(r, ['optionD', 'option4', 'd', 'D'])).trim(),
-          ],
-          correct: Number(pick(r, ['correct', 'answer', 'ans', 'index'])) || 0,
-          explanation: String(pick(r, ['explanation', 'explain', 'note'])).trim(),
-        }))
-        .filter((q) => q.text);
+      const normalized = [];
+      const invalidRows = [];
+
+      rows.forEach((r, index) => {
+        const text = String(pick(r, ['text', 'question', 'q'])).trim();
+        const options = [
+          String(pick(r, ['optionA', 'option1', 'a', 'A'])).trim(),
+          String(pick(r, ['optionB', 'option2', 'b', 'B'])).trim(),
+          String(pick(r, ['optionC', 'option3', 'c', 'C'])).trim(),
+          String(pick(r, ['optionD', 'option4', 'd', 'D'])).trim(),
+        ];
+        const correct = normalizeCorrectIndex(pick(r, ['correct', 'answer', 'ans', 'index']));
+        const explanation = String(pick(r, ['explanation', 'explain', 'note'])).trim();
+
+        if (!text) return;
+
+        if (correct === null) {
+          invalidRows.push(index + 1);
+          return;
+        }
+
+        normalized.push({ text, options, correct, explanation });
+      });
+
+      if (invalidRows.length > 0) {
+        return res.status(400).json({
+          message: 'Invalid correct answer format in Excel file. Use 1-4 or A-D only, not 0-3.',
+          invalidRows,
+        });
+      }
 
       return res.json({ data: normalized });
     } catch (err) {

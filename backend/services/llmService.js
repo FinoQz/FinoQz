@@ -88,9 +88,16 @@ function normalizeQuestionItem(item) {
   if (!Array.isArray(options)) options = [];
 
   let correctIndex = null;
-  if (typeof item.correctIndex === 'number') correctIndex = item.correctIndex;
-  else if (typeof item.correct === 'number') correctIndex = item.correct;
-  else if (typeof item.answerIndex === 'number') correctIndex = item.answerIndex;
+  if (typeof item.correctIndex === 'number') {
+    correctIndex = item.correctIndex >= 1 && item.correctIndex <= 4 ? item.correctIndex - 1 : null;
+  } else if (typeof item.correct === 'number') {
+    correctIndex = item.correct >= 1 && item.correct <= 4 ? item.correct - 1 : null;
+  } else if (typeof item.answerIndex === 'number') {
+    correctIndex = item.answerIndex >= 1 && item.answerIndex <= 4 ? item.answerIndex - 1 : null;
+  } else if (typeof item.answerLetter === 'string') {
+    const letterIndex = ['A', 'B', 'C', 'D'].indexOf(item.answerLetter.trim().toUpperCase());
+    if (letterIndex >= 0) correctIndex = letterIndex;
+  }
   else if (typeof item.correct === 'string') {
     const idx = options.findIndex((o) => String(o).trim().toLowerCase() === String(item.correct).trim().toLowerCase());
     if (idx >= 0) correctIndex = idx;
@@ -125,7 +132,7 @@ function normalizeQuestionItem(item) {
 function buildPromptForChunk(chunk) {
   return `
 You are an assistant that MUST return only valid JSON. Return either a JSON array of question objects or a JSON object with a "questions" array.
-Each question object must include at least: question (text) and options (array). If possible include correctIndex (0-based), marks (number), type (mcq|true-false|short-answer).
+Each question object must include at least: question (text) and options (array). If possible include correctIndex (1-4) or answerLetter (A-D), marks (number), type (mcq|true-false|short-answer).
 DO NOT return any explanatory text, do not include markdown fences — return only JSON.
 
 Extract multiple-choice questions from the following TEXT. Return ONLY JSON (array or object with questions array):

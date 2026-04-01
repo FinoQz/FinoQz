@@ -7,6 +7,84 @@ import Groq from 'groq-sdk';
 const storage = multer.memoryStorage();
 export const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
 
+const normalizeCorrectIndex = (value) => {
+    if (value === null || value === undefined) return null;
+
+  const raw = String(value).trim();
+    if (!raw) return null;
+
+  if (/^[1-4]$/.test(raw)) {
+    return Number(raw) - 1;
+  }
+
+  const letterIndex = ['A', 'B', 'C', 'D'].indexOf(raw.toUpperCase());
+  if (letterIndex >= 0) {
+    return letterIndex;
+  }
+
+    return null;
+};
+
+  const parsePossiblyTruncatedArray = (rawText) => {
+    if (typeof rawText !== 'string' || !rawText.trim()) return null;
+
+    // First try strict JSON parsing.
+    try {
+      return JSON.parse(rawText);
+    } catch {
+      // continue with recovery
+    }
+
+    const start = rawText.indexOf('[');
+    if (start < 0) return null;
+
+    let inString = false;
+    let escaped = false;
+    let braceDepth = 0;
+    let lastObjectEnd = -1;
+
+    for (let i = start + 1; i < rawText.length; i++) {
+      const ch = rawText[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (ch === '\\') {
+          escaped = true;
+        } else if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (ch === '{') {
+        braceDepth++;
+        continue;
+      }
+
+      if (ch === '}') {
+        braceDepth = Math.max(0, braceDepth - 1);
+        if (braceDepth === 0) {
+          lastObjectEnd = i;
+        }
+      }
+    }
+
+    if (lastObjectEnd < 0) return null;
+
+    const recovered = `${rawText.slice(start, lastObjectEnd + 1)}]`;
+    try {
+      return JSON.parse(recovered);
+    } catch {
+      return null;
+    }
+  };
+
 const buildExplanation = (rawExplanation, questionText, options = [], correctIndex = 0) => {
   const trimmed = typeof rawExplanation === 'string' ? rawExplanation.trim() : '';
   if (trimmed) return trimmed;
@@ -212,7 +290,7 @@ Additional context: ${prompt}
 
 IMPORTANT REQUIREMENTS:
 - Each question must have exactly 4 options
-- Specify which option is correct using correctIndex (0, 1, 2, or 3)
+- Specify which option is correct using correctIndex (1, 2, 3, or 4) or answerLetter (A, B, C, or D)
 - Include a brief explanation for why the answer is correct
 - Return ONLY valid JSON array, nothing else
 
@@ -221,7 +299,7 @@ Return this exact format:
   {
     "question": "What is...?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctIndex": 2,
+      "correctIndex": 3,
     "explanation": "Because..."
   }
 ]`;
@@ -250,7 +328,7 @@ Return this exact format:
           ],
           model: modelName,
           temperature: 0.7,
-          max_tokens: 2000,
+          max_tokens: Math.min(8000, Math.max(1800, count * 240)),
         });
         console.log(`✅ Successfully used model: ${modelName}`);
         break;
@@ -280,30 +358,48 @@ Return this exact format:
       responseText = responseText.slice(3, -3).trim();
     }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(responseText);
-    } catch (err) {
+    const parsed = parsePossiblyTruncatedArray(responseText);
+    if (!parsed) {
       console.error('JSON parse error. Raw text:', responseText);
-      return res.status(500).json({ error: 'AI returned invalid JSON format', raw: responseText });
+      return res.status(500).json({
+        error: 'AI returned invalid JSON format',
+        hint: 'Try reducing question count or retry once.',
+      });
     }
 
-    if (!Array.isArray(parsed)) {
+    const parsedQuestions = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.questions)
+        ? parsed.questions
+        : null;
+
+    if (!parsedQuestions) {
       return res.status(500).json({ error: 'AI did not return an array of questions' });
     }
 
-    const formatted = parsed.slice(0, count).map((q) => ({
-      categoryId,
-      question: q.question || 'New Question',
-      options: Array.isArray(q.options) ? q.options.slice(0, 4) : ['A', 'B', 'C', 'D'],
-      correctIndex: typeof q.correctIndex === 'number' ? Math.min(q.correctIndex, 3) : 0,
-      explanation: buildExplanation(
-        q.explanation,
-        q.question || 'New Question',
-        Array.isArray(q.options) ? q.options.slice(0, 4) : ['A', 'B', 'C', 'D'],
-        typeof q.correctIndex === 'number' ? Math.min(q.correctIndex, 3) : 0
-      )
-    }));
+    const formatted = parsedQuestions.slice(0, count).map((q) => {
+      let options = Array.isArray(q.options) ? q.options.slice(0, 4).map((opt) => String(opt)) : [];
+      if (options.length < 4) {
+        options = [...options, ...['A', 'B', 'C', 'D']].slice(0, 4);
+      }
+
+      const normalizedCorrect = normalizeCorrectIndex(q.correctIndex ?? q.answerLetter ?? q.correct);
+      const correctIndex = normalizedCorrect ?? 0;
+      const questionText = String(q.question || 'New Question');
+
+      return {
+        categoryId,
+        question: questionText,
+        options,
+        correctIndex,
+        explanation: buildExplanation(
+          q.explanation,
+          questionText,
+          options,
+          correctIndex
+        )
+      };
+    });
 
     const saved = await DemoQuizQuestion.insertMany(formatted);
     console.log(`✅ Generated ${saved.length} questions using Groq`);
@@ -362,7 +458,7 @@ export const uploadQuestionsFile = [
             String(pickRow(r, ['optionC', 'option3', 'c', 'C'])).trim(),
             String(pickRow(r, ['optionD', 'option4', 'd', 'D'])).trim(),
           ];
-          const mappedCorrectIndex = Number(pickRow(r, ['correct', 'answer', 'ans', 'index'])) || 0;
+          const mappedCorrectIndex = normalizeCorrectIndex(pickRow(r, ['correct', 'answer', 'ans', 'index', 'answerLetter']));
           const mappedExplanation = String(pickRow(r, ['explanation', 'explain', 'note'])).trim();
 
           return {
@@ -371,6 +467,16 @@ export const uploadQuestionsFile = [
             correctIndex: mappedCorrectIndex,
             explanation: buildExplanation(mappedExplanation, mappedQuestion, mappedOptions, mappedCorrectIndex),
           };
+        });
+      }
+
+      const invalidRows = questions
+        .map((q, index) => ({ q, index }))
+        .filter(({ q }) => q.question && q.options.length === 4 && q.correctIndex !== null && q.explanation);
+
+      if (invalidRows.length !== questions.length) {
+        return res.status(400).json({
+          error: 'Invalid correct answer format in file. Use 1-4 or A-D only.'
         });
       }
 
