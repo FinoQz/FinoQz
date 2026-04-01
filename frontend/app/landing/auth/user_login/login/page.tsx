@@ -17,6 +17,7 @@ export default function SigninPage() {
   useEffect(() => {
     router.prefetch('/landing/auth/user_login/verify_admin_otp');
     router.prefetch('/landing/auth/user_login/verify_signin_otp');
+    router.prefetch('/landing/auth/user_login/forgot_password');
   }, [router]);
 
   const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
@@ -153,6 +154,17 @@ export default function SigninPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
                 />
+
+                {activeTab === 'user' && (
+                  <div className="text-right -mt-2">
+                    <Link
+                      href="/landing/auth/user_login/forgot_password"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
 
                 {formError && (
                   <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded text-sm">

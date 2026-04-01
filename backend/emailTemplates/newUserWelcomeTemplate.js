@@ -53,7 +53,7 @@ const newUserWelcomeTemplate = ({ fullName, email, password }) => `
 
         <!-- CTA Button -->
         <div style="text-align: center; margin: 28px 0;">
-          <a href="https://app.finoqz.com/login" style="display: inline-block; background: linear-gradient(135deg, #253A7B 0%, #1a2a5e 100%); color: #fff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 15px rgba(37, 58, 123, 0.3); transition: all 0.3s ease;">Get Started Now</a>
+          <a href="https://finoqz.com/landing/auth/user_login/login" style="display: inline-block; background: linear-gradient(135deg, #253A7B 0%, #1a2a5e 100%); color: #fff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 15px rgba(37, 58, 123, 0.3); transition: all 0.3s ease;">Get Started Now</a>
         </div>
 
         <!-- Key Features -->
@@ -69,7 +69,7 @@ const newUserWelcomeTemplate = ({ fullName, email, password }) => `
 
         <!-- Support Message -->
         <p style="font-size: 14px; color: #666; margin: 28px 0 0; text-align: center; line-height: 1.8;">
-          Have questions? Our support team is here to help. Visit our <a href="https://finoqz.com/help" style="color: #253A7B; text-decoration: none; font-weight: 600;">Help Center</a> or reach out to us anytime.
+          Have questions? Our support team is here to help. Visit our <a href="https://finoqz.com/landing/pages/contact" style="color: #253A7B; text-decoration: none; font-weight: 600;">Help Center</a> or reach out to us anytime.
         </p>
 
       </div>
@@ -80,8 +80,8 @@ const newUserWelcomeTemplate = ({ fullName, email, password }) => `
           © ${new Date().getFullYear()} FinoQz. All rights reserved.
         </p>
         <p style="font-size: 11px; color: #aaa; margin: 12px 0 0;">
-          <a href="https://finoqz.com/privacy" style="color: #888; text-decoration: none; margin: 0 12px;">Privacy Policy</a> | 
-          <a href="https://finoqz.com/terms" style="color: #888; text-decoration: none; margin: 0 12px;">Terms of Service</a>
+          <a href="https://finoqz.com/landing/pages/privacy_policy" style="color: #888; text-decoration: none; margin: 0 12px;">Privacy Policy</a> | 
+          <a href="https://finoqz.com/landing/pages/tos" style="color: #888; text-decoration: none; margin: 0 12px;">Terms of Service</a>
         </p>
       </div>
 

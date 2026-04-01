@@ -15,6 +15,10 @@ function getForgotRateKey(email) {
   return `user:forgotRate:${email}`;
 }
 
+function getForgotVerifiedKey(email) {
+  return `user:forgotVerified:${email}`;
+}
+
 // ✅ Helper: suspicious activity threshold config
 const FORGOT_RATE_LIMIT = {
   maxAttempts: 5,        // max OTP requests in window
@@ -80,6 +84,9 @@ export const initiateForgotPassword = async (req, res) => {
       "EX",
       10 * 60
     );
+
+    // Reset any prior verified flag when a new OTP is issued.
+    await redis.del(getForgotVerifiedKey(email));
 
     // ✅ Queue email (non-blocking)
     await emailQueue.add("userForgotPasswordOtp", {
@@ -221,6 +228,7 @@ export const verifyForgotPasswordOtp = async (req, res) => {
     }
 
     await redis.del(redisKey);
+    await redis.set(getForgotVerifiedKey(email), "1", "EX", 10 * 60);
 
     await logActivity({
       req,
@@ -305,12 +313,20 @@ export const resetPassword = async (req, res) => {
     if (!user)
       return res.status(404).json({ message: "User not found" });
 
+    const verified = await redis.get(getForgotVerifiedKey(email));
+    if (!verified) {
+      return res.status(403).json({
+        message: "OTP verification required before resetting password"
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.passwordHash = hashedPassword;
     await user.save();
 
     await redis.del(`user:forgotOtp:${email}`);
     await redis.del(getForgotRateKey(email));
+    await redis.del(getForgotVerifiedKey(email));
 
     await logActivity({
       req,
