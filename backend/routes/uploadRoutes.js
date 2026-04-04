@@ -16,4 +16,7 @@ router.post('/manual', authMiddleware('admin'), uploadController.uploadManual);
 // Excel upload (import questions)
 router.post('/excel', authMiddleware('admin'), uploadController.uploadExcel);
 
+// AI Text extraction from resources (PDF, Excel, Txt)
+router.post('/extract-text', authMiddleware('admin', 'user'), uploadController.extractText);
+
 export default router;

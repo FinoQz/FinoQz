@@ -86,91 +86,87 @@ const ALLOWED_UPDATE_FIELDS = new Set([
 export const createQuiz = async (req, res) => {
   try {
     const {
-      category,
-      pricingType, price, couponCode, allowOfflinePayment,
-      quizTitle, description, duration, totalMarks,
-      attemptLimit, shuffleQuestions, negativeMarking, negativePerWrong,
-      startDate, startTime, endDate, endTime,
-      visibility, assignedGroups,
-      tags, difficultyLevel, coverImage,
-      saveAsDraft,
-      numberOfQuestions,
-      coupon, // { discountType, discountValue, visibility }
-      postType
+      categoryId, quizTitle, description, duration, totalMarks,
+      attemptLimit, shuffleQuestions,
+      pricing, questions, visibility, groups, individuals,
+      schedule, media, settings,
+      postType, tags, difficultyLevel, saveAsDraft
     } = req.body;
 
-    if (!quizTitle || !description) {
-      return res.status(400).json({ message: 'quizTitle and description are required' });
+    if (!quizTitle) {
+      return res.status(400).json({ message: 'quizTitle is required' });
     }
 
     // Cover image upload (base64)
     let coverImageUrl = '';
-    if (coverImage && coverImage.startsWith('data:')) {
-      const uploadRes = await cloudinary.uploader.upload(coverImage, { folder: 'quiz-covers' });
+    const banner = media?.banner;
+    if (banner && banner.startsWith('data:')) {
+      const uploadRes = await cloudinary.uploader.upload(banner, { folder: 'quiz-covers' });
       coverImageUrl = uploadRes.secure_url;
-    } else if (coverImage) {
-      coverImageUrl = coverImage;
-    }
-
-    // Coupon logic
-    let couponDetails = {};
-    if (pricingType === 'paid' && coupon) {
-      couponDetails = {
-        code: couponCode || coupon.code,
-        discountType: coupon.discountType,
-        discountValue: coupon.discountValue,
-        visibility: coupon.visibility
-      };
+    } else if (banner) {
+      coverImageUrl = banner;
     }
 
     // Dates
     const now = new Date();
     const isScheduled = postType === 'scheduled';
-    const startAt = isScheduled
-      ? parseDateTime(startDate, startTime)
-      : now;
-    const endAt = isScheduled
-      ? parseDateTime(endDate, endTime)
-      : (endDate && endTime ? parseDateTime(endDate, endTime) : new Date(now.getTime() + DEFAULT_LIVE_END_DAYS * 24 * 60 * 60 * 1000));
+    let startAt = now;
+    let endAt = new Date(now.getTime() + DEFAULT_LIVE_END_DAYS * 24 * 60 * 60 * 1000);
 
-    if (!startAt || !endAt) {
-      return res.status(400).json({ message: 'Invalid start or end date/time' });
-    }
-
-    // Groups logic
-    let groups = [];
-    if (visibility === 'private' && Array.isArray(assignedGroups)) {
-      groups = assignedGroups.map(String);
+    if (isScheduled && schedule) {
+      const s = parseDateTime(schedule.startDate, schedule.startTime);
+      const e = parseDateTime(schedule.endDate, schedule.endTime);
+      if (s) startAt = s;
+      if (e) endAt = e;
     }
 
     const quiz = new Quiz({
-      category,
-      pricingType,
-      price: pricingType === 'paid' ? Number(price || 0) : 0,
-      couponCode: couponDetails.code,
-      allowOfflinePayment: !!allowOfflinePayment,
+      category: categoryId,
       quizTitle,
       description,
       duration: Number(duration || 0),
       totalMarks: Number(totalMarks || 0),
-      numberOfQuestions: Number(numberOfQuestions || 0),
+      numberOfQuestions: Array.isArray(questions) ? questions.length : 0,
       attemptLimit,
       shuffleQuestions: !!shuffleQuestions,
-      negativeMarking: !!negativeMarking,
-      negativePerWrong: Number(negativePerWrong || 0),
-      ...(startAt ? { startAt } : {}),
-      ...(endAt ? { endAt } : {}),
+      pricingType: pricing?.type || 'free',
+      price: pricing?.type === 'paid' ? Number(pricing?.amount || 0) : 0,
+      offerCode: pricing?.offerCode || '',
+      allowOfflinePayment: !!pricing?.allowOfflinePayment,
+      startAt,
+      endAt,
       visibility,
-      assignedGroups: groups,
+      assignedGroups: Array.isArray(groups) ? groups.map(String) : [],
+      assignedIndividuals: Array.isArray(individuals) ? individuals.map(String) : [],
       tags: Array.isArray(tags) ? tags : [],
-      difficultyLevel,
+      difficultyLevel: difficultyLevel || 'medium',
       coverImage: coverImageUrl,
+      showResults: settings?.showResults !== false,
+      showCorrectAnswers: settings?.showCorrectAnswers !== false,
       status: saveAsDraft ? 'draft' : 'published',
       createdBy: req.adminId || req.userId || null,
-      coupon: couponDetails
     });
 
     await quiz.save();
+
+    // Batch save questions if provided
+    if (Array.isArray(questions) && questions.length > 0) {
+      const questionDocs = questions.map(q => ({
+        quizId: quiz._id,
+        text: q.text,
+        options: q.options,
+        correct: q.correct,
+        explanation: q.explanation || '',
+        marks: 1, // Every question is exactly 1 mark
+        createdBy: req.adminId || req.userId || null,
+        status: 'accepted'
+      }));
+      
+      const savedQuestions = await Question.insertMany(questionDocs);
+      quiz.questions = savedQuestions.map(q => q._id);
+      quiz.totalMarks = questions.length; // Automated total marks
+      await quiz.save();
+    }
 
     // Log quiz creation (admin only)
     if (req.adminId) {
@@ -356,13 +352,17 @@ export const listPublic = async (req, res) => {
     if (req.adminId && req.query.userId) {
       userId = req.query.userId;
     }
-    const user = await User.findById(userId).select('status').lean();
+    const user = await User.findById(userId).select('status email').lean();
     if (!user) return res.status(401).json({ message: 'User not found or not authenticated' });
 
     const { category, search, page = 1, limit = 20, upcoming } = req.query;
     const now = new Date();
     const userGroupTokens = await getUserGroupTokens(userId);
-    const visibilityFilter = [{ visibility: 'public' }];
+    const userEmail = req.email || user.email || '';
+    const visibilityFilter = [
+      { visibility: 'public' },
+      { visibility: 'individual', assignedIndividuals: { $in: [String(userId), userEmail].filter(Boolean) } }
+    ];
     if (userGroupTokens.length > 0) {
       visibilityFilter.push({ visibility: 'private', assignedGroups: { $in: userGroupTokens } });
     }
@@ -417,11 +417,18 @@ export const getById = async (req, res) => {
     if (quiz.startAt && quiz.startAt > now) return res.status(404).json({ message: 'Quiz not found' });
     if (quiz.endAt && quiz.endAt < now) return res.status(404).json({ message: 'Quiz not found' });
 
-    if (quiz.visibility === 'private') {
+    if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
       const userGroupTokens = await getUserGroupTokens(req.userId);
-      const assigned = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
-      const canAccess = assigned.some(g => userGroupTokens.includes(String(g)));
-      if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+      const userEmail = req.email || user.email || '';
+      const assignedGroups = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
+      const assignedIndivs = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals.map(String) : [];
+      
+      const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
+      const inIndivs = assignedIndivs.includes(String(req.userId)) || (userEmail && assignedIndivs.includes(String(userEmail)));
+      
+      if (!inGroups && !inIndivs) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
     }
     return res.json({ data: quiz });
   } catch (err) {
@@ -493,11 +500,18 @@ export const enroll = async (req, res) => {
     if (quiz.startAt && quiz.startAt > now) return res.status(400).json({ message: 'Quiz is not active yet' });
     if (quiz.endAt && quiz.endAt < now) return res.status(400).json({ message: 'Quiz has ended' });
 
-    if (quiz.visibility === 'private') {
+    if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
       const userGroupTokens = await getUserGroupTokens(req.userId);
-      const assigned = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
-      const canAccess = assigned.some(g => userGroupTokens.includes(String(g)));
-      if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+      const userEmail = req.email || user.email || '';
+      const assignedGroups = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
+      const assignedIndivs = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals.map(String) : [];
+      
+      const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
+      const inIndivs = assignedIndivs.includes(String(req.userId)) || (userEmail && assignedIndivs.includes(String(userEmail)));
+      
+      if (!inGroups && !inIndivs) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
     }
 
     const existingPurchase = await Transaction.findOne({
@@ -554,15 +568,16 @@ export const enroll = async (req, res) => {
 // Generate questions from prompt
 export const generateQuestions = async (req, res) => {
   try {
-    const { prompt, numQuestions, topic } = req.body;
-    const result = await generateFromPrompt(prompt, numQuestions, topic);
+    const { prompt, numQuestions, topic, context } = req.body;
+    const result = await generateFromPrompt(prompt, numQuestions, topic, context);
     // Normalize for frontend
     const normalized = Array.isArray(result.questions)
       ? result.questions.map(q => ({
           text: String(q.text || '').trim(),
           options: Array.isArray(q.options) ? q.options.map(String) : ['', '', '', ''],
           correct: typeof q.correct === 'number' ? q.correct : 0,
-          explanation: q.explanation ? String(q.explanation) : ''
+          explanation: q.explanation ? String(q.explanation) : '',
+          marks: 1
         })).filter(q => q.text)
       : [];
     return res.json({ data: normalized });
@@ -605,13 +620,13 @@ export const getQuizPreview = async (req, res) => {
 
     let questions = questionIds.length > 0
       ? await Question.find({ _id: { $in: questionIds } })
-          .select('text options type marks')
+          .select('text options type marks correct explanation')
           .lean()
       : [];
 
     if (questionIds.length === 0) {
       questions = await Question.find({ quizId })
-        .select('text options type marks')
+        .select('text options type marks correct explanation')
         .lean();
       questionIds = questions.map(q => String(q._id));
       if (questionIds.length > 0) {
@@ -657,7 +672,9 @@ export const getQuizPreview = async (req, res) => {
       text: q.text,
       options: q.options || [],
       type: q.type || 'mcq',
-      marks: (q.marks && q.marks > 1) ? q.marks : marksToShow
+      marks: (q.marks && q.marks > 1) ? q.marks : marksToShow,
+      correct: q.correct,
+      explanation: q.explanation
     }));
 
     return res.json({
@@ -709,11 +726,19 @@ export const getQuizQuestions = async (req, res) => {
       return res.status(404).json({ message: 'Quiz not found' });
     }
 
-    if (quiz.visibility === 'private') {
+    if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
       const userGroupTokens = await getUserGroupTokens(req.userId);
-      const assigned = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
-      const canAccess = assigned.some(g => userGroupTokens.includes(String(g)));
-      if (!canAccess) return res.status(403).json({ message: 'Access denied' });
+      const user = await User.findById(req.userId).select('email').lean();
+      const userEmail = req.email || user?.email || '';
+      const assignedGroups = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
+      const assignedIndivs = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals.map(String) : [];
+      
+      const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
+      const inIndivs = assignedIndivs.includes(String(req.userId)) || (userEmail && assignedIndivs.includes(String(userEmail)));
+      
+      if (!inGroups && !inIndivs) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
     }
 
     let questionIds = Array.isArray(quiz.questions) ? quiz.questions.map(String) : [];

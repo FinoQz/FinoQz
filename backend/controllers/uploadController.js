@@ -57,7 +57,8 @@ export const uploadPdf = [
               text: String(q.text || '').trim(),
               options: Array.isArray(q.options) ? q.options.map(String) : ['', '', '', ''],
               correct: typeof q.correct === 'number' ? q.correct : 0,
-              explanation: q.explanation ? String(q.explanation) : ''
+              explanation: q.explanation ? String(q.explanation) : '',
+              marks: 1
             }))
             .filter((q) => q.text)
         : [];
@@ -88,7 +89,8 @@ export const uploadJson = async (req, res) => {
         text: String(q.text || '').trim(),
         options: Array.isArray(q.options) ? q.options.map(String) : ['', '', '', ''],
         correct: typeof q.correct === 'number' ? q.correct : 0,
-        explanation: q.explanation ? String(q.explanation) : ''
+        explanation: q.explanation ? String(q.explanation) : '',
+        marks: 1
       }))
       .filter((q) => q.text);
 
@@ -178,7 +180,7 @@ export const uploadExcel = [
           return;
         }
 
-        normalized.push({ text, options, correct, explanation });
+        normalized.push({ text, options, correct, explanation, marks: 1 });
       });
 
       if (invalidRows.length > 0) {
@@ -192,6 +194,42 @@ export const uploadExcel = [
     } catch (err) {
       console.error('❌ Excel upload error:', err);
       return res.status(500).json({ message: 'Excel upload failed', error: err.message });
+    }
+  }
+];
+
+// POST /api/upload/extract-text (multipart/form-data, field name "file")
+export const extractText = [
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+      
+      const fileName = req.file.originalname.toLowerCase();
+      let text = '';
+
+      if (fileName.endsWith('.pdf')) {
+        const parsed = await pdfParse(req.file.buffer);
+        text = parsed.text || '';
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
+        const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        text = rows.map(row => row.join(' ')).join('\n');
+      } else if (fileName.endsWith('.txt')) {
+        text = req.file.buffer.toString('utf-8');
+      } else {
+        return res.status(400).json({ message: 'Unsupported file format for text extraction' });
+      }
+
+      if (!text || text.trim().length < 10) {
+        return res.status(400).json({ message: 'Extracted text is too short or empty' });
+      }
+
+      return res.json({ data: { text: text.trim() } });
+    } catch (err) {
+      console.error('❌ Extraction error:', err);
+      return res.status(500).json({ message: 'Text extraction failed', error: err.message });
     }
   }
 ];

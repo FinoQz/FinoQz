@@ -25,12 +25,13 @@ const startAttempt = async (req, res) => {
   const quiz = await Quiz.findById(quizId);
   if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
 
-  // 2. User ke previous attempts count karo
+  // 2. User ke previous attempts count karo (submitted status)
   const attemptsCount = await QuizAttempt.countDocuments({ quizId, userId });
-
-  // 3. Max attempts check karo
-  if (quiz.maxAttempts && attemptsCount >= quiz.maxAttempts) {
-    return res.status(400).json({ message: 'Maximum attempts reached' });
+ 
+  // 3. Max attempts check karo (attemptLimit can be '1' or 'unlimited')
+  const limit = quiz.attemptLimit || 'unlimited';
+  if (limit !== 'unlimited' && attemptsCount >= parseInt(limit)) {
+    return res.status(400).json({ message: `Maximum attempts reached (${limit})` });
   }
 
   // 4. Naya attempt create karo
@@ -201,14 +202,21 @@ const submitAttempt = async (req, res) => {
       });
     }
 
-    res.json({
+    const responseData = {
       message: 'Quiz submitted successfully',
-      totalScore,
-      percentage,
+      attemptId: attempt._id,
       timeTaken,
-      certificateIssued,
-      attemptId: attempt._id
-    });
+      certificateIssued
+    };
+ 
+    if (quiz.showResults !== false) {
+      responseData.totalScore = totalScore;
+      responseData.percentage = percentage;
+    } else {
+      responseData.message = 'Quiz submitted. Results will be available later.';
+    }
+ 
+    res.json(responseData);
   } catch (error) {
     console.error('Submit attempt error:', error);
     res.status(500).json({ message: 'Failed to submit quiz' });

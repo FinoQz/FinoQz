@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Eye, Mail, CreditCard, RefreshCw, Award, ArrowUpDown } from 'lucide-react';
+import { Eye, ArrowUpDown } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
 interface Participant {
@@ -133,23 +133,23 @@ export default function ParticipantsTable({
   const getStatusBadge = (status: string, type: 'payment' | 'attempt') => {
     if (type === 'payment') {
       const colors = {
-        paid: 'bg-green-100 text-green-700 border-green-200',
-        unpaid: 'bg-red-100 text-red-700 border-red-200',
-        pending: 'bg-yellow-100 text-yellow-700 border-yellow-200'
+        paid: 'bg-green-50 text-green-700',
+        unpaid: 'bg-red-50 text-red-700',
+        pending: 'bg-yellow-50 text-yellow-700'
       };
       return (
-        <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${colors[status as keyof typeof colors]}`}>
+        <span className={`px-2.5 py-1 rounded text-[11px] font-medium ${colors[status as keyof typeof colors]}`}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
       );
     } else {
       const colors = {
-        submitted: 'bg-green-100 text-green-700 border-green-200',
-        'in-progress': 'bg-blue-100 text-blue-700 border-blue-200',
-        'not-attempted': 'bg-gray-100 text-gray-700 border-gray-200'
+        submitted: 'bg-green-50 text-green-700',
+        'in-progress': 'bg-blue-50 text-blue-700',
+        'not-attempted': 'bg-gray-100 text-gray-600'
       };
       return (
-        <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${colors[status as keyof typeof colors]}`}>
+        <span className={`px-2.5 py-1 rounded text-[11px] font-medium ${colors[status as keyof typeof colors]}`}>
           {status.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
         </span>
       );
@@ -157,10 +157,10 @@ export default function ParticipantsTable({
   };
 
   return (
-    <div className="bg-white rounded-xl border-2 border-gray-200 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900">All Participants</h3>
-        <p className="text-sm text-gray-600 mt-1">{participants.length} total registrations</p>
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="p-5 border-b border-gray-100">
+        <h3 className="text-base font-semibold text-gray-900">All Participants</h3>
+        <p className="text-xs text-gray-500 mt-0.5">{participants.length} total registrations</p>
       </div>
 
       {loading ? (
@@ -189,117 +189,91 @@ export default function ParticipantsTable({
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="py-4 px-6 text-left">
+                  <th className="py-3 px-5 text-left border-b border-gray-100">
                     <input
                       type="checkbox"
-                      checked={selectedParticipants.length === participants.length}
+                      checked={selectedParticipants.length === participants.length && participants.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 accent-[#253A7B] cursor-pointer"
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                     />
                   </th>
-                  <th className="py-4 px-6 text-left">
+                  <th className="py-3 px-5 text-left border-b border-gray-100">
                     <button
                       onClick={() => handleSort('name')}
-                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
+                      className="flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-800 transition"
                     >
                       Name
                       <ArrowUpDown className="w-3 h-3" />
                     </button>
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
-                  <th className="py-4 px-6 text-left">
+                  <th className="py-3 px-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">Email</th>
+                  <th className="py-3 px-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">Phone</th>
+                  <th className="py-3 px-5 text-left border-b border-gray-100">
                     <button
                       onClick={() => handleSort('registrationDate')}
-                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
+                      className="flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-800 transition"
                     >
                       Registration
                       <ArrowUpDown className="w-3 h-3" />
                     </button>
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Payment</th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                  <th className="py-4 px-6 text-left">
+                  <th className="py-3 px-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">Payment</th>
+                  <th className="py-3 px-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">Status</th>
+                  <th className="py-3 px-5 text-left border-b border-gray-100">
                     <button
                       onClick={() => handleSort('score')}
-                      className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase hover:text-[#253A7B] transition"
+                      className="flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider hover:text-gray-800 transition"
                     >
                       Score
                       <ArrowUpDown className="w-3 h-3" />
                     </button>
                   </th>
-                  <th className="py-4 px-6 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                  <th className="py-4 px-6 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                  <th className="py-3 px-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">Time</th>
+                  <th className="py-3 px-5 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {participants.map((participant, index) => (
                   <tr
                     key={participant.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50 transition ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
-                    }`}
+                    className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors bg-white`}
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-5">
                       <input
                         type="checkbox"
                         checked={selectedParticipants.includes(participant.id)}
                         onChange={(e) => handleSelectOne(participant.id, e.target.checked)}
-                        className="w-4 h-4 accent-[#253A7B] cursor-pointer"
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
                     </td>
-                    <td className="py-4 px-6">
-                      <p className="font-medium text-gray-900">{participant.name}</p>
+                    <td className="py-3 px-5">
+                      <p className="font-medium text-gray-900 text-sm">{participant.name}</p>
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-600">{participant.email}</td>
-                    <td className="py-4 px-6 text-sm text-gray-600">{participant.phone}</td>
-                    <td className="py-4 px-6 text-sm text-gray-600">{participant.registrationDate}</td>
-                    <td className="py-4 px-6">{getStatusBadge(participant.paymentStatus, 'payment')}</td>
-                    <td className="py-4 px-6">{getStatusBadge(participant.attemptStatus, 'attempt')}</td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-5 text-sm text-gray-500">{participant.email}</td>
+                    <td className="py-3 px-5 text-sm text-gray-500">{participant.phone}</td>
+                    <td className="py-3 px-5 text-sm text-gray-500">{participant.registrationDate}</td>
+                    <td className="py-3 px-5">{getStatusBadge(participant.paymentStatus, 'payment')}</td>
+                    <td className="py-3 px-5">{getStatusBadge(participant.attemptStatus, 'attempt')}</td>
+                    <td className="py-3 px-5">
                       {participant.score !== null ? (
-                        <span className="font-bold text-gray-900">{participant.score}%</span>
+                        <span className="font-medium text-gray-900 text-sm">{participant.score}%</span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400 text-sm">—</span>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-sm text-gray-600">
+                    <td className="py-3 px-5 text-sm text-gray-500">
                       {participant.timeTaken || '—'}
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="py-3 px-5">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => onViewAttempt(participant)}
                           disabled={participant.attemptStatus === 'not-attempted'}
-                          className="p-2 hover:bg-blue-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="p-1.5 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-blue-600 border border-transparent hover:border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                           title="View Attempt"
                         >
-                          <Eye className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                          className="p-2 hover:bg-purple-100 rounded-lg transition"
-                          title="Send Message"
-                        >
-                          <Mail className="w-4 h-4 text-purple-600" />
-                        </button>
-                        <button
-                          className="p-2 hover:bg-green-100 rounded-lg transition"
-                          title="Mark as Paid"
-                        >
-                          <CreditCard className="w-4 h-4 text-green-600" />
-                        </button>
-                        <button
-                          className="p-2 hover:bg-red-100 rounded-lg transition"
-                          title="Refund"
-                        >
-                          <RefreshCw className="w-4 h-4 text-red-600" />
-                        </button>
-                        <button
-                          disabled={participant.attemptStatus !== 'submitted'}
-                          className="p-2 hover:bg-yellow-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Generate Certificate"
-                        >
-                          <Award className="w-4 h-4 text-yellow-600" />
+                          <Eye className="w-3.5 h-3.5" />
+                          Complete Details
                         </button>
                       </div>
                     </td>
@@ -309,13 +283,13 @@ export default function ParticipantsTable({
             </table>
           </div>
 
-          <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+          <div className="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-white">
             <p>Showing {participants.length} of {participants.length} participants</p>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+              <button className="px-3 py-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors">
                 Previous
               </button>
-              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+              <button className="px-3 py-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors">
                 Next
               </button>
             </div>

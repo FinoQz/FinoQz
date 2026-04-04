@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const quizSchema = new mongoose.Schema({
-  category: { type: String, required: true },
+  category: { type: String },
   quizTitle: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
-  duration: { type: Number, required: true }, // minutes
-  totalMarks: { type: Number, required: true },
+  description: { type: String },
+  duration: { type: Number, default: 30 }, // minutes
+  totalMarks: { type: Number, default: 0 },
   attemptLimit: { type: String, enum: ["unlimited", "1"], default: "1" },
   shuffleQuestions: { type: Boolean, default: false },
   negativeMarking: { type: Boolean, default: false },
@@ -14,16 +14,21 @@ const quizSchema = new mongoose.Schema({
   pricingType: { type: String, enum: ["free", "paid"], default: "free" },
   price: { type: Number, default: 0 },
   couponCode: { type: String },
+  offerCode: { type: String },
   allowOfflinePayment: { type: Boolean, default: false },
 
   startAt: { type: Date, required: true },
   endAt: { type: Date, required: true },
-  visibility: { type: String, enum: ["public", "unlisted", "private"], default: "public" },
+  visibility: { type: String, enum: ["public", "unlisted", "private", "individual"], default: "public" },
   assignedGroups: [{ type: String }],
+  assignedIndividuals: [{ type: String }],
 
   coverImage: { type: String },
   tags: [{ type: String }],
   difficultyLevel: { type: String, enum: ["easy", "medium", "hard"], default: "medium" },
+
+  showResults: { type: Boolean, default: true },
+  showCorrectAnswers: { type: Boolean, default: true },
 
   status: { type: String, enum: ["draft", "published"], default: "draft" },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -35,5 +40,7 @@ const quizSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 quizSchema.index({ quizTitle: "text", category: 1, status: 1 });
+quizSchema.index({ assignedIndividuals: 1, visibility: 1 });
+quizSchema.index({ assignedGroups: 1, visibility: 1 });
 
 export default mongoose.model("Quiz", quizSchema);

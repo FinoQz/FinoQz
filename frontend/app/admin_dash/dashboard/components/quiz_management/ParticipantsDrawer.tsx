@@ -4,19 +4,11 @@ import React, { useState } from 'react';
 import { X, HelpCircle } from 'lucide-react';
 import DrawerHeader  from './DrawerHeader';
 import KPICards from './KPICards';
-import SecondaryMetrics from './SecondaryMetrics';
-import RevenueChart from './RevenueChart';
-import AttemptsBarChart from './AttemptsBarChart';
-import PaidVsFreeDonutChart from './PaidVsFreeDonutChart';
-import QuestionAccuracyChart from './QuestionAccuracyChart';
 import QuestionInsightsCard from './QuestionInsightsCard';
 import ParticipantsTable from './ParticipantsTable';
 import TableFilters from './TableFilters';
-import BulkActions from './BulkActions';
 import TransactionsTab from './TransactionsTab';
 import LeaderboardCard from './LeaderboardCard';
-import ActivityTimeline from './ActivityTimeline';
-import ExportReports from './ExportReports';
 import ViewAttemptModal from './ViewAttemptModal';
 import ExportModal from './ExportModal';
 import AdminQuizPreviewModal from './AdminQuizPreviewModal';
@@ -93,32 +85,33 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
       />
 
       {/* Drawer */}
-      <div className="fixed top-0 right-0 h-full w-full lg:w-[85%] xl:w-[80%] bg-gray-50 z-50 shadow-2xl overflow-y-auto animate-slide-in-right">
+      <div className="fixed top-0 right-0 h-full w-full lg:w-[85%] xl:w-[80%] bg-gray-50/50 backdrop-blur-sm z-50 border-l border-gray-100 overflow-y-auto animate-slide-in-right">
         <div className="min-h-full">
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
-            <div className="flex items-start justify-between p-6">
+          <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            <div className="flex items-start justify-between px-6 py-5">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                <div className="flex items-center gap-3 mb-1">
+                  <h2 className="text-lg font-semibold text-gray-900">
                     Participants — {quizData.quizTitle}
                   </h2>
                   <div className="group relative">
-                    <HelpCircle className="w-5 h-5 text-gray-400 hover:text-[#253A7B] cursor-help transition" />
-                    <div className="absolute left-0 top-8 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl">
+                    <HelpCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help transition-colors" />
+                    <div className="absolute left-0 top-6 w-64 p-2.5 bg-white border border-gray-100 text-gray-600 text-[11px] rounded shadow-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
                       Use filters to find users, click view attempt to inspect answers, and use Export to download results.
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs text-gray-400">
                   Quiz ID: {quizData._id} • Created: {quizData.createdAt} • Duration: {quizData.duration} min
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-xl transition"
+                className="p-1.5 hover:bg-gray-50 text-gray-400 hover:text-gray-600 rounded-md transition-colors"
+                title="Close Drawer"
               >
-                <X className="w-6 h-6 text-gray-600" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -130,23 +123,23 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
             />
 
             {/* Tabs */}
-            <div className="flex gap-1 px-6 pb-0">
+            <div className="flex gap-4 px-6 pb-0">
               <button
                 onClick={() => setActiveTab('participants')}
-                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
+                className={`py-2.5 font-medium text-xs transition-colors border-b-2 ${
                   activeTab === 'participants'
-                    ? 'border-[#253A7B] text-[#253A7B]'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-800 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 Participants & Insights
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
+                className={`py-2.5 font-medium text-xs transition-colors border-b-2 ${
                   activeTab === 'transactions'
-                    ? 'border-[#253A7B] text-[#253A7B]'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                    ? 'border-gray-800 text-gray-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 Transactions & Payments
@@ -159,32 +152,13 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
             {activeTab === 'participants' ? (
               <>
                 <KPICards quizId={quizId} />
-                <SecondaryMetrics quizId={quizId} />
 
-                {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="space-y-6">
-                    <RevenueChart />
-                    <AttemptsBarChart quizId={quizId} />
-                  </div>
-                  <div className="space-y-6">
-                    <PaidVsFreeDonutChart quizId={quizId} />
-                    <QuestionAccuracyChart quizId={quizId} />
-                  </div>
+                  <QuestionInsightsCard quizId={quizId} />
+                  <LeaderboardCard quizId={quizId} />
                 </div>
-
-                <QuestionInsightsCard quizId={quizId} />
-                <LeaderboardCard quizId={quizId} />
-                <ActivityTimeline />
-                <ExportReports onExport={handleExport} />
+                
                 <TableFilters />
-
-                {selectedParticipants.length > 0 && (
-                  <BulkActions
-                    selectedCount={selectedParticipants.length}
-                    onClearSelection={() => setSelectedParticipants([])}
-                  />
-                )}
 
                 <ParticipantsTable
                   selectedParticipants={selectedParticipants}

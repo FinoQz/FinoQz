@@ -106,15 +106,13 @@ export default function KPICards({ quizId }: KPICardsProps) {
         return (
           <div
             key={index}
-            className="bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm hover:shadow-md transition"
+            className="bg-white rounded-lg p-5 border border-gray-100 shadow-sm"
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm text-gray-600 font-medium">{kpi.label}</p>
-              <div className={`w-10 h-10 ${kpi.bgColor} rounded-lg flex items-center justify-center`}>
-                <Icon className={`w-5 h-5 ${kpi.iconColor}`} />
-              </div>
+            <div className="flex items-center gap-3 mb-2">
+              <Icon className={`w-4 h-4 ${kpi.iconColor}`} />
+              <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">{kpi.label}</p>
             </div>
-            <p className={`text-2xl font-bold ${loading ? 'text-gray-400' : 'text-gray-900'}`}>{kpi.value}</p>
+            <p className={`text-xl font-semibold ${loading ? 'text-gray-400' : 'text-gray-900'}`}>{kpi.value}</p>
           </div>
         );
       })}

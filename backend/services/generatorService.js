@@ -1,44 +1,41 @@
 import axios from 'axios';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
+import Groq from 'groq-sdk';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Gemini 2.5 Flash Lite endpoint
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Helper to call Gemini API
-async function geminiPrompt(prompt, maxTokens = 8000) {
+// Helper to call Groq API
+async function groqPrompt(prompt, model = 'llama-3.3-70b-versatile') {
   try {
-    const res = await axios.post(
-      `${GEMINI_URL}?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: maxTokens }
-      }
-    );
-    return res.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: model,
+    });
+    return chatCompletion.choices[0]?.message?.content || '';
   } catch (err) {
-    console.error('Gemini API error:', err?.response?.data || err.message);
-    throw new Error('Gemini API error');
+    console.error('Groq API error:', err.message);
+    throw new Error('Groq API error');
   }
 }
 
-// Clean Gemini output (remove markdown fences)
-function cleanGeminiOutput(output) {
+// Clean model output (remove markdown fences)
+function cleanModelOutput(output) {
   return output.replace(/```(?:json)?/g, '').replace(/`{3,}/g, '').trim();
 }
 
 // Generate quiz description from title
 export const generateDescription = async (quizTitle) => {
   const prompt = `Write a short, engaging, 2-3 line description for a quiz titled "${quizTitle}". Only return the description, nothing else.`;
-  return await geminiPrompt(prompt, 480);
+  return await groqPrompt(prompt);
 };
 
 // Generate quiz questions from prompt, number, topic
-export const generateFromPrompt = async (prompt, numQuestions = 3, topic = '') => {
+export const generateFromPrompt = async (prompt, numQuestions = 3, topic = '', context = '') => {
   const fullPrompt = `
 Generate exactly ${numQuestions} multiple-choice questions for a quiz about "${topic}".
 Do NOT return less than ${numQuestions} questions. If the content is insufficient, create additional questions based on the topic.
+${context ? `Use the following content as context: ${context.slice(0, 15000)}` : ''}
 Each question must have: text, options (array), correct (index), explanation (string).
 Use 1-4 or A-D for the correct answer marker in returned data.
 Keep options and explanations short.
@@ -49,13 +46,13 @@ Prompt: ${prompt}
   let output = '';
   let questions = [];
   try {
-    output = await geminiPrompt(fullPrompt, 8000);
-    const cleaned = cleanGeminiOutput(output);
+    output = await groqPrompt(fullPrompt);
+    const cleaned = cleanModelOutput(output);
     // Validate: check if cleaned ends with ']'
-    if (!cleaned.endsWith(']')) throw new Error('Gemini output incomplete');
+    if (!cleaned.endsWith(']')) throw new Error('Model output incomplete');
     questions = JSON.parse(cleaned);
   } catch (err) {
-    console.error('Gemini output JSON parse error:', err, 'Output:', output);
+    console.error('Model output JSON parse error:', err, 'Output:', output);
     questions = [];
   }
   questions = Array.isArray(questions)
@@ -115,10 +112,10 @@ Format: [{"text": "...", "options": ["..."], "correct": 1, "explanation": "..."}
     let output = '';
     let questions = [];
     try {
-      output = await geminiPrompt(chunkPrompt, 8000);
-      questions = JSON.parse(cleanGeminiOutput(output));
+      output = await groqPrompt(chunkPrompt);
+      questions = JSON.parse(cleanModelOutput(output));
     } catch (err) {
-      console.error('Gemini output JSON parse error:', err, 'Output:', output);
+      console.error('Model output JSON parse error:', err, 'Output:', output);
       questions = [];
     }
     allQuestions = allQuestions.concat(questions);
@@ -139,30 +136,7 @@ Format: [{"text": "...", "options": ["..."], "correct": 1, "explanation": "..."}
 };
 
 const handleGenerate = async () => {
-  setLoading(true);
-  try {
-    let pdfText = '';
-    if (file) {
-      // 1. PDF ko backend pe bhejo, text extract karo
-      const formData = new FormData();
-      formData.append('pdf', file);
-      const pdfRes = await apiAdmin.post('/api/upload/pdf', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      // pdfRes.data.data me questions ya text ho sakta hai
-      // Agar sirf text chahiye toh backend ko modify karo ki text bhi bheje
-      pdfText = pdfRes.data.text || '';
-    }
-    // 2. Ab Gemini ko prompt + pdfText bhejo
-    const res = await apiAdmin.post('/api/quizzes/admin/generate-questions', {
-      prompt: `${prompt}\n\nPDF Content:\n${pdfText}`,
-      numQuestions: 10,
-      topic: '',
-    });
-    setQuestions(res.data.data || res.data.questions || []);
-  } catch (err) {
-    alert('AI generation failed');
-  }
-  setLoading(false);
+  // Client side logic placeholder
 };
+
 

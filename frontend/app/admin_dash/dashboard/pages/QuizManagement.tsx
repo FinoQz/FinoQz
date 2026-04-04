@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle, File } from 'lucide-react';
+import { FileText, CheckCircle, File, Loader2 } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 import CreateQuizButton from '../components/quiz_management/CreateQuizButton';
 import QuizFilters from '../components/quiz_management/QuizFilters';
 import QuizCard from '../components/quiz_management/QuizCard';
 import AdminQuizPreviewModal from '../components/quiz_management/AdminQuizPreviewModal';
-// You may want to create a QuizPreviewModal component for full quiz preview
 import StatusMessage from '../components/quiz_management/StatusMessage';
 import CreateQuizForm from '../components/quiz_management/CreateQuizForm';
 import ParticipantsDrawer from '../components/quiz_management/ParticipantsDrawer';
@@ -59,6 +58,7 @@ export default function QuizManagement() {
   const [actionStatus, setActionStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedPricing, setSelectedPricing] = useState('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showParticipantsDrawer, setShowParticipantsDrawer] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
@@ -104,11 +104,15 @@ export default function QuizManagement() {
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(q => q.status === selectedStatus);
     }
+    if (selectedPricing !== 'all') {
+      filtered = filtered.filter(q => q.pricingType === selectedPricing);
+    }
     setFilteredQuizzes(filtered);
-  }, [searchQuery, selectedStatus, quizzes]);
+  }, [searchQuery, selectedStatus, selectedPricing, quizzes]);
 
   const handleSearch = (query: string) => setSearchQuery(query);
   const handleStatusChange = (status: string) => setSelectedStatus(status);
+  const handlePricingChange = (pricing: string) => setSelectedPricing(pricing);
 
   const handleCreateQuiz = () => setShowCreateForm(true);
   const handleFormClose = () => setShowCreateForm(false);
@@ -173,34 +177,6 @@ export default function QuizManagement() {
     await fetchQuizzes();
   };
 
-  const handleEnroll = async (quizId: string) => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiAdmin.post(`/api/quizzes/${quizId}/enroll`);
-      const data = res.data;
-      if (res.status >= 200 && res.status < 300) {
-        setActionStatus('Enrolled successfully!');
-        setTimeout(() => setActionStatus(''), 3000);
-        setQuizzes(prev =>
-          prev.map(q =>
-            q._id === quizId ? { ...q, participantCount: data.participantCount } : q
-          )
-        );
-        setFilteredQuizzes(prev =>
-          prev.map(q =>
-            q._id === quizId ? { ...q, participantCount: data.participantCount } : q
-          )
-        );
-      } else {
-        setError(data.message || 'Failed to enroll');
-      }
-    } catch {
-      setError('Enroll error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (showCreateForm) {
     return (
@@ -209,130 +185,113 @@ export default function QuizManagement() {
       </div>
     );
   }
-
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-gray-700">Quiz Management</h1>
+    <div className="p-6 lg:p-10 space-y-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Quiz Management</h1>
+          <p className="text-gray-500 text-sm mt-1">Create and manage your assessments and quizzes</p>
+        </div>
         <CreateQuizButton onClick={handleCreateQuiz} />
       </div>
 
       {actionStatus && <StatusMessage message={actionStatus} />}
       {error && <StatusMessage message={error} type="error" />}
 
-      <QuizFilters
-        onSearch={handleSearch}
-        onStatusChange={handleStatusChange}
-        onApply={() => {}}
-      />
-
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
-        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-1 pb-4 mb-4 border-b border-gray-200">
-          <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title</div>
-          <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Duration</div>
-          <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Price</div>
-          <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</div>
-          <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Actions</div>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Loading quizzes...</p>
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {[
+          { label: 'Total Quizzes', value: quizzes.length, icon: FileText, color: 'text-blue-600' },
+          { label: 'Published', value: quizzes.filter(q => q.status === 'published').length, icon: CheckCircle, color: 'text-green-600' },
+          { label: 'Drafts', value: quizzes.filter(q => q.status === 'draft').length, icon: File, color: 'text-gray-400' }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-gray-50 ${stat.color}`}>
+              <stat.icon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            </div>
           </div>
-        ) : filteredQuizzes.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-600 text-lg font-medium">No quizzes found</div>
-            <p className="text-gray-500 text-sm mt-2">Try adjusting your filters or create a new quiz</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredQuizzes.map((quiz) => (
-              <QuizCard
-                key={quiz._id}
-                quiz={quiz}
-                onViewParticipants={handleViewParticipants}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onPreview={handlePreview}
-              />
-            ))}
-                {/* Admin Quiz Preview Modal with all questions */}
-                {showPreviewModal && quizToPreview && (
-                  <AdminQuizPreviewModal
-                    quizId={quizToPreview._id}
-                    onClose={() => {
-                      setShowPreviewModal(false);
-                      setQuizToPreview(null);
-                    }}
-                    onEditQuestion={handleEditQuestion}
-                  />
-                )}
-
-                {showQuestionEditModal && questionToEdit && questionEditData && (
-                  <EditQuestionModal
-                    question={{
-                      ...questionEditData,
-                      marks: questionEditData.marks ?? 0,
-                      type: questionEditData.type ?? 'multiple-choice',
-                    }}
-                    onClose={() => {
-                      setShowQuestionEditModal(false);
-                      setQuestionToEdit(null);
-                      setQuestionEditData(null);
-                    }}
-                    onSuccess={() => {
-                      setShowQuestionEditModal(false);
-                      setQuestionToEdit(null);
-                      setQuestionEditData(null);
-                      fetchQuizzes();
-                    }}
-                  />
-                )}
-          </div>
-        )}
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Quizzes</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900">{quizzes.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-[#253A7B]/10 rounded-xl flex items-center justify-center">
-              <FileText className="w-6 h-6 text-[#253A7B]" />
-            </div>
-          </div>
+      {/* Main Content Area */}
+      <div className="space-y-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <QuizFilters
+            onSearch={handleSearch}
+            onStatusChange={handleStatusChange}
+            onPricingChange={handlePricingChange}
+          />
         </div>
 
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Published</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                {quizzes.filter(q => q.status === 'published').length}
-              </p>
+        <div className="min-h-[400px]">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-[#253A7B] mb-4" />
+              <p className="text-gray-500 text-sm font-medium">Loading quizzes...</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+          ) : filteredQuizzes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">No quizzes found</h3>
+              <p className="text-gray-500 text-sm max-w-xs mx-auto">Try adjusting your filters or create a new quiz.</p>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border-2 border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Drafts</p>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-600">
-                {quizzes.filter(q => q.status === 'draft').length}
-              </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {filteredQuizzes.map((quiz) => (
+                <QuizCard
+                  key={quiz._id}
+                  quiz={quiz}
+                  onViewParticipants={handleViewParticipants}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onPreview={handlePreview}
+                />
+              ))}
             </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-              <File className="w-6 h-6 text-gray-600" />
-            </div>
-          </div>
+          )}
         </div>
       </div>
+
+      {/* Modals & Overlays */}
+      {showPreviewModal && quizToPreview && (
+        <AdminQuizPreviewModal
+          quizId={quizToPreview._id}
+          onClose={() => {
+            setShowPreviewModal(false);
+            setQuizToPreview(null);
+          }}
+          onEditQuestion={handleEditQuestion}
+        />
+      )}
+
+      {showQuestionEditModal && questionToEdit && questionEditData && (
+        <EditQuestionModal
+          isOpen={showQuestionEditModal}
+          question={{
+            ...questionEditData,
+            marks: (questionEditData as any).marks ?? 0,
+            type: (questionEditData as any).type ?? 'multiple-choice',
+          }}
+          onClose={() => {
+            setShowQuestionEditModal(false);
+            setQuestionToEdit(null);
+            setQuestionEditData(null);
+          }}
+          onSuccess={() => {
+            setShowQuestionEditModal(false);
+            setQuestionToEdit(null);
+            setQuestionEditData(null);
+            fetchQuizzes();
+          }}
+        />
+      )}
 
       {selectedQuiz && (
         <ParticipantsDrawer
@@ -360,7 +319,6 @@ export default function QuizManagement() {
           onSuccess={handleEditSuccess}
         />
       )}
-
       {showDeleteDialog && quizToDelete && (
         <DeleteConfirmDialog
           quiz={quizToDelete}

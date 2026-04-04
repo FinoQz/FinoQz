@@ -1,175 +1,169 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Check, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import apiAdmin from '@/lib/apiAdmin';
 
-interface Question {
-  _id: string;
-  text: string;
-  options: string[];
-  correct: number | null;
-  marks: number;
-  type: string;
-  explanation?: string;
-}
-
 interface EditQuestionModalProps {
-  question: Question;
+  isOpen: boolean;
   onClose: () => void;
+  question: any;
   onSuccess: () => void;
 }
 
-export default function EditQuestionModal({ question, onClose, onSuccess }: EditQuestionModalProps) {
-  const [formData, setFormData] = useState({
-    text: question.text || '',
-    options: question.options || ['', '', '', ''],
-    correct: question.correct ?? 0,
-    marks: question.marks || 1,
-    type: question.type || 'mcq',
-    explanation: question.explanation || '',
-  });
+export default function EditQuestionModal({ isOpen, onClose, question, onSuccess }: EditQuestionModalProps) {
+  const [editedQuestion, setEditedQuestion] = useState(question);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  useEffect(() => {
+    setEditedQuestion(question);
+  }, [question]);
+
+  if (!isOpen) return null;
+
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...(editedQuestion.options || [])];
+    newOptions[index] = value;
+    setEditedQuestion({ ...editedQuestion, options: newOptions });
   };
 
-  const handleOptionChange = (idx: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      options: prev.options.map((opt, i) => (i === idx ? value : opt)),
-    }));
-  };
-
-  const handleCorrectChange = (idx: number) => {
-    setFormData(prev => ({ ...prev, correct: idx }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     setLoading(true);
-    setError('');
+    setError(null);
     try {
-      const response = await apiAdmin.put(`/api/questions/questions/${question._id}`, formData);
+      const response = await apiAdmin.put(`/api/questions/questions/${editedQuestion._id}`, {
+        text: editedQuestion.text,
+        options: editedQuestion.options,
+        correct: editedQuestion.correct,
+        explanation: editedQuestion.explanation
+      });
+      
       if (response.status >= 200 && response.status < 300) {
         onSuccess();
         onClose();
       } else {
         setError(response.data?.message || 'Failed to update question');
       }
-    } catch (err) {
-      setError('An error occurred while updating the question');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'An error occurred while saving.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-2 backdrop-blur-sm bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-lg font-bold text-gray-900">Edit Question</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition" disabled={loading}>
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-5">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">{error}</div>
-          )}
-
-          <div className="space-y-1">
-            <label htmlFor="text" className="block text-sm font-medium text-gray-700 mb-1">Question *</label>
-            <textarea
-              id="text"
-              name="text"
-              value={formData.text}
-              onChange={handleInputChange}
-              required
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
-              placeholder="Enter question text"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">Options *</label>
-              <span className="text-xs text-gray-400">Select correct</span>
-            </div>
-            <div className="grid grid-cols-1 gap-1">
-              {formData.options.map((opt, idx) => (
-                <div key={idx} className={`flex items-center gap-2 p-1 rounded-lg border ${formData.correct === idx ? 'border-[#253A7B] bg-[#f5f8ff]' : 'border-gray-200 bg-white'} transition-all`}>
-                  <span className="inline-block w-6 h-6 rounded-full text-center font-bold text-white text-xs flex items-center justify-center bg-[#253A7B]">{String.fromCharCode(65+idx)}</span>
-                  <input
-                    type="text"
-                    value={opt}
-                    onChange={e => handleOptionChange(idx, e.target.value)}
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
-                    placeholder={`Option ${idx + 1}`}
-                    required
-                  />
-                  <input
-                    type="radio"
-                    name="correct"
-                    checked={formData.correct === idx}
-                    onChange={() => handleCorrectChange(idx)}
-                    className="accent-[#253A7B] w-4 h-4"
-                    title="Mark as correct"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          className="bg-white rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl"
+        >
+          {/* Header */}
+          <div className="px-5 py-3.5 bg-white border-b border-gray-100 flex items-center justify-between">
             <div>
-              <label htmlFor="marks" className="block text-sm font-medium text-gray-700 mb-1">Marks *</label>
-              <input
-                type="number"
-                id="marks"
-                name="marks"
-                value={formData.marks}
-                onChange={handleInputChange}
-                min={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
-                required
-              />
+              <h3 className="text-[14px] font-semibold text-gray-900">Edit Question</h3>
+              <p className="text-[11px] text-gray-400 mt-0.5">Update question core context</p>
             </div>
-            <div>
-              <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 mb-1">Explanation</label>
-              <textarea
-                id="explanation"
-                name="explanation"
-                value={formData.explanation}
-                onChange={handleInputChange}
-                rows={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#253A7B] focus:border-transparent text-gray-900 text-sm"
-                placeholder="Enter explanation (optional)"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-1">
-            <button
-              type="button"
+            <button 
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50 text-sm"
+              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors flex items-center justify-center disabled:opacity-50"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-4 max-h-[85vh] overflow-y-auto no-scrollbar space-y-3">
+            {error && (
+              <div className="p-2 bg-red-50 border border-red-100 rounded-md text-red-600 text-[11px] font-medium">
+                {error}
+              </div>
+            )}
+
+            {/* Question Text */}
+            <div className="flex items-center gap-3">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest min-w-[70px]">Question:</label>
+              <input
+                type="text"
+                value={editedQuestion?.text || ''}
+                onChange={(e) => setEditedQuestion({ ...editedQuestion, text: e.target.value })}
+                className="flex-1 w-full bg-gray-50 border border-gray-100 rounded-md px-3 py-2 text-[12px] text-gray-900 focus:border-[#253A7B] focus:bg-white outline-none transition-all"
+                placeholder="Enter the question text..."
+              />
+            </div>
+
+            {/* Options Grid */}
+            <div className="pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(editedQuestion?.options || ['', '', '', '']).map((option: string, index: number) => {
+                  const isCorrect = editedQuestion?.correct === index;
+                  return (
+                    <div 
+                      key={index} 
+                      className={`relative flex items-center gap-2 p-1.5 rounded-md border transition-colors ${
+                        isCorrect 
+                          ? 'border-[#253A7B] bg-blue-50/30' 
+                          : 'border-gray-100 bg-gray-50/50 hover:bg-white'
+                      }`}
+                    >
+                      <button
+                        onClick={() => setEditedQuestion({ ...editedQuestion, correct: index })}
+                        className={`w-6 h-6 shrink-0 rounded flex items-center justify-center text-[10px] font-black transition-colors ${
+                          isCorrect 
+                            ? 'bg-[#253A7B] text-white shadow-sm' 
+                            : 'bg-white text-gray-400 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {String.fromCharCode(65 + index)}
+                      </button>
+                      <input
+                        type="text"
+                        value={option}
+                        onChange={(e) => handleOptionChange(index, e.target.value)}
+                        className="flex-1 w-full min-w-0 bg-transparent border-none py-1.5 pr-2 text-[11px] text-gray-900 outline-none placeholder:text-gray-400"
+                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Explanation Field */}
+            <div className="flex items-center gap-3 pt-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest min-w-[70px]">Explain:</label>
+              <input
+                type="text"
+                value={editedQuestion?.explanation || ''}
+                onChange={(e) => setEditedQuestion({ ...editedQuestion, explanation: e.target.value })}
+                className="flex-1 w-full bg-gray-50 border border-gray-100 rounded-md px-3 py-2 text-[11px] text-gray-900 focus:border-[#253A7B] focus:bg-white outline-none transition-all"
+                placeholder="Why is it correct?"
+              />
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-5 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2.5">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-500 rounded-lg text-[11px] font-bold hover:bg-gray-100 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
-              type="submit"
+              onClick={handleSave}
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+              className="px-5 py-1.5 bg-[#253A7B] text-white rounded-lg text-[11px] font-bold shadow-sm hover:bg-[#1a2a5e] transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
             >
-              {loading ? 'Saving...' : 'Save'}
+              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
-        </form>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 }

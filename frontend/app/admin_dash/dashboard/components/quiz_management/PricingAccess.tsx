@@ -1,150 +1,117 @@
 'use client';
 
 import * as React from 'react';
-import { IndianRupee } from 'lucide-react';
-
-interface Coupon {
-  code: string;
-  discountType: 'percentage' | 'flat';
-  discountValue: number;
-  visibility: 'all' | 'new_users' | 'existing_users';
-}
+import { IndianRupee, Globe, Lock, Check, Sparkles } from 'lucide-react';
+import { QuizData } from './CreateQuizForm';
 
 interface PricingAccessProps {
-  pricingType: 'free' | 'paid';
-  price: string;
-  coupon: Coupon;
-  onPricingTypeChange: (type: 'free' | 'paid') => void;
-  onPriceChange: (price: string) => void;
-  onCouponChange: (coupon: Coupon) => void;
+  quizData: QuizData;
+  updateQuizData: (newData: Partial<QuizData>) => void;
+  onNext?: () => void;
 }
 
 export default function PricingAccess({
-  pricingType,
-  price,
-  coupon,
-  onPricingTypeChange,
-  onPriceChange,
-  onCouponChange
+  quizData,
+  updateQuizData,
+  onNext
 }: PricingAccessProps) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Pricing & Access</h2>
-        <p className="text-sm text-gray-600">Set the pricing and payment options for this quiz</p>
-      </div>
-
-      {/* Pricing Type Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Pricing Type</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {['free', 'paid'].map((type) => (
-            <div
-              key={type}
-              role="button"
-              tabIndex={0}
-              onClick={() => onPricingTypeChange(type as 'free' | 'paid')}
-              onKeyDown={(e) => e.key === 'Enter' && onPricingTypeChange(type as 'free' | 'paid')}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                pricingType === type
-                  ? 'border-[#253A7B] bg-white'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    pricingType === type ? 'border-[#253A7B]' : 'border-gray-300'
-                  }`}
-                >
-                  {pricingType === type && (
-                    <div className="w-3 h-3 rounded-full bg-[#253A7B]" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 capitalize">{type}</h4>
-                  <p className="text-xs text-gray-600">
-                    {type === 'free' ? 'Open to all users' : 'Requires payment to access'}
-                  </p>
-                </div>
-              </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-900 mb-6">Choose Pricing Strategy</label>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Free Option */}
+          <button
+            onClick={() => updateQuizData({ pricingType: 'free', price: 0 })}
+            className={`group relative text-left p-6 rounded-lg border transition-all duration-300 ${
+              quizData.pricingType === 'free'
+                ? 'border-[#253A7B] bg-blue-50/30 ring-1 ring-[#253A7B]/10'
+                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-white'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-4 transition-all ${
+              quizData.pricingType === 'free' ? 'bg-[#253A7B] text-white' : 'bg-white border border-gray-100 text-gray-400'
+            }`}>
+              <Globe className="w-5 h-5" />
             </div>
-          ))}
+            <h4 className="text-base font-semibold text-gray-900 mb-1.5">Free Access</h4>
+            <p className="text-[13px] text-gray-500 leading-relaxed font-normal">Available to all users. Ideal for lead generation and brand awareness.</p>
+            {quizData.pricingType === 'free' && <Check className="absolute top-6 right-6 w-5 h-5 text-[#253A7B]" />}
+          </button>
+
+          {/* Paid Option */}
+          <button
+            onClick={() => updateQuizData({ pricingType: 'paid' })}
+            className={`group relative text-left p-6 rounded-lg border transition-all duration-300 ${
+              quizData.pricingType === 'paid'
+                ? 'border-[#253A7B] bg-blue-50/30 ring-1 ring-[#253A7B]/10'
+                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-white'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-4 transition-all ${
+              quizData.pricingType === 'paid' ? 'bg-[#253A7B] text-white' : 'bg-white border border-gray-100 text-gray-400'
+            }`}>
+              <Lock className="w-5 h-5" />
+            </div>
+            <h4 className="text-base font-semibold text-gray-900 mb-1.5">Premium Content</h4>
+            <p className="text-[13px] text-gray-500 leading-relaxed font-normal">Restricted to paid users. Best for high-value assessments and certifications.</p>
+            {quizData.pricingType === 'paid' && <Check className="absolute top-6 right-6 w-5 h-5 text-[#253A7B]" />}
+          </button>
         </div>
       </div>
 
-      {/* Paid Options */}
-      {pricingType === 'paid' && (
-        <div className="space-y-4 p-5 bg-gray-50 rounded-xl border border-gray-200">
-          {/* Price Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Price (₹) <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="number"
-                value={price}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '' || Number(val) >= 1) onPriceChange(val);
-                }}
-                placeholder="Enter price"
-                min="1"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              />
+      {quizData.pricingType === 'paid' && (
+        <div className="space-y-6 animate-in slide-in-from-top-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center text-[#253A7B]">
+                <IndianRupee className="w-4 h-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Set Pricing</h3>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Minimum ₹1</p>
+
+            <div className="max-w-md space-y-2">
+              <label className="text-xs font-medium text-gray-500 ml-0.5">Listing Price (INR)</label>
+              <div className="relative">
+                <IndianRupee className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                <input
+                  type="number"
+                  value={quizData.price}
+                  onChange={(e) => updateQuizData({ price: e.target.value })}
+                  placeholder="0.00"
+                  className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-sm font-normal focus:border-[#253A7B] outline-none transition-all"
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 font-medium ml-1">Note: Professional transaction fees may apply.</p>
+            </div>
           </div>
 
-          {/* Coupon Code */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">Coupon Settings</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input
-                type="text"
-                value={coupon.code}
-                onChange={(e) =>
-                  onCouponChange({ ...coupon, code: e.target.value.toUpperCase().trim() })
-                }
-                placeholder="Coupon Code"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition uppercase"
-              />
-              <select
-                value={coupon.discountType}
-                onChange={(e) =>
-                  onCouponChange({ ...coupon, discountType: e.target.value as 'percentage' | 'flat' })
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
-              >
-                <option value="percentage">Percentage (%)</option>
-                <option value="flat">Flat (₹)</option>
-              </select>
-              <input
-                type="number"
-                value={coupon.discountValue}
-                onChange={(e) =>
-                  onCouponChange({ ...coupon, discountValue: Number(e.target.value) })
-                }
-                placeholder="Discount Value"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
-              />
-              <select
-                value={coupon.visibility}
-                onChange={(e) =>
-                  onCouponChange({ ...coupon, visibility: e.target.value as 'all' | 'new_users' | 'existing_users' })
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
-              >
-                <option value="all">All Users</option>
-                <option value="new_users">New Users Only</option>
-                <option value="existing_users">Existing Users Only</option>
-              </select>
+          <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 rounded-md bg-orange-50 flex items-center justify-center text-orange-600">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Promotions</h3>
             </div>
-            <p className="text-xs text-gray-500">Define coupon code, discount type, and visibility</p>
-          </div>
 
+            <div className="max-w-md space-y-2">
+              <label className="text-xs font-medium text-gray-500 ml-0.5">Offer Code (Optional)</label>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300">
+                  <span className="text-xs font-bold font-mono">%</span>
+                </div>
+                <input
+                  type="text"
+                  value={quizData.offerCode || ''}
+                  onChange={(e) => updateQuizData({ offerCode: e.target.value.toUpperCase() })}
+                  placeholder="E.G. NEWYEAR50"
+                  className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-sm font-bold tracking-widest focus:border-[#253A7B] outline-none transition-all placeholder:font-normal placeholder:tracking-normal"
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 font-medium ml-1">Users can use this code to get a discount or free access.</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

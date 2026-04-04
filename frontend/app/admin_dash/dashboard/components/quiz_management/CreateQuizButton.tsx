@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Plus } from 'lucide-react';
 
@@ -11,9 +9,9 @@ export default function CreateQuizButton({ onClick }: CreateQuizButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium text-sm"
+      className="flex items-center gap-2 px-5 py-2.5 bg-[#253A7B] text-white text-sm font-semibold rounded-lg hover:bg-[#1a2a5e] active:scale-95 transition-all shadow-sm"
     >
-      <Plus className="w-5 h-5" />
+      <Plus className="w-4 h-4" />
       Create Quiz
     </button>
   );

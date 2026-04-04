@@ -1,490 +1,364 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Eye } from 'lucide-react';
+import { 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  Check, 
+  X, 
+  Layout, 
+  ListPlus,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Sparkles,
+  FileText,
+  CreditCard,
+  Layers,
+  Globe,
+  CheckCircle2
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import CategorySelection from './CategorySelection';
 import PricingAccess from './PricingAccess';
 import BasicSettings from './BasicSettings';
 import UploadImport from './UploadImport';
 import ScheduleVisibility from './ScheduleVisibility';
 import MediaAdvanced from './MediaAdvanced';
-import QuizPreview from './QuizPreview';
 import apiAdmin from '@/lib/apiAdmin';
-
-type Question = {
-  text: string;
-  options: string[];
-  correct: number;
-  explanation: string;
-};
 
 interface CreateQuizFormProps {
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
+
+export interface QuizData {
+  categoryId: string;
+  quizTitle: string;
+  description: string;
+  duration: string | number;
+  totalMarks: string | number;
+  attemptLimit: 'unlimited' | '1';
+  shuffleQuestions: boolean;
+  pricingType: 'free' | 'paid';
+  price: string | number;
+  offerCode?: string;
+  questions: any[];
+  postType: 'live' | 'scheduled';
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  visibility: 'public' | 'private' | 'individual';
+  assignedGroups: string[];
+  assignedIndividuals: string[];
+  bannerImage: string | null;
+  featuredImage: string | null;
+  showResults: boolean;
+  showCorrectAnswers: boolean;
+  certificateEnabled: boolean;
+  difficultyLevel: string;
+  status: 'draft' | 'published';
+};
 
 export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
-  const quizId = '';
-  const [cachedQuestions, setCachedQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Step 1: Category
-  const [selectedCategory, setSelectedCategory] = useState('');
-
-  // Step 2: Pricing
-  const [pricingType, setPricingType] = useState<'free' | 'paid'>('free');
-  const [price, setPrice] = useState('');
-  const [coupon, setCoupon] = useState<{
-    code: string;
-    discountType: 'percentage' | 'flat';
-    discountValue: number;
-    visibility: 'all' | 'new_users' | 'existing_users';
-  }>({
-    code: '',
-    discountType: 'percentage',
-    discountValue: 0,
-    visibility: 'all',
+  const [quizData, setQuizData] = useState<QuizData>({
+    categoryId: '',
+    quizTitle: '',
+    description: '',
+    duration: 30,
+    totalMarks: 100,
+    attemptLimit: 'unlimited',
+    shuffleQuestions: false,
+    pricingType: 'free',
+    price: 0,
+    offerCode: '',
+    questions: [],
+    postType: 'live',
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
+    visibility: 'public',
+    assignedGroups: [],
+    assignedIndividuals: [],
+    bannerImage: null,
+    featuredImage: null,
+    showResults: true,
+    showCorrectAnswers: true,
+    certificateEnabled: false,
+    difficultyLevel: 'medium',
+    status: 'published',
   });
-  // const [allowOfflinePayment, setAllowOfflinePayment] = useState(false);
 
-  // Step 3: Basic Settings
-  const [quizTitle, setQuizTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [duration, setDuration] = useState('');
-  const [totalMarks, setTotalMarks] = useState('');
-  const [attemptLimit, setAttemptLimit] = useState<'unlimited' | '1'>('1');
-  const [shuffleQuestions, setShuffleQuestions] = useState(false);
-  const [negativeMarking, setNegativeMarking] = useState(false);
-  const [negativePerWrong, setNegativePerWrong] = useState('');
-  const [numberOfQuestions, setNumberOfQuestions] = useState('');
-
-  // Step 4: Upload (managed internally by component)
-
-  // Step 5: Schedule
-  const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [postType, setPostType] = useState<'live' | 'scheduled'>('live'); // <-- Add this line
-  const [visibility, setVisibility] = useState<'public' | 'private'>('public');
-  const [assignedGroups, setAssignedGroups] = useState<string[]>([]);
-
-  // Step 6: Media & Advanced
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [difficultyLevel, setDifficultyLevel] = useState<'easy' | 'medium' | 'hard'>('medium');
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
-
-  const [showSummary, setShowSummary] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [loadingDesc, setLoadingDesc] = useState(false); // Add this state
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return selectedCategory !== '';
-      case 2:
-        if (pricingType === 'paid') {
-          return price !== '' && parseFloat(price) > 0;
-        }
-        return true;
-      case 3:
-        return quizTitle.trim() !== '' && description.trim() !== '' && duration !== '' && totalMarks !== '' && numberOfQuestions !== '';
-      case 4:
-        return true; // Upload is optional
-      case 5:
-        if (postType === 'scheduled') {
-          if (visibility === 'private') {
-            return (
-              startDate &&
-              startTime &&
-              endDate &&
-              endTime &&
-              assignedGroups.length > 0
-            );
-          }
-          return startDate && startTime && endDate && endTime;
-        } else {
-          // postType === 'live'
-          if (visibility === 'private') {
-            return assignedGroups.length > 0;
-          }
-          return true;
-        }
-      case 6:
-        return true; // All optional
-      default:
-        return true;
-    }
-  };
+  const steps = [
+    { id: 1, label: 'Category', icon: Layers },
+    { id: 2, label: 'Basics', icon: FileText },
+    { id: 3, label: 'Pricing', icon: CreditCard },
+    { id: 4, label: 'Questions', icon: Sparkles },
+    { id: 5, label: 'Timeline', icon: Globe },
+  ];
 
   const handleNext = () => {
-    if (currentStep < totalSteps) {
+    setError(null);
+    if (currentStep === 1 && !quizData.categoryId) {
+      setError('Please select a category for the quiz.');
+      return;
+    }
+    if (currentStep === 2) {
+      if (!quizData.quizTitle) return setError('Title is required.');
+      if (!quizData.duration || quizData.duration === 0) return setError('Duration must be greater than zero.');
+    }
+    if (currentStep === 3 && quizData.pricingType === 'paid' && (!quizData.price || Number(quizData.price) <= 0)) {
+      return setError('Paid quizzes require a valid price.');
+    }
+    if (currentStep === 4 && quizData.questions.length === 0) {
+      return setError('At least one question is required.');
+    }
+
+    if (currentStep < 5) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setCurrentStep(currentStep + 1);
-    } else {
-      setShowSummary(true);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const handlePreview = () => {
-    setShowPreview(true);
+  const updateQuizData = (newData: Partial<QuizData>) => {
+    setQuizData((prev) => ({ ...prev, ...newData }));
   };
-  const handleSubmit = async () => {
-    if (!selectedCategory) {
-      alert('Please select a category.');
-      return;
+
+  const handleSubmit = async (isDraft: boolean = false) => {
+    const isScheduled = quizData.postType === 'scheduled';
+    if (!isDraft && isScheduled && (!quizData.startDate || !quizData.startTime)) {
+      return setError('Both date and time are required for scheduled quizzes.');
     }
 
-    if (!quizTitle.trim() || quizTitle.trim().length < 3) {
-      alert('Quiz title must be at least 3 characters.');
-      return;
-    }
+    setLoading(true);
+    setError(null);
 
-    if (!description.trim() || description.trim().length < 10) {
-      alert('Description must be at least 10 characters.');
-      return;
-    }
-
-    if (Number(duration) < 1 || Number(totalMarks) < 1 || Number(numberOfQuestions) < 1) {
-      alert('Duration, total marks, and number of questions must be at least 1.');
-      return;
-    }
-
-    if (pricingType === 'paid' && Number(price) < 1) {
-      alert('For paid quizzes, price must be at least 1.');
-      return;
-    }
-
-    const quizData = {
-      category: selectedCategory,
-      pricingType,
-      price: pricingType === 'paid' ? Number(price) : 0,
-      couponCode: coupon.code,
-      // allowOfflinePayment,
-      quizTitle,
-      description,
-      duration: Number(duration),
-      totalMarks: Number(totalMarks),
-      attemptLimit,
-      shuffleQuestions,
-      negativeMarking,
-      negativePerWrong: Number(negativePerWrong || 0),
-      numberOfQuestions: Number(numberOfQuestions || 0),
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      postType,
-      visibility,
-      assignedGroups,
-      tags,
-      difficultyLevel,
-      coverImage: coverImagePreview,
-      saveAsDraft
+    const payload = {
+      quizTitle: quizData.quizTitle,
+      description: quizData.description,
+      categoryId: quizData.categoryId,
+      duration: Number(quizData.duration),
+      totalMarks: Number(quizData.totalMarks),
+      attemptLimit: quizData.attemptLimit,
+      shuffleQuestions: quizData.shuffleQuestions,
+      pricing: {
+        type: quizData.pricingType,
+        amount: quizData.pricingType === 'paid' ? Number(quizData.price) : 0,
+        offerCode: quizData.offerCode,
+      },
+      questions: quizData.questions,
+      visibility: quizData.visibility,
+      groups: quizData.assignedGroups,
+      individuals: quizData.assignedIndividuals,
+      schedule: isScheduled ? {
+        startDate: quizData.startDate,
+        startTime: quizData.startTime,
+        endDate: quizData.endDate,
+        endTime: quizData.endTime,
+      } : null,
+      media: {
+        banner: quizData.bannerImage,
+        featured: quizData.featuredImage,
+      },
+      settings: {
+        showResults: quizData.showResults,
+        showCorrectAnswers: quizData.showCorrectAnswers,
+        certificateEnabled: false,
+      },
+      difficultyLevel: quizData.difficultyLevel,
+      postType: quizData.postType,
+      saveAsDraft: isDraft,
     };
 
     try {
-      const res = await apiAdmin.post('/api/quizzes/admin/quizzes', quizData);
-      const data = res.data;
-      if (res.status >= 200 && res.status < 300) {
-        const createdQuizId = data?.data?._id as string | undefined;
-        if (createdQuizId && cachedQuestions.length > 0) {
-          try {
-            await apiAdmin.post('/api/upload/manual', {
-              quizId: createdQuizId,
-              questions: cachedQuestions
-            });
-          } catch (err) {
-            console.error('❌ Error importing cached questions:', err);
-            alert('Quiz created, but failed to import cached questions. You can retry from Upload/AI tab.');
-          }
-        }
-        alert(`Quiz "${quizTitle}" ${saveAsDraft ? 'saved as draft' : 'created'} successfully!`);
-        onSuccess?.(); // parent ko notify karega (QuizManagement me re-fetch)
+      const response = await apiAdmin.post('/api/quizzes/admin/quizzes', payload);
+      if (response.status >= 200 && response.status < 300) {
+        onSuccess();
         onClose();
       } else {
-        alert(`Error: ${data?.message || 'Failed to create quiz'}`);
+        setError(response.data?.message || 'Failed to create quiz.');
       }
-    } catch (err: unknown) {
-      console.error('❌ Error creating quiz:', err);
-
-      const maybeResponse =
-        err && typeof err === 'object'
-          ? (err as { response?: { data?: { message?: string; error?: string; details?: unknown } } }).response
-          : undefined;
-
-      const message =
-        maybeResponse?.data?.message ||
-        maybeResponse?.data?.error ||
-        'Server error creating quiz';
-
-      alert(message);
+    } catch (err: any) {
+      const serverError = err.response?.data?.message || err.response?.data?.validation?.body?.message;
+      setError(serverError || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <CategorySelection
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
-        );
+        return <CategorySelection quizData={quizData} updateQuizData={updateQuizData} />;
       case 2:
-        return (
-          <BasicSettings
-            quizTitle={quizTitle}
-            description={description}
-            duration={duration}
-            totalMarks={totalMarks}
-            attemptLimit={attemptLimit}
-            shuffleQuestions={shuffleQuestions}
-            negativeMarking={negativeMarking}
-            negativePerWrong={negativePerWrong}
-            numberOfQuestions={numberOfQuestions}
-            onQuizTitleChange={setQuizTitle}
-            onDescriptionChange={setDescription}
-            onDurationChange={setDuration}
-            onTotalMarksChange={setTotalMarks}
-            onAttemptLimitChange={setAttemptLimit}
-            onShuffleQuestionsChange={setShuffleQuestions}
-            onNegativeMarkingChange={setNegativeMarking}
-            onNegativePerWrongChange={setNegativePerWrong}
-            onNumberOfQuestionsChange={setNumberOfQuestions}
-          />
-        );
+        return <BasicSettings quizData={quizData} updateQuizData={updateQuizData} />;
       case 3:
-        return (
-          <PricingAccess
-            pricingType={pricingType}
-            price={price}
-            coupon={coupon}
-            onPricingTypeChange={setPricingType}
-            onPriceChange={setPrice}
-            onCouponChange={setCoupon}
-          />
-
-        );
+        return <PricingAccess quizData={quizData} updateQuizData={updateQuizData} />;
       case 4:
-        return (
-          <UploadImport
-            quizId={quizId}
-            numberOfQuestions={numberOfQuestions}
-            onCacheQuestions={setCachedQuestions}
-          />
-        );
+        return <UploadImport quizData={quizData} updateQuizData={updateQuizData} />;
       case 5:
         return (
-          <ScheduleVisibility
-            startDate={startDate}
-            startTime={startTime}
-            endDate={endDate}
-            endTime={endTime}
-            visibility={visibility}
-            assignedGroups={assignedGroups}
-            onStartDateChange={setStartDate}
-            onStartTimeChange={setStartTime}
-            onEndDateChange={setEndDate}
-            onEndTimeChange={setEndTime}
-            onVisibilityChange={setVisibility}
-            onAssignedGroupsChange={setAssignedGroups}
-            postType={postType} // <-- Pass postType
-            onPostTypeChange={setPostType} // <-- Pass setter
-          />
-        );
-      case 6:
-        return (
-          <MediaAdvanced
-            coverImage={coverImage}
-            coverImagePreview={coverImagePreview}
-            tags={tags}
-            difficultyLevel={difficultyLevel}
-            saveAsDraft={saveAsDraft}
-            onCoverImageChange={(file, preview) => {
-              setCoverImage(file);
-              setCoverImagePreview(preview);
-            }}
-            onTagsChange={setTags}
-            onDifficultyLevelChange={setDifficultyLevel}
-            onSaveAsDraftChange={setSaveAsDraft}
-          />
+          <div className="space-y-12 pb-10">
+            <ScheduleVisibility quizData={quizData} updateQuizData={updateQuizData} />
+            <MediaAdvanced quizData={quizData} updateQuizData={updateQuizData} />
+          </div>
         );
       default:
         return null;
     }
   };
 
-  if (showSummary) {
-    return (
-      <div>
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-xl">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Review Quiz Details</h2>
-            <p className="text-sm text-gray-600">Please review your quiz before publishing</p>
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+      {/* Full Screen Loading Overlay */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-[#253A7B]/5 backdrop-blur-[3px] flex flex-col items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white p-8 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex flex-col items-center border border-gray-100 max-w-xs w-full text-center"
+            >
+              <div className="w-14 h-14 bg-blue-50/50 rounded-full flex items-center justify-center mb-4 relative">
+                <div className="absolute inset-0 rounded-full border-2 border-[#253A7B]/20 border-t-[#253A7B] animate-spin" />
+                <Sparkles className="w-5 h-5 text-[#253A7B] ml-0.5 mt-0.5" />
+              </div>
+              <h3 className="text-[14px] font-bold text-gray-900 mb-1.5">Packaging Quiz</h3>
+              <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
+                Securely syncing your parameters with the network. Please wait a moment.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Step Progress Header */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm overflow-hidden">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div className="shrink-0">
+            <h2 className="text-xl font-semibold text-gray-900">Create New Quiz</h2>
+            <p className="text-gray-500 text-xs mt-0.5 font-medium">Follow steps to configure and launch assessment</p>
           </div>
 
-          <div className="space-y-4 mb-6">
-            <div className="p-4 bg-gray-50 rounded-xl">
-              <h3 className="font-semibold text-gray-900 mb-3">Quiz Information</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-gray-600">Title:</span> <span className="font-medium">{quizTitle}</span></div>
-                <div><span className="text-gray-600">Category:</span> <span className="font-medium">{selectedCategory}</span></div>
-                <div><span className="text-gray-600">Duration:</span> <span className="font-medium">{duration} min</span></div>
-                <div><span className="text-gray-600">Total Marks:</span> <span className="font-medium">{totalMarks}</span></div>
-                <div><span className="text-gray-600">Pricing:</span> <span className="font-medium">{pricingType === 'free' ? 'Free' : `₹${price}`}</span></div>
-                <div><span className="text-gray-600">Difficulty:</span> <span className="font-medium capitalize">{difficultyLevel}</span></div>
-                <div><span className="text-gray-600">Visibility:</span> <span className="font-medium capitalize">{visibility}</span></div>
-                <div><span className="text-gray-600">Status:</span> <span className="font-medium">{saveAsDraft ? 'Draft' : 'Published'}</span></div>
-              </div>
+          <div className="w-full lg:w-auto overflow-x-auto no-scrollbar">
+            <div className="flex p-1 bg-gray-50 rounded-lg border border-gray-100 min-w-max">
+              {steps.map((step) => (
+                <button
+                  key={step.id}
+                  onClick={() => currentStep > step.id && setCurrentStep(step.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-[11px] font-semibold transition-all duration-300 whitespace-nowrap ${
+                    currentStep === step.id
+                      ? 'bg-white text-[#253A7B] shadow-sm'
+                      : currentStep > step.id
+                      ? 'text-green-600'
+                      : 'text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {currentStep > step.id ? <CheckCircle2 className="w-3.5 h-3.5" /> : <step.icon className="w-3.5 h-3.5" />}
+                  {step.label}
+                </button>
+              ))}
             </div>
-
-            {tags.length > 0 && (
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <h3 className="font-semibold text-gray-900 mb-2">Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-lg text-sm">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="p-4 bg-gray-50 rounded-xl">
-              <h3 className="font-semibold text-gray-900 mb-2">Schedule</h3>
-              <div className="text-sm text-gray-700">
-                <p>Starts: {startDate} at {startTime}</p>
-                <p>Ends: {endDate} at {endTime}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowSummary(false)}
-              className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium"
-            >
-              Edit Details
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
-            >
-              <Check className="w-5 h-5" />
-              {saveAsDraft ? 'Save as Draft' : 'Create Quiz'}
-            </button>
           </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div>
-      {/* Quiz Preview Modal */}
-      {showPreview && (
-        <QuizPreview
-          quizData={{
-            quizTitle,
-            description,
-            category: selectedCategory,
-            duration,
-            totalMarks,
-            difficultyLevel,
-            pricingType,
-            price,
-            attemptLimit,
-            startDate,
-            startTime,
-            endDate,
-            endTime,
-            tags,
-            coverImagePreview,
-            negativeMarking,
-            negativePerWrong
-          }}
-          onClose={() => setShowPreview(false)}
-        />
-      )}
+      {/* Main Content Area */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-10 shadow-sm min-h-[400px] relative">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
 
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-xl">
-        {/* Progress Indicator */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-gray-900">
-              Step {currentStep} of {totalSteps}
-            </h3>
-            {currentStep === 6 && (
+        {/* Navigation */}
+        <div className="mt-16 pt-8 border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-between items-center sm:sticky sm:bottom-0 bg-white/95 backdrop-blur-sm py-4 gap-4">
+          <button
+            onClick={handleBack}
+            disabled={currentStep === 1 || loading}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-md font-medium text-sm transition-all border sm:border-transparent ${
+              currentStep === 1
+                ? 'opacity-0 pointer-events-none hidden sm:flex'
+                : 'text-gray-500 border-gray-200 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous Step
+          </button>
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <button
+              onClick={onClose}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-md font-medium text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all border border-gray-200 sm:border-transparent"
+            >
+              Cancel Setup
+            </button>
+            
+            {currentStep === 5 ? (
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => handleSubmit(true)}
+                  disabled={loading}
+                  className="w-full sm:w-auto justify-center px-6 py-2.5 bg-gray-50 text-[#253A7B] border border-gray-200 rounded-md font-medium text-sm hover:bg-gray-100 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
+                  Save as Draft
+                </button>
+                <button
+                  onClick={() => handleSubmit(false)}
+                  disabled={loading}
+                  className="w-full sm:w-auto justify-center px-8 py-2.5 bg-[#253A7B] text-white rounded-md font-medium text-sm shadow-md hover:bg-[#1a2a5e] transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Launch Quiz
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={handlePreview}
-                className="text-sm text-[#253A7B] hover:underline flex items-center gap-1 transition"
+                onClick={handleNext}
+                className="w-full sm:w-auto justify-center px-8 py-2.5 bg-[#253A7B] text-white rounded-md font-medium text-sm shadow-md hover:bg-[#1a2a5e] transition-all flex items-center gap-2"
               >
-                <Eye className="w-4 h-4" />
-                Preview as student
+                Next Step
+                <ChevronRight className="w-4 h-4" />
               </button>
             )}
           </div>
-          <div className="flex gap-1">
-            {Array.from({ length: totalSteps }).map((_, idx) => (
-              <div
-                key={idx}
-                className={`flex-1 h-2 rounded-full transition-all ${idx + 1 <= currentStep ? 'bg-[#253A7B]' : 'bg-gray-200'
-                  }`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Step Content */}
-        <div className="mb-8">
-          {renderStep()}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-          <button
-            onClick={currentStep === 1 ? onClose : handleBack}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium flex items-center gap-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            {currentStep === 1 ? 'Cancel' : 'Back'}
-          </button>
-
-          <button
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className={`px-6 py-3 rounded-xl transition font-medium flex items-center gap-2 ${canProceed()
-              ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
-          >
-            {currentStep === totalSteps ? (
-              <>
-                Review
-                <Check className="w-5 h-5" />
-              </>
-            ) : (
-              <>
-                Next
-                <ArrowRight className="w-5 h-5" />
-              </>
-            )}
-          </button>
         </div>
       </div>
+
+      {error && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-red-600 text-white rounded-md text-xs font-semibold shadow-lg animate-in slide-in-from-top-4 z-50">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

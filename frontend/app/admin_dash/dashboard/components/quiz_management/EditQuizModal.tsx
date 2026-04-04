@@ -47,9 +47,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'duration' || name === 'totalMarks' || name === 'price' 
-        ? Number(value) 
-        : value
+      [name]: ['duration', 'totalMarks', 'price'].includes(name) ? Number(value) : value
     }));
   };
 
@@ -57,284 +55,229 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
-      const response = await apiAdmin.put(`/api/quizzes/admin/quizzes/${quiz._id}`, formData);
-      if (response.status >= 200 && response.status < 300) {
-        onSuccess();
-        onClose();
-      } else {
-        setError(response.data?.message || 'Failed to update quiz');
-      }
-    } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'An error occurred while updating the quiz');
+      await apiAdmin.put(`/api/quizzes/admin/quizzes/${quiz._id}`, formData);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update quiz. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm bg-black/40">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-gray-200">
+        
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Edit Quiz</h2>
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Edit Quiz</h2>
+            <p className="text-gray-500 text-xs mt-0.5">Modify properties for assessment ID: {quiz._id.slice(-6).toUpperCase()}</p>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition"
+            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-all"
             disabled={loading}
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
-            <div>
-              <label htmlFor="quizTitle" className="block text-sm font-medium text-gray-700 mb-2">
-                Quiz Title *
-              </label>
-              <input
-                type="text"
-                id="quizTitle"
-                name="quizTitle"
-                value={formData.quizTitle}
-                onChange={handleInputChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                placeholder="Enter quiz title"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                required
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                placeholder="Enter quiz description"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
+            {/* General Information */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1 h-4 bg-[#253A7B] rounded-full" />
+                <h3 className="text-sm font-semibold text-gray-900">General Information</h3>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500">Quiz Title</label>
                 <input
                   type="text"
-                  id="category"
-                  name="category"
-                  value={formData.category}
+                  name="quizTitle"
+                  value={formData.quizTitle}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                  placeholder="e.g., Finance, Mathematics"
+                  className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-sm font-normal focus:border-[#253A7B] focus:ring-1 focus:ring-[#253A7B]/10 transition-all outline-none"
+                  placeholder="Enter quiz title"
                 />
               </div>
 
-              <div>
-                <label htmlFor="difficultyLevel" className="block text-sm font-medium text-gray-700 mb-2">
-                  Difficulty Level
-                </label>
-                <select
-                  id="difficultyLevel"
-                  name="difficultyLevel"
-                  value={formData.difficultyLevel}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-500">Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Quiz Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Quiz Settings</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-2">
-                  Duration (minutes) *
-                </label>
-                <input
-                  type="number"
-                  id="duration"
-                  name="duration"
-                  value={formData.duration}
-                  onChange={handleInputChange}
-                  required
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                  rows={2}
+                  className="w-full bg-white border border-gray-200 rounded-md px-4 py-2 text-sm font-normal focus:border-[#253A7B] focus:ring-1 focus:ring-[#253A7B]/10 transition-all outline-none resize-none"
+                  placeholder="Provide a brief overview..."
                 />
               </div>
 
-              <div>
-                <label htmlFor="totalMarks" className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Marks *
-                </label>
-                <input
-                  type="number"
-                  id="totalMarks"
-                  name="totalMarks"
-                  value={formData.totalMarks}
-                  onChange={handleInputChange}
-                  required
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="attemptLimit" className="block text-sm font-medium text-gray-700 mb-2">
-                  Attempt Limit
-                </label>
-                <select
-                  id="attemptLimit"
-                  name="attemptLimit"
-                  value={formData.attemptLimit}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                >
-                  <option value="unlimited">Unlimited</option>
-                  <option value="1">1 Attempt</option>
-                  <option value="2">2 Attempts</option>
-                  <option value="3">3 Attempts</option>
-                  <option value="5">5 Attempts</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Pricing */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Pricing</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="pricingType" className="block text-sm font-medium text-gray-700 mb-2">
-                  Pricing Type
-                </label>
-                <select
-                  id="pricingType"
-                  name="pricingType"
-                  value={formData.pricingType}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                >
-                  <option value="free">Free</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
-
-              {formData.pricingType === 'paid' && (
-                <div>
-                  <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                    Price (₹)
-                  </label>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-500">Difficulty</label>
+                  <select
+                    name="difficultyLevel"
+                    value={formData.difficultyLevel}
                     onChange={handleInputChange}
-                    min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
+                    className="w-full bg-white border border-gray-200 rounded-md px-3 py-2.5 text-sm font-normal focus:border-[#253A7B] outline-none appearance-none"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-500">Category</label>
+                  <input
+                    type="text"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-sm font-normal focus:border-[#253A7B] outline-none"
+                    placeholder="Category"
                   />
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Visibility & Status */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Visibility & Status</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-2">
-                  Visibility
-                </label>
-                <select
-                  id="visibility"
-                  name="visibility"
-                  value={formData.visibility}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                >
-                  <option value="public">Public</option>
-                  <option value="unlisted">Unlisted</option>
-                  <option value="private">Private</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#253A7B] focus:border-transparent"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-4 pt-4 border-t border-gray-200">
+            {/* Performance & Access */}
+            <div className="space-y-6">
+               <div className="flex items-center gap-2 mb-2">
+                 <div className="w-1 h-4 bg-green-500 rounded-full" />
+                 <h3 className="text-sm font-semibold text-gray-900">Performance & Access</h3>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-1.5">
+                   <label className="text-xs font-medium text-gray-500">Duration (Mins)</label>
+                   <input
+                     type="number"
+                     name="duration"
+                     value={formData.duration}
+                     onChange={handleInputChange}
+                     className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-sm font-normal focus:border-[#253A7B] outline-none transition-all"
+                   />
+                 </div>
+
+                 <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-500">Attempt Limit</label>
+                    <div className="flex p-1 bg-gray-50 rounded-md border border-gray-100 gap-1">
+                      {['unlimited', '1', '2', '3'].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, attemptLimit: opt }))}
+                          className={`flex-1 py-1.5 rounded text-xs font-medium transition-all ${formData.attemptLimit === opt ? 'bg-white text-[#253A7B] shadow-sm border border-gray-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                        >
+                          {opt === 'unlimited' ? 'Unlmtd' : `${opt}X`}
+                        </button>
+                      ))}
+                    </div>
+                 </div>
+               </div>
+
+               <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-gray-500">Pricing</label>
+                    <select
+                      name="pricingType"
+                      value={formData.pricingType}
+                      onChange={handleInputChange}
+                      className="w-full bg-white border border-gray-200 rounded-md px-3 py-2.5 text-sm font-normal focus:border-[#253A7B] outline-none"
+                    >
+                      <option value="free">Free</option>
+                      <option value="paid">Paid</option>
+                    </select>
+                  </div>
+                  {formData.pricingType === 'paid' && (
+                     <div className="space-y-1.5 animate-in slide-in-from-left-2 transition-all">
+                       <label className="text-xs font-medium text-gray-500">Price (INR)</label>
+                       <input
+                         type="number"
+                         name="price"
+                         value={formData.price}
+                         onChange={handleInputChange}
+                         className="w-full bg-white border border-gray-200 rounded-md px-4 py-2.5 text-sm font-normal focus:border-[#253A7B] outline-none"
+                       />
+                     </div>
+                  )}
+               </div>
+
+               <div className="space-y-1.5">
+                 <label className="text-xs font-medium text-gray-500">Visibility</label>
+                 <div className="grid grid-cols-3 gap-2">
+                    {['public', 'unlisted', 'private'].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setFormData(p => ({ ...p, visibility: v }))}
+                        className={`py-2 rounded border text-xs font-medium transition-all ${formData.visibility === v ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]' : 'border-gray-200 bg-white text-gray-400'}`}
+                      >
+                        {v.charAt(0).toUpperCase() + v.slice(1)}
+                      </button>
+                    ))}
+                 </div>
+               </div>
+            </div>
+          </div>
+        </form>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+           <div className="flex items-center gap-4">
+              <span className="text-xs font-medium text-gray-500">Current Status:</span>
+              <div className="flex p-0.5 bg-white border border-gray-200 rounded-md">
+                 <button
+                   type="button"
+                   onClick={() => setFormData(p => ({ ...p, status: 'published' }))}
+                   className={`px-3 py-1 rounded text-[11px] font-medium transition-all ${formData.status === 'published' ? 'bg-[#253A7B] text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                 >
+                   Published
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => setFormData(p => ({ ...p, status: 'draft' }))}
+                   className={`px-3 py-1 rounded text-[11px] font-medium transition-all ${formData.status === 'draft' ? 'bg-[#253A7B] text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                 >
+                   Draft
+                 </button>
+              </div>
+           </div>
+
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50"
+              className="px-5 py-2.5 bg-white border border-gray-200 rounded-md text-gray-600 font-medium text-sm hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
+              onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-6 py-2.5 bg-[#253A7B] text-white rounded-md font-medium text-sm shadow-sm hover:bg-[#1a2a5e] active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Save Changes
-                </>
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
-        </form>
+        </div>
+
+        {error && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-red-600 text-white rounded-md text-xs font-medium shadow-lg animate-in slide-in-from-top-4 z-[110]">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

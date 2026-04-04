@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Eye, Download, Award, Mail } from 'lucide-react';
-import GenerateCertificatePopup from './GenerateCertificatePopup';
+import React from 'react';
+import { Eye, Download } from 'lucide-react';
 
 interface DrawerHeaderProps {
   quizData: {
@@ -14,57 +13,28 @@ interface DrawerHeaderProps {
 }
 
 const DrawerHeader: React.FC<DrawerHeaderProps> = ({ quizData, onPreview, onExport }) => {
-  const [showCertPopup, setShowCertPopup] = useState(false);
-
-  const handleGenerateCertificates = () => {
-    setShowCertPopup(true);
-  };
-
-  const handleMessageAll = () => {
-    alert('Opening message composer for all participants...');
-  };
-
   return (
     <>
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-        <div className="flex flex-wrap gap-3">
+      <div className="px-6 py-3 border-b border-gray-100 flex flex-wrap gap-2 bg-white">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onPreview}
             title={`Preview ${quizData.title}`}
-            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
+            className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm flex items-center gap-1.5"
           >
-            <Eye className="w-4 h-4" />
-            Preview Quiz
+            <Eye className="w-4 h-4 text-gray-500" />
+            Preview
           </button>
 
           <button
             onClick={onExport}
-            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
+            className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm flex items-center gap-1.5"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-
-          <button
-            onClick={handleGenerateCertificates}
-            className="px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition font-medium text-sm flex items-center gap-2"
-          >
-            <Award className="w-4 h-4" />
-            Generate Certificates
-          </button>
-
-          <button
-            onClick={handleMessageAll}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm flex items-center gap-2 shadow-md"
-          >
-            <Mail className="w-4 h-4" />
-            Message All
+            <Download className="w-4 h-4 text-gray-500" />
+            Export Data
           </button>
         </div>
       </div>
-      {showCertPopup && (
-        <GenerateCertificatePopup quizId={quizData._id} onClose={() => setShowCertPopup(false)} />
-      )}
     </>
   );
 };

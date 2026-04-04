@@ -10,6 +10,8 @@ interface PreviewQuestion {
   options: string[];
   type: 'mcq' | 'true-false';
   marks: number;
+  correct?: number;
+  explanation?: string;
 }
 
 interface PreviewData {
@@ -74,106 +76,177 @@ export default function AdminQuizPreviewModal({ quizId, onClose, onEditQuestion 
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+      <div className="bg-gray-50 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between z-10 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Eye className="w-5 h-5 text-blue-600" />
+            <div className="p-2 bg-[#253A7B] bg-opacity-10 rounded-lg">
+              <Eye className="w-5 h-5 text-[#ffffff]" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Quiz Preview</h2>
-              <p className="text-xs text-gray-600">Admin preview of live quiz</p>
+              <h2 className="text-lg font-semibold text-gray-900">Quiz Preview</h2>
+              <p className="text-xs text-gray-500">Admin view of live quiz content</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-            aria-label="Close"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            title="Close Preview"
           >
-            <X className="w-6 h-6 text-gray-600" />
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-5 space-y-5">
           {loading ? (
-            <div className="text-sm text-gray-500">Loading preview...</div>
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+              <div className="w-8 h-8 border-2 border-gray-200 border-t-[#253A7B] rounded-full animate-spin mb-3" />
+              <p className="text-sm">Loading preview...</p>
+            </div>
           ) : error ? (
-            <div className="text-sm text-red-600">{error}</div>
+            <div className="text-center py-12 text-red-600 bg-red-50 rounded-xl text-sm border border-red-100">
+              {error}
+            </div>
           ) : !preview ? (
-            <div className="text-sm text-gray-500">No preview data available.</div>
+            <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-gray-100 text-sm">
+              No preview data available.
+            </div>
           ) : (
             <>
-              <div>
+              {/* Header Info Card */}
+              <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-[#253A7B] bg-opacity-10 text-[#253A7B] rounded-full text-sm font-medium">
+                  <span className="px-2.5 py-1 bg-[#253A7B] bg-opacity-10 text-[#ffffff] rounded text-xs font-medium">
                     {preview.category || 'Uncategorized'}
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getDifficultyColor(preview.difficultyLevel)}`}>
+                  <span className={`px-2.5 py-1 rounded text-xs font-medium capitalize ${getDifficultyColor(preview.difficultyLevel)}`}>
                     {preview.difficultyLevel || 'unknown'}
                   </span>
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-xl font-semibold text-gray-900 mb-1.5">
                   {preview.title || 'Untitled Quiz'}
                 </h1>
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   {preview.description || 'No description provided.'}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-                  <Clock className="w-6 h-6 text-blue-600 mb-2" />
-                  <p className="text-xs text-blue-700 mb-1">Duration</p>
-                  <p className="text-lg font-bold text-blue-900">{preview.duration || 0} min</p>
+              {/* Stats Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Duration</p>
+                    <p className="text-sm font-semibold text-gray-900">{preview.duration || 0} min</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
-                  <Target className="w-6 h-6 text-green-600 mb-2" />
-                  <p className="text-xs text-green-700 mb-1">Total Marks</p>
-                  <p className="text-lg font-bold text-green-900">{preview.totalMarks || 0}</p>
+                <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                  <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Marks</p>
+                    <p className="text-sm font-semibold text-gray-900">{preview.totalMarks || 0}</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
-                  <p className="text-xs text-purple-700 mb-1">Total Questions</p>
-                  <p className="text-lg font-bold text-purple-900">{preview.totalQuestions || 0}</p>
+                <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                    <span className="text-lg font-medium px-1">?</span>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Questions</p>
+                    <p className="text-sm font-semibold text-gray-900">{preview.totalQuestions || 0}</p>
+                  </div>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
-                  <IndianRupee className="w-6 h-6 text-orange-600 mb-2" />
-                  <p className="text-xs text-orange-700 mb-1">Price</p>
-                  <p className="text-lg font-bold text-orange-900">
-                    {preview.pricingType === 'free' ? 'Free' : `₹${preview.price || 0}`}
-                  </p>
+                <div className="p-3.5 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
+                  <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                    <IndianRupee className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Price</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {preview.pricingType === 'free' ? 'Free' : `₹${preview.price || 0}`}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900">Preview Questions</h3>
+              {/* Questions List */}
+              <div className="space-y-4 mt-6">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-lg font-semibold text-gray-900">Quiz Content</h3>
+                  <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                    {preview.previewQuestions.length} Questions
+                  </span>
+                </div>
+
                 {preview.previewQuestions.length === 0 ? (
-                  <div className="text-sm text-gray-500">No preview questions available.</div>
+                  <div className="text-center py-10 bg-white rounded-xl border border-gray-100 shadow-sm">
+                    <p className="text-sm text-gray-500">No questions available in this quiz.</p>
+                  </div>
                 ) : (
                   preview.previewQuestions.map((question, index) => (
-                    <div key={question.id} className="bg-gray-50 rounded-xl p-5 border border-gray-200 mb-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-gray-900">Question {index + 1}</h4>
-                          <span className="text-xs text-gray-600">{question.marks || 1} mark</span>
+                    <div key={question.id} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm relative group hover:border-gray-200 transition-all">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className="px-2.5 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium border border-gray-200">
+                              Question {index + 1}
+                            </span>
+                            <span className="px-2.5 py-1 bg-gray-50 text-gray-600 rounded text-xs border border-gray-100 font-medium">
+                              {question.marks || 1} mark{(question.marks || 1) > 1 ? 's' : ''}
+                            </span>
+                            <span className="px-2.5 py-1 text-gray-500 text-[11px] font-medium uppercase tracking-wide">
+                              {question.type === 'true-false' ? 'True/False' : 'Multiple Choice'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-800 leading-relaxed">{question.text}</p>
                         </div>
                         {onEditQuestion && (
                           <button
-                            className="text-blue-600 hover:underline text-xs font-medium"
                             onClick={() => onEditQuestion(question.id)}
-                            title="Edit Question"
+                            className="ml-4 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-[#253A7B] rounded text-xs transition border border-gray-100 lg:opacity-0 lg:group-hover:opacity-100 cursor-pointer"
                           >
                             Edit
                           </button>
                         )}
                       </div>
-                      <p className="text-gray-800 mb-3">{question.text}</p>
+
                       <div className="space-y-2">
-                        {question.options.map((option, optionIndex) => (
-                          <div key={optionIndex} className="px-3 py-2 bg-white rounded-lg border border-gray-200 text-sm text-gray-700">
-                            {option}
-                          </div>
-                        ))}
+                        {question.options.map((option, optionIndex) => {
+                          const isCorrect = question.correct === optionIndex;
+                          return (
+                            <div
+                              key={optionIndex}
+                              className={`w-full px-4 py-2.5 rounded-lg border text-left flex items-center gap-3 transition-colors ${isCorrect
+                                ? 'border-green-200 bg-green-50/50'
+                                : 'border-gray-100 bg-gray-50/30 hover:bg-gray-50'
+                                }`}
+                            >
+                              <div className={`w-6 h-6 rounded border flex items-center justify-center text-xs font-medium ${isCorrect
+                                ? 'bg-green-500 border-green-600 text-white shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-400'
+                                }`}>
+                                {String.fromCharCode(65 + optionIndex)}
+                              </div>
+                              <span className={`flex-1 text-sm ${isCorrect ? 'text-green-800 font-medium' : 'text-gray-600'}`}>
+                                {option}
+                              </span>
+                              {isCorrect && (
+                                <span className="text-xs font-medium text-green-700 bg-green-100/80 px-2 py-0.5 rounded ml-2">Correct</span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
+
+                      {question.explanation && (
+                        <div className="mt-4 p-3.5 bg-blue-50/50 border border-blue-100 rounded-lg text-sm text-blue-800">
+                          <span className="font-semibold block mb-1">Explanation:</span>
+                          <span className="leading-relaxed opacity-90">{question.explanation}</span>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

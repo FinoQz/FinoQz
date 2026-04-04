@@ -180,7 +180,7 @@ export default function Footer() {
           <div className="flex items-center gap-2">
             <span>Made with ❤️ in India</span>
             <span className="hidden md:inline opacity-30">|</span>
-            <span>Developed by @Freelancer_Digitech</span>
+            <span>Developed by @FinoQz_India</span>
           </div>
         </div>
       </div>

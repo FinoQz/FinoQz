@@ -150,7 +150,13 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/finance-content', financeContentRoutes);
 
-// ✅ Celebrate validation errors
+// ✅ Celebrate validation errors (with console logging for debugging)
+app.use((err, req, res, next) => {
+  if (err.joi) {
+    console.error('❌ Joi Validation Error details:', JSON.stringify(err.joi.details, null, 2));
+  }
+  next(err);
+});
 app.use(errors());
 
 // ✅ 404 Handler

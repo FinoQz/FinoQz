@@ -1,24 +1,13 @@
 'use client';
 
-import React from 'react';
-import { Calendar, Clock, Eye, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Calendar, Clock, Eye, Users, Check, Loader2, Globe, Shield, UserPlus, X } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
+import { QuizData } from './CreateQuizForm';
 
 interface ScheduleVisibilityProps {
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  visibility: 'public' | 'private';
-  assignedGroups: string[];
-  onStartDateChange: (value: string) => void;
-  onStartTimeChange: (value: string) => void;
-  onEndDateChange: (value: string) => void;
-  onEndTimeChange: (value: string) => void;
-  onVisibilityChange: (value: 'public' | 'private') => void;
-  onAssignedGroupsChange: (groups: string[]) => void;
-  postType: 'live' | 'scheduled';
-  onPostTypeChange: (type: 'live' | 'scheduled') => void;
+  quizData: QuizData;
+  updateQuizData: (newData: Partial<QuizData>) => void;
 }
 
 type GroupOption = {
@@ -27,34 +16,13 @@ type GroupOption = {
 };
 
 export default function ScheduleVisibility({
-  startDate,
-  startTime,
-  endDate,
-  endTime,
-  visibility,
-  assignedGroups,
-  onStartDateChange,
-  onStartTimeChange,
-  onEndDateChange,
-  onEndTimeChange,
-  onVisibilityChange,
-  onAssignedGroupsChange,
-  postType,
-  onPostTypeChange
+  quizData,
+  updateQuizData
 }: ScheduleVisibilityProps) {
-  const [availableGroups, setAvailableGroups] = React.useState<GroupOption[]>([]);
-  const [groupsLoading, setGroupsLoading] = React.useState(false);
-  // Logic: If postType is changed to live, clear schedule fields
-  React.useEffect(() => {
-    if (postType === 'live') {
-      onStartDateChange('');
-      onStartTimeChange('');
-      onEndDateChange('');
-      onEndTimeChange('');
-    }
-  }, [postType, onStartDateChange, onStartTimeChange, onEndDateChange, onEndTimeChange]);
+  const [availableGroups, setAvailableGroups] = useState<GroupOption[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true;
     const loadGroups = async () => {
       setGroupsLoading(true);
@@ -68,7 +36,7 @@ export default function ScheduleVisibility({
         if (mounted) {
           setAvailableGroups(
             list
-              .map((g: { _id?: string; name?: string }) => ({
+              .map((g: any) => ({
                 _id: String(g._id || ''),
                 name: String(g.name || '')
               }))
@@ -77,229 +45,253 @@ export default function ScheduleVisibility({
         }
       } catch (err) {
         console.error('Failed to load groups', err);
-        if (mounted) setAvailableGroups([]);
+      } finally {
+        if (mounted) setGroupsLoading(false);
       }
-      if (mounted) setGroupsLoading(false);
     };
     loadGroups();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  // Helper: For start date, don't allow past dates
-  // For start time, if today, don't allow past time
-  const minDate = new Date().toISOString().split('T')[0];
-  const isStartToday = startDate === minDate || !startDate;
-
-  // Calculate minTime as current time in HH:MM format
-  const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const minTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-  function handleGroupToggle(groupId: string): void {
-    if (assignedGroups.includes(groupId)) {
-      onAssignedGroupsChange(assignedGroups.filter(g => g !== groupId));
-    } else {
-      onAssignedGroupsChange([...assignedGroups, groupId]);
-    }
-  }
+  const handleGroupToggle = (groupId: string) => {
+    const current = quizData.assignedGroups || [];
+    const next = current.includes(groupId)
+      ? current.filter(id => id !== groupId)
+      : [...current, groupId];
+    updateQuizData({ assignedGroups: next });
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Schedule & Visibility</h2>
-        <p className="text-sm text-gray-600">Set when and who can access this quiz</p>
-      </div>
-
-      {/* Post Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Post Type <span className="text-red-500">*</span>
-        </label>
-        <div className="flex gap-3 flex-col sm:flex-row">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Quiz Schedule */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-900 mb-6">Quiz Schedule</label>
+        <div className="flex p-0.5 bg-gray-50 rounded-md border border-gray-100 inline-flex">
           <button
-            type="button"
-            className={`px-4 py-2 rounded-xl border-2 font-semibold transition w-full sm:w-auto ${
-              postType === 'live'
-                ? 'border-[#253A7B] bg-[#253A7B] text-white'
-                : 'border-gray-200 bg-white text-[#253A7B] hover:border-[#253A7B]'
+            onClick={() => updateQuizData({ postType: 'live' })}
+            className={`flex items-center gap-2 px-6 py-2 rounded-md text-[11px] font-semibold transition-all ${
+              quizData.postType === 'live' ? 'bg-white text-[#253A7B] shadow-sm' : 'text-gray-400 hover:text-gray-600'
             }`}
-            onClick={() => onPostTypeChange('live')}
           >
-            Post Live (Now)
+            <Eye className="w-4 h-4" />
+            Go Live Now
           </button>
           <button
-            type="button"
-            className={`px-4 py-2 rounded-xl border-2 font-semibold transition w-full sm:w-auto ${
-              postType === 'scheduled'
-                ? 'border-[#253A7B] bg-[#253A7B] text-white'
-                : 'border-gray-200 bg-white text-[#253A7B] hover:border-[#253A7B]'
+            onClick={() => updateQuizData({ postType: 'scheduled' })}
+            className={`flex items-center gap-2 px-6 py-2 rounded-md text-[11px] font-semibold transition-all ${
+              quizData.postType === 'scheduled' ? 'bg-white text-[#253A7B] shadow-sm' : 'text-gray-400 hover:text-gray-600'
             }`}
-            onClick={() => onPostTypeChange('scheduled')}
           >
-            Scheduled Post
+            <Calendar className="w-4 h-4" />
+            Schedule for Later
           </button>
         </div>
-      </div>
 
-      {/* Schedule Fields */}
-      {postType === 'scheduled' && (
-        <>
-          {/* Start Date/Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Start Date & Time <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="date"
-                  value={startDate}
-                  min={minDate}
-                  onChange={(e) => onStartDateChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-                />
-              </div>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="time"
-                  value={startTime}
-                  min={isStartToday ? minTime : undefined}
-                  onChange={(e) => onStartTimeChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* End Date/Time */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              End Date & Time <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="date"
-                  value={endDate}
-                  min={startDate || minDate}
-                  onChange={(e) => onEndDateChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-                />
-              </div>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="time"
-                  value={endTime}
-                  min={endDate === startDate && startTime ? startTime : undefined}
-                  onChange={(e) => onEndTimeChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-                />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Visibility */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Visibility <span className="text-red-500">*</span>
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Public */}
-          <div
-            onClick={() => onVisibilityChange('public')}
-            className={`p-4 rounded-xl border-2 cursor-pointer transition ${
-              visibility === 'public'
-                ? 'border-[#253A7B] bg-white'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <Eye className={`w-5 h-5 mt-0.5 ${visibility === 'public' ? 'text-[#253A7B]' : 'text-gray-400'}`} />
-              <div>
-                <h4 className={`font-semibold text-sm mb-1 ${visibility === 'public' ? 'text-[#253A7B]' : 'text-gray-900'}`}>
-                  Public
-                </h4>
-                <p className="text-xs text-gray-600">Visible to everyone</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Private */}
-          <div
-            onClick={() => onVisibilityChange('private')}
-            className={`p-4 rounded-xl border-2 cursor-pointer transition ${
-              visibility === 'private'
-                ? 'border-[#253A7B] bg-white'
-                : 'border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <Eye className={`w-5 h-5 mt-0.5 ${visibility === 'private' ? 'text-[#253A7B]' : 'text-gray-400'}`} />
-              <div>
-                <h4 className={`font-semibold text-sm mb-1 ${visibility === 'private' ? 'text-[#253A7B]' : 'text-gray-900'}`}>
-                  Private
-                </h4>
-                <p className="text-xs text-gray-600">Assigned groups only</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Assign to Groups (only if private) */}
-      {visibility === 'private' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Assign to Groups <span className="text-red-500">*</span>
-          </label>
-          {groupsLoading && (
-            <p className="text-xs text-gray-500 mb-2">Loading groups...</p>
-          )}
-          <div className="space-y-2">
-            {availableGroups.map((group) => (
-              <div
-                key={group._id}
-                onClick={() => handleGroupToggle(group._id)}
-                className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-center gap-3 ${
-                  assignedGroups.includes(group._id)
-                    ? 'border-[#253A7B] bg-white'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                  assignedGroups.includes(group._id) ? 'border-[#253A7B] bg-[#253A7B]' : 'border-gray-300'
-                }`}>
-                  {assignedGroups.includes(group._id) && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
+        {quizData.postType === 'scheduled' && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2">
+            <div className="space-y-4">
+              <label className="text-xs font-medium text-gray-500 ml-0.5">Starts At</label>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                  <input
+                    type="date"
+                    value={quizData.startDate}
+                    onChange={(e) => updateQuizData({ startDate: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                  />
                 </div>
-                <Users className="w-5 h-5 text-gray-400" />
-                <span className={`text-sm font-medium ${assignedGroups.includes(group._id) ? 'text-[#253A7B]' : 'text-gray-900'}`}>
-                  {group.name}
-                </span>
+                <div className="flex-1 relative">
+                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                  <input
+                    type="time"
+                    value={quizData.startTime}
+                    onChange={(e) => updateQuizData({ startTime: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                  />
+                </div>
               </div>
-            ))}
-            {!groupsLoading && availableGroups.length === 0 && (
-              <p className="text-xs text-gray-500">No groups found. Create a group in User Management.</p>
-            )}
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-xs font-medium text-gray-500 ml-0.5">Ends At</label>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                  <input
+                    type="date"
+                    value={quizData.endDate}
+                    onChange={(e) => updateQuizData({ endDate: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                  />
+                </div>
+                <div className="flex-1 relative">
+                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                  <input
+                    type="time"
+                    value={quizData.endTime}
+                    onChange={(e) => updateQuizData({ endTime: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          {assignedGroups.length > 0 && (
-            <p className="text-xs text-gray-600 mt-2">
-              {assignedGroups.length} group{assignedGroups.length > 1 ? 's' : ''} selected
-            </p>
-          )}
+        )}
+      </div>
+
+      {/* Visibility Options */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-900 mb-6">Visibility & Access Control</label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <button
+            onClick={() => updateQuizData({ visibility: 'public' })}
+            className={`group relative text-left p-6 rounded-lg border transition-all duration-300 ${
+              quizData.visibility === 'public'
+                ? 'border-[#253A7B] bg-blue-50/30 ring-1 ring-[#253A7B]/10'
+                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-white'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-4 transition-all ${
+              quizData.visibility === 'public' ? 'bg-[#253A7B] text-white' : 'bg-white border border-gray-200 text-gray-400'
+            }`}>
+              <Globe className="w-5 h-5" />
+            </div>
+            <h4 className="text-[13px] font-bold text-gray-900 mb-1">Public Access</h4>
+            <p className="text-[10px] text-gray-500 leading-relaxed font-medium">Visible to all institution members.</p>
+            {quizData.visibility === 'public' && <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-[#253A7B] flex items-center justify-center text-white"><Check className="w-2.5 h-2.5" /></div>}
+          </button>
+
+          <button
+            onClick={() => updateQuizData({ visibility: 'private' })}
+            className={`group relative text-left p-6 rounded-lg border transition-all duration-300 ${
+              quizData.visibility === 'private'
+                ? 'border-[#253A7B] bg-blue-50/30 ring-1 ring-[#253A7B]/10'
+                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-white'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-4 transition-all ${
+              quizData.visibility === 'private' ? 'bg-[#253A7B] text-white' : 'bg-white border border-gray-200 text-gray-400'
+            }`}>
+              <Shield className="w-5 h-5" />
+            </div>
+            <h4 className="text-[13px] font-bold text-gray-900 mb-1">Cohort Restricted</h4>
+            <p className="text-[10px] text-gray-500 leading-relaxed font-medium">Limited to selected student groups.</p>
+            {quizData.visibility === 'private' && <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-[#253A7B] flex items-center justify-center text-white"><Check className="w-2.5 h-2.5" /></div>}
+          </button>
+
+          <button
+            onClick={() => updateQuizData({ visibility: 'individual' })}
+            className={`group relative text-left p-6 rounded-lg border transition-all duration-300 ${
+              quizData.visibility === 'individual'
+                ? 'border-[#253A7B] bg-blue-50/30 ring-1 ring-[#253A7B]/10'
+                : 'border-gray-100 bg-gray-50/50 hover:border-gray-200 hover:bg-white'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-md flex items-center justify-center mb-4 transition-all ${
+              quizData.visibility === 'individual' ? 'bg-[#253A7B] text-white' : 'bg-white border border-gray-200 text-gray-400'
+            }`}>
+              <UserPlus className="w-5 h-5" />
+            </div>
+            <h4 className="text-[13px] font-bold text-gray-900 mb-1">Direct Assignment</h4>
+            <p className="text-[10px] text-gray-500 leading-relaxed font-medium">Specific individuals only.</p>
+            {quizData.visibility === 'individual' && <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-[#253A7B] flex items-center justify-center text-white"><Check className="w-2.5 h-2.5" /></div>}
+          </button>
         </div>
-      )}
+
+        {/* Cohort Selection */}
+        {quizData.visibility === 'private' && (
+          <div className="mt-8 pt-8 border-t border-gray-100 animate-in slide-in-from-top-2">
+            <div className="flex items-center justify-between mb-6">
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Select Target Cohorts</label>
+              {groupsLoading && <Loader2 className="w-4 h-4 animate-spin text-[#253A7B]" />}
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {availableGroups.map((group) => {
+                const isActive = quizData.assignedGroups?.includes(group._id);
+                return (
+                  <button
+                    key={group._id}
+                    onClick={() => handleGroupToggle(group._id)}
+                    className={`flex items-center gap-3 p-3 rounded-md border transition-all ${
+                      isActive
+                        ? 'border-[#253A7B] bg-blue-50/30 text-[#253A7B]'
+                        : 'border-gray-200 bg-gray-50/50 text-gray-400 hover:bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                      isActive ? 'bg-[#253A7B] border-[#253A7B] text-white' : 'bg-white border-gray-300'
+                    }`}>
+                      {isActive && <Check className="w-2.5 h-2.5" />}
+                    </div>
+                    <span className="text-[11px] font-semibold truncate">{group.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Individual Assignment */}
+        {quizData.visibility === 'individual' && (
+          <div className="mt-8 pt-8 border-t border-gray-100 animate-in slide-in-from-top-2">
+            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-6">Assign to Individuals</label>
+            
+            <div className="max-w-xl space-y-4">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                  <input
+                    type="text"
+                    placeholder="Enter email or User ID..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val && !quizData.assignedIndividuals.includes(val)) {
+                          updateQuizData({ assignedIndividuals: [...quizData.assignedIndividuals, val] });
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-lg pl-10 pr-4 py-2.5 text-sm font-semibold text-gray-900 focus:bg-white focus:border-[#253A7B] outline-none transition-all shadow-inner"
+                  />
+                </div>
+                <button 
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="Enter email or User ID..."]') as HTMLInputElement;
+                    const val = input.value.trim();
+                    if (val && !quizData.assignedIndividuals.includes(val)) {
+                      updateQuizData({ assignedIndividuals: [...quizData.assignedIndividuals, val] });
+                      input.value = '';
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-[#253A7B] text-white rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-[#1a2a5e] transition-all"
+                >
+                  Add
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                {quizData.assignedIndividuals.map((id) => (
+                  <div key={id} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-md text-[#253A7B]">
+                    <span className="text-[11px] font-bold">{id}</span>
+                    <button 
+                      onClick={() => updateQuizData({ assignedIndividuals: quizData.assignedIndividuals.filter(i => i !== id) })}
+                      className="p-0.5 hover:bg-blue-100 rounded transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {quizData.assignedIndividuals.length === 0 && (
+                  <p className="text-[11px] text-gray-400 italic">No individuals assigned yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

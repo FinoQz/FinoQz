@@ -1,18 +1,21 @@
+'use client';
+
 import React, { useState } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
-import { Listbox } from '@headlessui/react';
+import { Search, ChevronDown, X } from 'lucide-react';
 
 type QuizStatus = 'all' | 'published' | 'draft';
+type QuizPricing = 'all' | 'free' | 'paid';
 
 interface QuizFiltersProps {
   onSearch?: (query: string) => void;
   onStatusChange?: (status: QuizStatus) => void;
-  onApply?: () => void;
+  onPricingChange?: (pricing: QuizPricing) => void;
 }
 
-export default function QuizFilters({ onSearch, onStatusChange, onApply }: QuizFiltersProps) {
+export default function QuizFilters({ onSearch, onStatusChange, onPricingChange }: QuizFiltersProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState<QuizStatus>('all');
+  const [selectedPricing, setSelectedPricing] = useState<QuizPricing>('all');
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -24,87 +27,60 @@ export default function QuizFilters({ onSearch, onStatusChange, onApply }: QuizF
     onStatusChange?.(value);
   };
 
+  const handlePricingChange = (value: QuizPricing) => {
+    setSelectedPricing(value);
+    onPricingChange?.(value);
+  };
+
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-6">
-      {/* Search Bar */}
-      <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+    <div className="flex flex-col sm:flex-row gap-3 items-center">
+      {/* Search */}
+      <div className="flex-1 relative w-full">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         <input
           type="text"
-          placeholder="Search by title…"
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition text-sm"
+          placeholder="Search quizzes by title..."
+          className="w-full pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/10 transition-all"
         />
+        {searchQuery && (
+          <button
+            onClick={() => handleSearchChange('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
-      {/* Status Dropdown */}
-      <div className="relative min-w-[140px]">
+      {/* Status filter */}
+      <div className="relative w-full sm:w-44">
         <select
           value={selectedStatus}
           onChange={(e) => handleStatusChange(e.target.value as QuizStatus)}
-          className="appearance-none w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition text-sm bg-white pr-10 shadow-sm font-medium text-gray-700
-            hover:border-[#253A7B] hover:bg-gray-50 focus:bg-white"
-          style={{
-            boxShadow: '0 4px 16px rgba(37, 58, 123, 0.08)',
-            cursor: 'pointer',
-          }}
+          className="w-full appearance-none pl-3 pr-8 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/10 transition-all cursor-pointer"
         >
-          <option value="all" className="bg-white text-gray-700 font-medium">All Status</option>
-          <option value="published" className="bg-white text-green-700 font-medium">Published</option>
-          <option value="draft" className="bg-white text-gray-500 font-medium">Draft</option>
+          <option value="all">All Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
         </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
       </div>
 
-      {/* Apply Button */}
-      <button
-        onClick={() => onApply?.()}
-        className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition font-medium text-sm"
-      >
-        Apply
-      </button>
+      {/* Pricing filter */}
+      <div className="relative w-full sm:w-36">
+        <select
+          value={selectedPricing}
+          onChange={(e) => handlePricingChange(e.target.value as QuizPricing)}
+          className="w-full appearance-none pl-3 pr-8 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 font-medium focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/10 transition-all cursor-pointer"
+        >
+          <option value="all">All Types</option>
+          <option value="free">Free</option>
+          <option value="paid">Paid</option>
+        </select>
+        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      </div>
     </div>
-  );
-}
-
-
-const statusOptions = [
-  { value: 'all', label: 'All Status' },
-  { value: 'published', label: 'Published' },
-  { value: 'draft', label: 'Draft' },
-];
-
-interface CustomDropdownProps {
-  selectedStatus: QuizStatus;
-  setSelectedStatus: (status: QuizStatus) => void;
-}
-
-import {
-  ListboxButton,
-  ListboxOptions,
-  ListboxOption,
-} from '@headlessui/react';
-
-export function CustomDropdown({ selectedStatus, setSelectedStatus }: CustomDropdownProps) {
-  return (
-    <Listbox value={selectedStatus} onChange={setSelectedStatus}>
-      <div className="relative min-w-[140px]">
-        <ListboxButton className="w-full px-4 py-2.5 border border-gray-300 rounded-xl bg-white text-gray-700 font-medium">
-          {statusOptions.find(o => o.value === selectedStatus)?.label}
-        </ListboxButton>
-        <ListboxOptions className="absolute mt-1 w-full bg-white rounded-xl shadow-lg z-10">
-          {statusOptions.map(option => (
-            <ListboxOption
-              key={option.value}
-              value={option.value}
-              className="cursor-pointer px-4 py-2 hover:bg-gray-100 rounded-xl"
-            >
-              {option.label}
-            </ListboxOption>
-          ))}
-        </ListboxOptions>
-      </div>
-    </Listbox>
   );
 }

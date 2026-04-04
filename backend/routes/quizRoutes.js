@@ -10,103 +10,88 @@ const router = express.Router();
 
 const createSchema = celebrate({
   body: Joi.object({
-    category: Joi.string().required(),
-    pricingType: Joi.string().valid('free', 'paid').required(),
-    price: Joi.when('pricingType', {
-      is: 'paid',
-      then: Joi.number().min(1).required(),
-      otherwise: Joi.number().default(0)
-    }),
-    couponCode: Joi.string().allow(''),
-    allowOfflinePayment: Joi.boolean(),
-
-    quizTitle: Joi.string().min(3).required(),
-    description: Joi.string().min(10).required(),
-    duration: Joi.number().min(1).required(),
-    totalMarks: Joi.number().min(1).required(),
-    numberOfQuestions: Joi.number().min(1).required(),
-    attemptLimit: Joi.string().valid('unlimited', '1').required(),
+    categoryId: Joi.string().required(),
+    quizTitle: Joi.string().min(1).required(),
+    description: Joi.string().allow('', null),
+    duration: Joi.number().min(0).default(30),
+    totalMarks: Joi.number().min(0).optional(),
+    attemptLimit: Joi.string().valid('unlimited', '1', '2', '3', '4', '5').default('unlimited'),
     shuffleQuestions: Joi.boolean(),
-    negativeMarking: Joi.boolean(),
-    negativePerWrong: Joi.number().min(0),
 
-    postType: Joi.string().valid('live','scheduled').default('live'),
-    startDate: Joi.when('postType', {
-      is: 'scheduled',
-      then: Joi.string().required(),
-      otherwise: Joi.string().allow('').optional()
-    }),
-    startTime: Joi.when('postType', {
-      is: 'scheduled',
-      then: Joi.string().required(),
-      otherwise: Joi.string().allow('').optional()
-    }),
-    endDate: Joi.when('postType', {
-      is: 'scheduled',
-      then: Joi.string().required(),
-      otherwise: Joi.string().allow('').optional()
-    }),
-    endTime: Joi.when('postType', {
-      is: 'scheduled',
-      then: Joi.string().required(),
-      otherwise: Joi.string().allow('').optional()
+    pricing: Joi.object({
+      type: Joi.string().valid('free', 'paid').required(),
+      amount: Joi.number().min(0).default(0),
+      offerCode: Joi.string().allow(''),
+      allowOfflinePayment: Joi.boolean(),
+    }).required(),
+
+    questions: Joi.array().items(Joi.object({
+      text: Joi.string().allow('', null).required(),
+      options: Joi.array().items(Joi.string().allow('', null)).min(1).required(),
+      correct: Joi.number().allow(null).default(0),
+      explanation: Joi.string().allow('', null)
+    }).options({ allowUnknown: true })).default([]),
+
+    visibility: Joi.string().valid('public', 'unlisted', 'private', 'individual').required(),
+    groups: Joi.array().items(Joi.string()).default([]),
+    individuals: Joi.array().items(Joi.string()).default([]),
+
+    schedule: Joi.object({
+      startDate: Joi.string().allow(''),
+      startTime: Joi.string().allow(''),
+      endDate: Joi.string().allow(''),
+      endTime: Joi.string().allow(''),
+    }).allow(null),
+
+    media: Joi.object({
+      banner: Joi.string().allow(null, ''),
+      featured: Joi.string().allow(null, ''),
     }),
 
-    visibility: Joi.string().valid('public','unlisted','private').required(),
-    assignedGroups: Joi.when('visibility', {
-      is: 'private',
-      then: Joi.array().items(Joi.string()).min(1).required(),
-      otherwise: Joi.array().items(Joi.string()).default([])
+    settings: Joi.object({
+      showResults: Joi.boolean().default(true),
+      showCorrectAnswers: Joi.boolean().default(true),
+      certificateEnabled: Joi.boolean().default(false),
     }),
 
-    coverImage: Joi.string().allow(''),
+    postType: Joi.string().valid('live', 'scheduled').default('live'),
     tags: Joi.array().items(Joi.string()).default([]),
-    difficultyLevel: Joi.string().valid('easy','medium','hard').required(),
-
+    difficultyLevel: Joi.string().valid('easy', 'medium', 'hard').default('medium'),
     saveAsDraft: Joi.boolean().default(false),
-
-    coupon: Joi.object({
-      code: Joi.string().allow(''),
-      discountType: Joi.string().valid('percentage', 'flat'),
-      discountValue: Joi.number().min(0),
-      visibility: Joi.string().valid('all', 'new_users', 'existing_users')
-    }).optional()
-  })
+  }).options({ allowUnknown: true })
 });
 
 const updateSchema = celebrate({
   body: Joi.object({
-    category: Joi.string(),
-    quizTitle: Joi.string(),
-    description: Joi.string(),
-    duration: Joi.number(),
-    totalMarks: Joi.number(),
-    numberOfQuestions: Joi.number(),
-    attemptLimit: Joi.string().valid('unlimited', '1'),
+    categoryId: Joi.string().allow('', null),
+    quizTitle: Joi.string().allow('', null),
+    description: Joi.string().allow('', null),
+    duration: Joi.number().min(0),
+    totalMarks: Joi.number().min(0).optional(),
+    attemptLimit: Joi.string().valid('unlimited', '1', '2', '3', '4', '5'),
     shuffleQuestions: Joi.boolean(),
-    negativeMarking: Joi.boolean(),
-    negativePerWrong: Joi.number(),
-    pricingType: Joi.string().valid('free', 'paid'),
-    price: Joi.number(),
-    couponCode: Joi.string().allow(''),
-    allowOfflinePayment: Joi.boolean(),
-    startDate: Joi.string(),
-    startTime: Joi.string(),
-    endDate: Joi.string(),
-    endTime: Joi.string(),
-    visibility: Joi.string().valid('public','unlisted','private'),
-    assignedGroups: Joi.array().items(Joi.string()),
-    coverImage: Joi.string().allow(''),
+    pricing: Joi.object({
+      type: Joi.string().valid('free', 'paid'),
+      amount: Joi.number(),
+      offerCode: Joi.string().allow(''),
+      allowOfflinePayment: Joi.boolean(),
+    }),
+    visibility: Joi.string().valid('public', 'unlisted', 'private', 'individual'),
+    groups: Joi.array().items(Joi.string()),
+    individuals: Joi.array().items(Joi.string()),
+    media: Joi.object({
+      banner: Joi.string().allow(null, ''),
+      featured: Joi.string().allow(null, ''),
+    }),
+    settings: Joi.object({
+      showResults: Joi.boolean(),
+      showCorrectAnswers: Joi.boolean(),
+      certificateEnabled: Joi.boolean(),
+    }),
+    status: Joi.string().valid('draft', 'published'),
     tags: Joi.array().items(Joi.string()),
-    difficultyLevel: Joi.string().valid('easy','medium','hard'),
-    status: Joi.string().valid('draft','published'),
-    coupon: Joi.object({
-      code: Joi.string().allow(''),
-      discountType: Joi.string().valid('percentage', 'flat'),
-      discountValue: Joi.number().min(0),
-      visibility: Joi.string().valid('all', 'new_users', 'existing_users')
-    }).optional()
-  })
+    difficultyLevel: Joi.string().valid('easy', 'medium', 'hard'),
+  }).options({ allowUnknown: true })
 });
 
 const statusSchema = celebrate({
@@ -154,7 +139,14 @@ router.get('/my-quizzes', authMiddleware(), c.getMyQuizzes);
 router.post('/quizzes/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
 router.post('/:id/enroll', authMiddleware(), writeLimiter, c.enroll);
 
-// Celebrate error handler
+// Celebrate error handler with console logging for debugging
+router.use((err, req, res, next) => {
+  if (err.joi) {
+    console.error('❌ Joi Validation Error:', err.joi.details);
+  }
+  next(err);
+});
+
 router.use(errors());
 
 export default router;
