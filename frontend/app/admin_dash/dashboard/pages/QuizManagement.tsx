@@ -43,6 +43,7 @@ interface QuestionEditData {
   options: string[];
   correctAnswer?: string;
   correct: number | null;
+  explanation?: string;
   marks?: number;
   type?: string;
   [key: string]: unknown;
@@ -275,9 +276,11 @@ export default function QuizManagement() {
         <EditQuestionModal
           isOpen={showQuestionEditModal}
           question={{
-            ...questionEditData,
-            marks: (questionEditData as any).marks ?? 0,
-            type: (questionEditData as any).type ?? 'multiple-choice',
+            _id: questionEditData._id,
+            text: questionEditData.text || questionEditData.questionText || '',
+            options: Array.isArray(questionEditData.options) ? questionEditData.options : [],
+            correct: typeof questionEditData.correct === 'number' ? questionEditData.correct : 0,
+            explanation: typeof questionEditData.explanation === 'string' ? questionEditData.explanation : '',
           }}
           onClose={() => {
             setShowQuestionEditModal(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Eye, Users, Check, Loader2, Globe, Shield, UserPlus, X } from 'lucide-react';
+import { Calendar, Clock, Eye, Check, Loader2, Globe, Shield, UserPlus, X } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 import { QuizData } from './CreateQuizForm';
 
@@ -14,6 +14,14 @@ type GroupOption = {
   _id: string;
   name: string;
 };
+
+type GroupApiItem = {
+  _id?: string | number;
+  name?: string;
+};
+
+const isGroupApiItem = (value: unknown): value is GroupApiItem =>
+  typeof value === 'object' && value !== null;
 
 export default function ScheduleVisibility({
   quizData,
@@ -36,10 +44,15 @@ export default function ScheduleVisibility({
         if (mounted) {
           setAvailableGroups(
             list
-              .map((g: any) => ({
-                _id: String(g._id || ''),
-                name: String(g.name || '')
-              }))
+              .map((g: unknown) => {
+                if (!isGroupApiItem(g)) {
+                  return { _id: '', name: '' };
+                }
+                return {
+                  _id: String(g._id || ''),
+                  name: String(g.name || '')
+                };
+              })
               .filter((g: GroupOption) => g._id && g.name)
           );
         }

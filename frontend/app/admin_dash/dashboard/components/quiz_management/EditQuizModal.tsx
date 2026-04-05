@@ -59,8 +59,15 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
       await apiAdmin.put(`/api/quizzes/admin/quizzes/${quiz._id}`, formData);
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update quiz. Please try again.');
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
+          ? String((err as { response?: { data?: { message?: unknown } } }).response?.data?.message)
+          : 'Failed to update quiz. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }

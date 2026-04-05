@@ -45,7 +45,7 @@ export interface QuizData {
   pricingType: 'free' | 'paid';
   price: string | number;
   offerCode?: string;
-  questions: any[];
+  questions: unknown[];
   postType: 'live' | 'scheduled';
   startDate: string;
   startTime: string;
@@ -193,8 +193,22 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       } else {
         setError(response.data?.message || 'Failed to create quiz.');
       }
-    } catch (err: any) {
-      const serverError = err.response?.data?.message || err.response?.data?.validation?.body?.message;
+    } catch (err: unknown) {
+      type ApiErrorShape = {
+        response?: {
+          data?: {
+            message?: string;
+            validation?: {
+              body?: {
+                message?: string;
+              };
+            };
+          };
+        };
+      };
+
+      const apiError = err as ApiErrorShape;
+      const serverError = apiError.response?.data?.message || apiError.response?.data?.validation?.body?.message;
       setError(serverError || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);

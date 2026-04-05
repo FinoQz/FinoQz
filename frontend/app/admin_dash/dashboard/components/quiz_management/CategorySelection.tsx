@@ -38,12 +38,26 @@ export default function CategorySelection({
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/categories`);
       const data = await res.json();
-      const rawCategories = Array.isArray(data.data) ? data.data : data;
-      setCategories(rawCategories.map((cat: any) => ({
-        _id: cat._id,
-        name: cat.name,
-        description: cat.description || '',
-      })));
+      const rawCategories: unknown[] = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : [];
+
+      const parsedCategories = rawCategories
+        .map((cat): Category | null => {
+          if (!cat || typeof cat !== 'object') return null;
+          const item = cat as { _id?: unknown; name?: unknown; description?: unknown };
+          if (typeof item._id !== 'string' || typeof item.name !== 'string') return null;
+          return {
+            _id: item._id,
+            name: item.name,
+            description: typeof item.description === 'string' ? item.description : '',
+          };
+        })
+        .filter((cat): cat is Category => cat !== null);
+
+      setCategories(parsedCategories);
     } catch (err) {
       setError('Failed to load categories.');
     } finally {

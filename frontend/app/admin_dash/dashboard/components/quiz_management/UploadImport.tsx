@@ -17,7 +17,8 @@ import {
   HelpCircle,
   X,
   Zap,
-  ArrowRight
+  ArrowRight,
+  type LucideIcon
 } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 import { QuizData } from './CreateQuizForm';
@@ -308,7 +309,7 @@ export default function UploadImport({ quizData, updateQuizData }: UploadImportP
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:gap-4">
-            {quizData.questions.map((q, idx) => (
+            {(quizData.questions as Question[]).map((q, idx) => (
               <div key={idx} className="bg-white border border-gray-100 rounded-xl overflow-hidden group hover:border-[#253A7B]/20 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                 {editingIdx === idx ? (
                   <div className="p-3 sm:p-5">
@@ -386,7 +387,7 @@ export default function UploadImport({ quizData, updateQuizData }: UploadImportP
   );
 }
 
-function UploadArea({ title, desc, icon: Icon, color, accept, onUpload, loading }: { title: string, desc: string, icon: any, color: string, accept: string, onUpload: (file: File) => void, loading: boolean }) {
+function UploadArea({ title, desc, icon: Icon, color, accept, onUpload, loading }: { title: string, desc: string, icon: LucideIcon, color: string, accept: string, onUpload: (file: File) => void, loading: boolean }) {
   return (
     <div className="relative group animate-in slide-in-from-top-4">
       <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-3xl p-20 bg-gray-50/30 hover:bg-white hover:border-[#253A7B]/20 transition-all cursor-pointer shadow-inner">

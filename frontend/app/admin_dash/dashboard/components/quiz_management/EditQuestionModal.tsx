@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiAdmin from '@/lib/apiAdmin';
+
+interface Question {
+  _id: string;
+  text: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
 
 interface EditQuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  question: any;
+  question: Question;
   onSuccess: () => void;
 }
 
 export default function EditQuestionModal({ isOpen, onClose, question, onSuccess }: EditQuestionModalProps) {
-  const [editedQuestion, setEditedQuestion] = useState(question);
+  const [editedQuestion, setEditedQuestion] = useState<Question>(question);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +60,9 @@ export default function EditQuestionModal({ isOpen, onClose, question, onSuccess
       } else {
         setError(response.data?.message || 'Failed to update question');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred while saving.');
+    } catch (err: unknown) {
+      const apiError = err as ApiError;
+      setError(apiError.response?.data?.message || 'An error occurred while saving.');
     } finally {
       setLoading(false);
     }
