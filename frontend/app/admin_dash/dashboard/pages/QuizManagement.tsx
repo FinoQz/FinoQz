@@ -28,7 +28,11 @@ interface Quiz {
   attemptLimit?: string;
   difficultyLevel?: string;
   category?: string;
+  categoryName?: string;
+  shuffleQuestions?: boolean;
   visibility?: string;
+  assignedGroups?: string[];
+  assignedIndividuals?: string[];
 }
 
 interface ApiResponse {
@@ -47,6 +51,11 @@ interface QuestionEditData {
   marks?: number;
   type?: string;
   [key: string]: unknown;
+}
+
+interface Category {
+  _id: string;
+  name: string;
 }
 
 const QUIZZES_API = '/api/quizzes/admin/quizzes';
@@ -77,11 +86,39 @@ export default function QuizManagement() {
     setLoading(true);
     setError('');
     try {
-      const res = await apiAdmin.get(QUIZZES_API);
-      const result: ApiResponse = res.data;
-      const quizzesArray = Array.isArray(result.data) ? result.data : [];
-      setQuizzes(quizzesArray);
-      setFilteredQuizzes(quizzesArray);
+      const [quizRes, categoryRes] = await Promise.all([
+        apiAdmin.get(QUIZZES_API),
+        apiAdmin.get('/api/categories').catch(() => ({ data: [] })),
+      ]);
+
+      const quizResult: ApiResponse = quizRes.data;
+      const quizzesArray = Array.isArray(quizResult.data) ? quizResult.data : [];
+
+      const rawCategories: unknown[] = Array.isArray(categoryRes.data?.data)
+        ? categoryRes.data.data
+        : Array.isArray(categoryRes.data)
+          ? categoryRes.data
+          : [];
+
+      const categoryMap = rawCategories.reduce((acc: Record<string, string>, cat: unknown) => {
+        if (!cat || typeof cat !== 'object') return acc;
+        const item = cat as Category;
+        if (typeof item._id === 'string' && typeof item.name === 'string') {
+          acc[item._id] = item.name;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
+      const quizzesWithCategoryNames = quizzesArray.map((quiz) => ({
+        ...quiz,
+        categoryName:
+          typeof quiz.category === 'string' && categoryMap[quiz.category]
+            ? categoryMap[quiz.category]
+            : quiz.category,
+      }));
+
+      setQuizzes(quizzesWithCategoryNames);
+      setFilteredQuizzes(quizzesWithCategoryNames);
     } catch {
       setError('Failed to fetch quizzes');
       setQuizzes([]);
@@ -187,12 +224,12 @@ export default function QuizManagement() {
     );
   }
   return (
-    <div className="p-6 lg:p-10 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 border-b border-gray-100 pb-6 sm:pb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Quiz Management</h1>
-          <p className="text-gray-500 text-sm mt-1">Create and manage your assessments and quizzes</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Quiz Management</h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">Create and manage your assessments and quizzes</p>
         </div>
         <CreateQuizButton onClick={handleCreateQuiz} />
       </div>
@@ -201,27 +238,27 @@ export default function QuizManagement() {
       {error && <StatusMessage message={error} type="error" />}
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
         {[
           { label: 'Total Quizzes', value: quizzes.length, icon: FileText, color: 'text-blue-600' },
           { label: 'Published', value: quizzes.filter(q => q.status === 'published').length, icon: CheckCircle, color: 'text-green-600' },
           { label: 'Drafts', value: quizzes.filter(q => q.status === 'draft').length, icon: File, color: 'text-gray-400' }
         ].map((stat, i) => (
-          <div key={i} className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-gray-50 ${stat.color}`}>
+          <div key={i} className="bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-sm flex items-center gap-3 sm:gap-4">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-gray-50 ${stat.color}`}>
               <stat.icon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.label}</p>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Main Content Area */}
-      <div className="space-y-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm">
           <QuizFilters
             onSearch={handleSearch}
             onStatusChange={handleStatusChange}
@@ -264,6 +301,8 @@ export default function QuizManagement() {
       {showPreviewModal && quizToPreview && (
         <AdminQuizPreviewModal
           quizId={quizToPreview._id}
+          quizTitle={quizToPreview.quizTitle}
+          quizCategoryName={quizToPreview.categoryName || quizToPreview.category}
           onClose={() => {
             setShowPreviewModal(false);
             setQuizToPreview(null);

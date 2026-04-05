@@ -103,7 +103,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
                   </div>
                 </div>
                 <p className="text-xs text-gray-400">
-                  Quiz ID: {quizData._id} • Created: {quizData.createdAt} • Duration: {quizData.duration} min
+                  Quiz: {quizData.quizTitle} • Created: {quizData.createdAt} • Duration: {quizData.duration} min
                 </p>
               </div>
               <button
@@ -192,6 +192,7 @@ export default function ParticipantsDrawer({ isOpen, onClose, quizData }: Partic
       {showPreviewModal && (
         <AdminQuizPreviewModal
           quizId={quizId}
+          quizTitle={quizData.quizTitle}
           onClose={() => setShowPreviewModal(false)}
         />
       )}

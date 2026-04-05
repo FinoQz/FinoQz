@@ -64,11 +64,12 @@ const createSchema = celebrate({
 const updateSchema = celebrate({
   body: Joi.object({
     categoryId: Joi.string().allow('', null),
+    category: Joi.string().allow('', null),
     quizTitle: Joi.string().allow('', null),
     description: Joi.string().allow('', null),
     duration: Joi.number().min(0),
     totalMarks: Joi.number().min(0).optional(),
-    attemptLimit: Joi.string().valid('unlimited', '1', '2', '3', '4', '5'),
+    attemptLimit: Joi.string().valid('unlimited', '1'),
     shuffleQuestions: Joi.boolean(),
     pricing: Joi.object({
       type: Joi.string().valid('free', 'paid'),
@@ -79,6 +80,8 @@ const updateSchema = celebrate({
     visibility: Joi.string().valid('public', 'unlisted', 'private', 'individual'),
     groups: Joi.array().items(Joi.string()),
     individuals: Joi.array().items(Joi.string()),
+    assignedGroups: Joi.array().items(Joi.string()),
+    assignedIndividuals: Joi.array().items(Joi.string()),
     media: Joi.object({
       banner: Joi.string().allow(null, ''),
       featured: Joi.string().allow(null, ''),
@@ -90,7 +93,7 @@ const updateSchema = celebrate({
     }),
     status: Joi.string().valid('draft', 'published'),
     tags: Joi.array().items(Joi.string()),
-    difficultyLevel: Joi.string().valid('easy', 'medium', 'hard'),
+    difficultyLevel: Joi.string().valid('easy', 'medium', 'hard', 'low', 'high'),
   }).options({ allowUnknown: true })
 });
 

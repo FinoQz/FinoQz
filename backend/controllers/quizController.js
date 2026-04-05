@@ -18,6 +18,8 @@ import { generateDescription, generateFromPrompt } from '../services/generatorSe
 import User from '../models/User.js';
 import Group from '../models/Group.js';
 import QuizActivityLog from '../models/QuizActivityLog.js';
+import emailQueue from '../utils/emailQueue.js';
+import quizAssignmentTemplate from '../emailTemplates/quizAssignmentTemplate.js';
 
 const ACTIVE_USER_STATUSES = new Set(['approved', 'active']);
 const DEFAULT_LIVE_END_DAYS = 3650; // 10 years
@@ -56,6 +58,164 @@ const parseDateTime = (dateStr, timeStr) => {
   return d;
 };
 
+const normalizeStringArray = (arr) => {
+  if (!Array.isArray(arr)) return [];
+  return Array.from(new Set(arr.map((v) => String(v || '').trim()).filter(Boolean)));
+};
+
+const splitUserTokens = (tokens = []) => {
+  const normalized = normalizeStringArray(tokens);
+  const ids = [];
+  const emails = [];
+  normalized.forEach((value) => {
+    if (mongoose.Types.ObjectId.isValid(value)) ids.push(value);
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) emails.push(value.toLowerCase());
+  });
+  return { normalized, ids, emails };
+};
+
+const resolveEmailsFromGroups = async (groupTokens = []) => {
+  const normalized = normalizeStringArray(groupTokens);
+  if (normalized.length === 0) return [];
+
+  const groupIdTokens = normalized.filter((token) => mongoose.Types.ObjectId.isValid(token));
+  const groupNameTokens = normalized.filter((token) => !mongoose.Types.ObjectId.isValid(token));
+
+  const criteria = [];
+  if (groupIdTokens.length > 0) {
+    criteria.push({ _id: { $in: groupIdTokens.map((id) => new mongoose.Types.ObjectId(id)) } });
+  }
+  if (groupNameTokens.length > 0) {
+    criteria.push({ name: { $in: groupNameTokens } });
+  }
+  if (criteria.length === 0) return [];
+
+  const groups = await Group.find({ $or: criteria }).select('name members').lean();
+  const memberIds = Array.from(
+    new Set(
+      groups
+        .flatMap((group) => (Array.isArray(group.members) ? group.members : []))
+        .map((member) => String(member))
+        .filter(Boolean)
+    )
+  );
+
+  if (memberIds.length === 0) return [];
+
+  const users = await User.find({ _id: { $in: memberIds } }).select('fullName email').lean();
+  const groupNames = groups.map((group) => String(group.name || 'Group')).filter(Boolean);
+  const viaLabel = groupNames.length > 0 ? `Group: ${groupNames.join(', ')}` : 'Group assignment';
+
+  return users
+    .filter((user) => typeof user.email === 'string' && user.email.trim())
+    .map((user) => ({
+      email: String(user.email).toLowerCase(),
+      fullName: String(user.fullName || 'Learner'),
+      assignedVia: viaLabel,
+    }));
+};
+
+const resolveEmailsFromIndividuals = async (individualTokens = []) => {
+  const { normalized, ids, emails } = splitUserTokens(individualTokens);
+  if (normalized.length === 0) return [];
+
+  const criteria = [];
+  if (ids.length > 0) {
+    criteria.push({ _id: { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) } });
+  }
+  if (emails.length > 0) {
+    criteria.push({ email: { $in: emails } });
+  }
+
+  const users = criteria.length > 0
+    ? await User.find({ $or: criteria }).select('fullName email').lean()
+    : [];
+
+  const matchedEmails = new Set();
+  const recipients = users
+    .filter((user) => typeof user.email === 'string' && user.email.trim())
+    .map((user) => {
+      const email = String(user.email).toLowerCase();
+      matchedEmails.add(email);
+      return {
+        email,
+        fullName: String(user.fullName || 'Learner'),
+        assignedVia: 'Direct assignment',
+      };
+    });
+
+  emails.forEach((email) => {
+    if (matchedEmails.has(email)) return;
+    recipients.push({
+      email,
+      fullName: email.split('@')[0] || 'Learner',
+      assignedVia: 'Direct assignment',
+    });
+  });
+
+  return recipients;
+};
+
+const queueQuizAssignmentEmails = async ({ previousQuiz, updatedQuiz }) => {
+  if (!updatedQuiz) return;
+
+  const prevVisibility = String(previousQuiz?.visibility || '');
+  const nextVisibility = String(updatedQuiz.visibility || '');
+
+  let recipients = [];
+
+  if (nextVisibility === 'private') {
+    const prevGroups = prevVisibility === 'private' ? normalizeStringArray(previousQuiz?.assignedGroups) : [];
+    const nextGroups = normalizeStringArray(updatedQuiz.assignedGroups);
+    const newGroups = nextGroups.filter((group) => !prevGroups.includes(group));
+    recipients = await resolveEmailsFromGroups(newGroups);
+  }
+
+  if (nextVisibility === 'individual') {
+    const prevIndividuals = prevVisibility === 'individual' ? normalizeStringArray(previousQuiz?.assignedIndividuals) : [];
+    const nextIndividuals = normalizeStringArray(updatedQuiz.assignedIndividuals);
+    const newIndividuals = nextIndividuals.filter((person) => !prevIndividuals.includes(person));
+    recipients = await resolveEmailsFromIndividuals(newIndividuals);
+  }
+
+  if (recipients.length === 0) return;
+
+  const dedup = new Map();
+  recipients.forEach((recipient) => {
+    if (!recipient?.email) return;
+    const key = String(recipient.email).toLowerCase();
+    if (!dedup.has(key)) dedup.set(key, recipient);
+  });
+
+  const actionUrl = `${process.env.FRONTEND_URL || 'https://finoqz.com'}/landing/user_dash/dashboard`;
+  const visibilityLabel = nextVisibility === 'private'
+    ? 'Private (Group Restricted)'
+    : nextVisibility === 'individual'
+      ? 'Direct Assignment'
+      : 'Public';
+
+  const jobs = Array.from(dedup.values()).map((recipient) => {
+    const html = quizAssignmentTemplate({
+      fullName: recipient.fullName,
+      quizTitle: updatedQuiz.quizTitle,
+      quizDescription: updatedQuiz.description,
+      visibilityLabel,
+      assignedVia: recipient.assignedVia,
+      startAt: updatedQuiz.startAt,
+      endAt: updatedQuiz.endAt,
+      actionUrl,
+    });
+
+    return emailQueue.add('sendMail', {
+      to: recipient.email,
+      subject: `New Quiz Assigned: ${updatedQuiz.quizTitle || 'Quiz'}`,
+      html,
+    });
+  });
+
+  await Promise.allSettled(jobs);
+};
+
 // Allowed fields for update to avoid accidental overwrite
 const ALLOWED_UPDATE_FIELDS = new Set([
   'category',
@@ -75,6 +235,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   'endAt',
   'visibility',
   'assignedGroups',
+  'assignedIndividuals',
   'tags',
   'difficultyLevel',
   'coverImage',
@@ -207,8 +368,29 @@ export const updateQuiz = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
 
+    const previousQuiz = await Quiz.findById(id)
+      .select('visibility assignedGroups assignedIndividuals quizTitle description startAt endAt')
+      .lean();
+    if (!previousQuiz) return res.status(404).json({ message: 'Quiz not found' });
+
     const incoming = { ...req.body };
     const update = {};
+
+    // Support both create-style keys and edit-style keys.
+    if (incoming.categoryId && !incoming.category) incoming.category = incoming.categoryId;
+    if (Array.isArray(incoming.groups) && !Array.isArray(incoming.assignedGroups)) {
+      incoming.assignedGroups = incoming.groups;
+    }
+    if (Array.isArray(incoming.individuals) && !Array.isArray(incoming.assignedIndividuals)) {
+      incoming.assignedIndividuals = incoming.individuals;
+    }
+
+    // Accept UI aliases while persisting enum-compatible values.
+    if (incoming.difficultyLevel === 'low') incoming.difficultyLevel = 'easy';
+    if (incoming.difficultyLevel === 'high') incoming.difficultyLevel = 'hard';
+    if (incoming.attemptLimit !== undefined) {
+      incoming.attemptLimit = String(incoming.attemptLimit) === '1' ? '1' : 'unlimited';
+    }
 
     // accept startDate/startTime or startAt directly
     if (incoming.startDate && incoming.startTime) {
@@ -242,10 +424,35 @@ export const updateQuiz = async (req, res) => {
 
     // arrays normalization
     if (update.assignedGroups && !Array.isArray(update.assignedGroups)) update.assignedGroups = [];
+    if (update.assignedIndividuals && !Array.isArray(update.assignedIndividuals)) update.assignedIndividuals = [];
+    if (Array.isArray(update.assignedGroups)) {
+      update.assignedGroups = Array.from(new Set(update.assignedGroups.map((v) => String(v).trim()).filter(Boolean)));
+    }
+    if (Array.isArray(update.assignedIndividuals)) {
+      update.assignedIndividuals = Array.from(new Set(update.assignedIndividuals.map((v) => String(v).trim()).filter(Boolean)));
+    }
     if (update.tags && !Array.isArray(update.tags)) update.tags = [];
+
+    // Keep assignment state consistent by visibility.
+    if (update.visibility === 'public' || update.visibility === 'unlisted') {
+      update.assignedGroups = [];
+      update.assignedIndividuals = [];
+    }
+    if (update.visibility === 'private') {
+      update.assignedIndividuals = [];
+    }
+    if (update.visibility === 'individual') {
+      update.assignedGroups = [];
+    }
 
     const quiz = await Quiz.findByIdAndUpdate(id, update, { new: true, runValidators: true });
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+
+    try {
+      await queueQuizAssignmentEmails({ previousQuiz, updatedQuiz: quiz });
+    } catch (notifyErr) {
+      console.error('Quiz assignment email queue error:', notifyErr);
+    }
 
     // Log quiz update (admin only)
     if (req.adminId && id) {
