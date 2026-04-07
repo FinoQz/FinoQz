@@ -11,6 +11,7 @@ interface Quiz {
   duration: number;
   price: number;
   status: 'published' | 'draft';
+  enrolledCount?: number;
   participantCount?: number;
   category?: string;
   categoryName?: string;
@@ -107,7 +108,7 @@ export default function QuizCard({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4 lg:gap-8 shrink-0 sm:px-0 lg:px-8 sm:border-t sm:border-gray-100 sm:pt-3 lg:pt-0 lg:border-t-0 lg:border-x lg:border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:flex sm:flex-wrap sm:items-center sm:gap-4 lg:gap-8 shrink-0 sm:px-0 lg:px-8 sm:border-t sm:border-gray-100 sm:pt-3 lg:pt-0 lg:border-t-0 lg:border-x lg:border-gray-100">
           <div>
             <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-0.5">Duration</p>
             <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700">
@@ -127,6 +128,14 @@ export default function QuizCard({
                   {quiz.price}
                 </span>
               )}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-0.5">Enrolled</p>
+            <div className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700">
+              <Users className="w-3.5 h-3.5 text-gray-400" />
+              {quiz.enrolledCount ?? 0}
             </div>
           </div>
 

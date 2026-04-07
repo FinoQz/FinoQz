@@ -33,6 +33,7 @@ const quizSchema = new mongoose.Schema({
   status: { type: String, enum: ["draft", "published"], default: "draft" },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
+  enrolledCount: { type: Number, default: 0 },
   participantCount: { type: Number, default: 0 },
 
   questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],

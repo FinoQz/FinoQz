@@ -23,6 +23,7 @@ interface MyQuiz {
   difficultyLevel: string;
   coverImage: string;
   isPurchased: boolean;
+  attemptLimit?: 'unlimited' | '1';
   attemptStatus: 'not-started' | 'in-progress' | 'completed';
   bestScore: number | null;
   totalAttempts: number;
@@ -61,8 +62,12 @@ export default function MyQuiz() {
     try {
       const response = await apiUser.get('/api/quizzes/my-quizzes');
       if (response.data && Array.isArray(response.data.data)) {
-        setQuizzes(response.data.data);
-        setFilteredQuizzes(response.data.data);
+        const transformed = response.data.data.map((quiz: MyQuiz) => ({
+          ...quiz,
+          attemptLimit: quiz.attemptLimit === 'unlimited' ? 'unlimited' : '1',
+        }));
+        setQuizzes(transformed);
+        setFilteredQuizzes(transformed);
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
@@ -77,9 +82,17 @@ export default function MyQuiz() {
     return Array.from(categories);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (quiz: MyQuiz) => {
+    switch (quiz.attemptStatus) {
       case 'completed':
+        if (quiz.attemptLimit !== 'unlimited') {
+          return (
+            <span className="flex items-center gap-1 text-sm text-gray-500 font-medium">
+              <XCircle className="w-4 h-4" />
+              Expired
+            </span>
+          );
+        }
         return (
           <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
             <CheckCircle className="w-4 h-4" />
@@ -107,6 +120,14 @@ export default function MyQuiz() {
 
   const getActionButton = (quiz: MyQuiz) => {
     if (quiz.attemptStatus === 'completed') {
+      if (quiz.attemptLimit !== 'unlimited') {
+        return (
+          <button className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg cursor-not-allowed font-medium text-sm flex items-center gap-2" disabled>
+            <XCircle className="w-4 h-4" />
+            Attempt Expired
+          </button>
+        );
+      }
       return (
         <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm flex items-center gap-2">
           <Trophy className="w-4 h-4" />
@@ -289,7 +310,7 @@ export default function MyQuiz() {
                     <p className="text-sm text-gray-600 mt-1 line-clamp-2">{quiz.description}</p>
                     
                     <div className="flex flex-wrap items-center gap-4 mt-3">
-                      {getStatusBadge(quiz.attemptStatus)}
+                      {getStatusBadge(quiz)}
                       
                       <span className="flex items-center gap-1 text-sm text-gray-600">
                         <Clock className="w-4 h-4" />
@@ -327,6 +348,11 @@ export default function MyQuiz() {
                       <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
                         {quiz.category}
                       </span>
+                      {quiz.attemptStatus === 'completed' && quiz.attemptLimit !== 'unlimited' && (
+                        <span className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded font-medium">
+                          Expired
+                        </span>
+                      )}
                       <span className={`text-xs px-2 py-1 rounded ${
                         quiz.difficultyLevel === 'easy' ? 'bg-green-100 text-green-700' :
                         quiz.difficultyLevel === 'medium' ? 'bg-yellow-100 text-yellow-700' :

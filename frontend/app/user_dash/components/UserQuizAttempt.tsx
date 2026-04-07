@@ -144,7 +144,10 @@ export default function UserQuizAttempt({
         setAttemptId(response.data?.attemptId || null);
       } catch (err) {
         console.error('Failed to start quiz attempt:', err);
-        setSubmitError('Failed to start quiz attempt. Please try again.');
+        const message =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to start quiz attempt. Please try again.';
+        setSubmitError(message);
         startAttemptOnce.current = false;
       }
     };

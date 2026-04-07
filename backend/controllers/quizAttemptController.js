@@ -3,6 +3,7 @@ import Quiz from '../models/Quiz.js';
 import Question from '../models/Question.js';
 import Certificate from '../models/Certificate.js';
 import Notification from '../models/Notification.js';
+import Transaction from '../models/Transaction.js';
 import mongoose from 'mongoose';
 
 const getRequestUserId = (req) => {
@@ -15,35 +16,89 @@ const getRequestUserId = (req) => {
  * @route POST /api/quiz-attempts/start
  */
 const startAttempt = async (req, res) => {
-  const { quizId } = req.body;
-  const userId = getRequestUserId(req);
-  if (!userId) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    const { quizId } = req.body;
+    const userId = getRequestUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ message: 'Invalid quiz id' });
+    }
+
+    const quiz = await Quiz.findById(quizId).select('status startAt endAt attemptLimit pricingType price').lean();
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    if (quiz.status !== 'published') {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    const now = new Date();
+    if (quiz.startAt && quiz.startAt > now) {
+      return res.status(400).json({ message: 'Quiz is not active yet' });
+    }
+    if (quiz.endAt && quiz.endAt < now) {
+      return res.status(400).json({ message: 'Quiz has ended' });
+    }
+
+    const existingInProgress = await QuizAttempt.findOne({
+      quizId,
+      userId,
+      status: 'in_progress',
+    })
+      .sort({ createdAt: -1 })
+      .select('_id')
+      .lean();
+
+    if (existingInProgress) {
+      return res.json({ attemptId: existingInProgress._id, resumed: true });
+    }
+
+    const attemptsCount = await QuizAttempt.countDocuments({ quizId, userId });
+
+    const hasSuccessfulTransaction = await Transaction.exists({
+      quizId,
+      userId,
+      status: 'success',
+    });
+
+    const isPaidQuiz = quiz.pricingType === 'paid' && Number(quiz.price || 0) > 0;
+
+    if (isPaidQuiz && !hasSuccessfulTransaction && attemptsCount === 0) {
+      return res.status(403).json({ message: 'Please enroll in this quiz first' });
+    }
+
+    const limit = quiz.attemptLimit || 'unlimited';
+    if (limit !== 'unlimited' && attemptsCount >= parseInt(limit, 10)) {
+      return res.status(400).json({ message: `Maximum attempts reached (${limit})` });
+    }
+
+    const lastAttempt = await QuizAttempt.findOne({ quizId, userId })
+      .sort({ attemptNumber: -1, createdAt: -1 })
+      .select('attemptNumber')
+      .lean();
+
+    const attempt = await QuizAttempt.create({
+      quizId,
+      userId,
+      attemptNumber: (lastAttempt?.attemptNumber || 0) + 1,
+      status: 'in_progress',
+      startedAt: new Date(),
+      answers: []
+    });
+
+    if (attemptsCount === 0) {
+      await Quiz.findByIdAndUpdate(quizId, { $inc: { participantCount: 1 } });
+    }
+
+    return res.json({ attemptId: attempt._id });
+  } catch (error) {
+    console.error('Start attempt error:', error);
+    return res.status(500).json({ message: 'Failed to start quiz attempt' });
   }
-
-  // 1. Quiz fetch karo
-  const quiz = await Quiz.findById(quizId);
-  if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
-
-  // 2. User ke previous attempts count karo (submitted status)
-  const attemptsCount = await QuizAttempt.countDocuments({ quizId, userId });
- 
-  // 3. Max attempts check karo (attemptLimit can be '1' or 'unlimited')
-  const limit = quiz.attemptLimit || 'unlimited';
-  if (limit !== 'unlimited' && attemptsCount >= parseInt(limit)) {
-    return res.status(400).json({ message: `Maximum attempts reached (${limit})` });
-  }
-
-  // 4. Naya attempt create karo
-  const attempt = await QuizAttempt.create({
-    quizId,
-    userId,
-    status: 'in_progress', // Correct value as per model
-    startedAt: new Date(),
-    answers: []
-  });
-
-  res.json({ attemptId: attempt._id });
 };
 
 /**
@@ -167,10 +222,6 @@ const submitAttempt = async (req, res) => {
     attempt.status = 'submitted';
 
     await attempt.save();
-
-    // Update quiz participant count
-    quiz.participantCount = (quiz.participantCount || 0) + 1;
-    await quiz.save();
 
     // Check if certificate should be issued (e.g., if passed with 50%+)
     let certificateIssued = false;
@@ -363,7 +414,7 @@ const getAttemptResult = async (req, res) => {
     }
 
     const attempt = await QuizAttempt.findById(attemptId)
-      .populate('quizId', 'quizTitle attemptLimit')
+      .populate('quizId', 'quizTitle attemptLimit totalMarks')
       .lean();
 
     if (!attempt) {

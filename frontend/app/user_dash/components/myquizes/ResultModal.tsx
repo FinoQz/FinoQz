@@ -8,6 +8,9 @@ interface QuestionResult {
   status: 'correct' | 'wrong' | 'skipped';
   userAnswer?: string;
   correctAnswer?: string;
+  questionText?: string;
+  options?: string[];
+  explanation?: string;
 }
 
 interface ResultModalProps {
@@ -57,259 +60,280 @@ export default function ResultModal({
   onViewCertificatePreview,
   questionResults,
 }: ResultModalProps) {
-  const [showQuestionDetails, setShowQuestionDetails] = useState(false);
+  const [expandedQuestions, setExpandedQuestions] = useState<Record<number, boolean>>({});
+
+  const toggleQuestionExpanded = (num: number) => {
+    setExpandedQuestions(prev => ({ ...prev, [num]: !prev[num] }));
+  };
 
   if (!isOpen) return null;
 
   const getStatusIcon = (status: 'correct' | 'wrong' | 'skipped') => {
     switch (status) {
       case 'correct':
-        return <CheckCircle className="w-4 h-4 text-[#253A7B]" />;
+        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'wrong':
-        return <XCircle className="w-4 h-4 text-gray-500" />;
+        return <XCircle className="w-5 h-5 text-rose-500" />;
       case 'skipped':
-        return <Circle className="w-4 h-4 text-gray-400" />;
+        return <Circle className="w-5 h-5 text-gray-400" />;
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border-2 border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-[2px]">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] sm:max-h-[85vh] overflow-hidden flex flex-col border border-gray-100">
         {/* Header */}
-        <div className="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-[#253A7B] to-[#1e3166]">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white mb-2">Quiz Result</h2>
-              <p className="text-sm text-blue-100">
-                {quizName} • {category}
-              </p>
-              <p className="text-xs text-blue-200 mt-1">Completed on {completionDate}</p>
+        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-gray-900 tracking-tight">Performance Analytics</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-400 font-medium">{quizName}</span>
+              <span className="w-1 h-1 rounded-full bg-gray-200" />
+              <span className="text-xs text-gray-400 font-medium">{category}</span>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-xl transition"
-            >
-              <X className="w-6 h-6 text-white" />
-            </button>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-50 rounded-lg transition-colors group"
+          >
+            <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
+          </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Main Score Display */}
-          <div className="text-center py-8 bg-white rounded-2xl border-2 border-gray-200">
-            <div className="mb-6">
-              <p className="text-sm text-gray-600 font-medium mb-3">Your Score</p>
-              <p className="text-6xl font-bold text-[#253A7B]">
-                {score} <span className="text-4xl text-gray-400">/ {totalQuestions}</span>
-              </p>
-            </div>
-            
-            {/* Pass/Fail Badge */}
-            <div className="inline-flex items-center gap-2 mb-6">
-              {passed ? (
-                <span className="flex items-center gap-2 text-[#253A7B] bg-blue-50 px-6 py-2 rounded-full font-semibold border-2 border-[#253A7B]">
-                  <CheckCircle className="w-5 h-5" />
-                  Passed
-                </span>
-              ) : (
-                <span className="flex items-center gap-2 text-gray-700 bg-gray-100 px-6 py-2 rounded-full font-semibold border-2 border-gray-300">
-                  <XCircle className="w-5 h-5" />
-                  Failed
-                </span>
-              )}
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-12 custom-scrollbar">
+          {/* Dashboard Summary Hero */}
+          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16 justify-center bg-gray-50/30 rounded-3xl p-8 border border-gray-50">
+             {/* Progress Gauge */}
+            <div className="relative w-40 h-40 group">
+              <svg className="transform -rotate-90 w-full h-full">
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="42%"
+                  stroke="#e2e8f0"
+                  strokeWidth="8"
+                  fill="none"
+                />
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="42%"
+                  stroke="#253A7B"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeDasharray="264"
+                  strokeDashoffset={264 * (1 - percentage / 100)}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000 ease-out shadow-sm"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-4xl font-bold text-gray-900 tabular-nums">{percentage}%</span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{passed ? 'Passed' : 'Failed'}</span>
+              </div>
             </div>
 
-            {/* Percentage Circle */}
-            <div className="flex justify-center">
-              <div className="relative w-40 h-40">
-                <svg className="transform -rotate-90 w-40 h-40">
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="70"
-                    stroke="#e5e7eb"
-                    strokeWidth="10"
-                    fill="none"
-                  />
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="70"
-                    stroke="#253A7B"
-                    strokeWidth="10"
-                    fill="none"
-                    strokeDasharray={`${2 * Math.PI * 70}`}
-                    strokeDashoffset={`${2 * Math.PI * 70 * (1 - percentage / 100)}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-[#253A7B]">{percentage}%</span>
+            <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6">
+               <div className="space-y-1 text-center md:text-left">
+                <span className="text-xs text-gray-400 font-semibold tracking-wide">Overall Proficiency</span>
+                <div className="flex items-baseline gap-2 justify-center md:justify-start">
+                  <span className="text-6xl font-bold text-[#253A7B] tracking-tight">{score}</span>
+                  <span className="text-2xl font-medium text-gray-300">/ {totalQuestions}</span>
+                </div>
+              </div>
+              
+              <div className={`px-4 py-1.5 rounded-full text-[10px] font-bold border-2 shadow-sm transition-all ${
+                passed 
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                  : 'bg-rose-50 text-rose-700 border-rose-100'
+              }`}>
+                {passed ? 'Assessment Qualified' : 'Qualified Failed'}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Metrics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {[
+              { label: 'Correct', value: correctAnswers, color: 'text-emerald-500', icon: CheckCircle },
+              { label: 'Incorrect', value: wrongAnswers, color: 'text-rose-500', icon: XCircle },
+              { label: 'Time Spent', value: timeTaken, color: 'text-gray-900', icon: Clock },
+              { label: 'Global Rank', value: rank || '-', color: 'text-[#253A7B]', icon: Award },
+            ].map((stat, i) => (
+              <div key={i} className="p-5 border border-gray-100 rounded-2xl flex flex-col items-center bg-white hover:border-[#253A7B]/20 transition-all shadow-sm">
+                <stat.icon className={`w-5 h-5 mb-4 ${stat.color} opacity-40`} />
+                <span className="text-[10px] text-gray-400 font-bold mb-1">{stat.label}</span>
+                <span className={`text-lg font-bold ${stat.color} tabular-nums`}>{stat.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Assessment Breakdown */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-4 gap-4">
+              <h3 className="text-sm font-bold text-gray-900">Detailed Question Analysis</h3>
+              
+              {/* Visual Legend */}
+              <div className="flex flex-wrap items-center gap-4 bg-gray-50/50 px-4 py-2 rounded-xl border border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
+                  <span className="text-[10px] text-gray-500 font-bold">Selection: Correct</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 border-l border-gray-200">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-200" />
+                  <span className="text-[10px] text-gray-500 font-bold">Selection: Incorrect</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 border-l border-gray-200">
+                  <div className="w-2.5 h-2.5 rounded-[3px] border border-emerald-400 bg-emerald-50 shadow-sm" />
+                  <span className="text-[10px] text-gray-500 font-bold">Actual Answer</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-lg transition">
-              <p className="text-xs text-gray-600 mb-2 font-medium">Total Questions</p>
-              <p className="text-3xl font-bold text-gray-900">{totalQuestions}</p>
-            </div>
-            <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-lg transition">
-              <p className="text-xs text-gray-600 mb-2 font-medium">Correct</p>
-              <p className="text-3xl font-bold text-[#253A7B]">{correctAnswers}</p>
-            </div>
-            <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-lg transition">
-              <p className="text-xs text-gray-600 mb-2 font-medium">Wrong</p>
-              <p className="text-3xl font-bold text-gray-600">{wrongAnswers}</p>
-            </div>
-            <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center hover:shadow-lg transition">
-              <div className="flex items-center justify-center gap-1 mb-2">
-                <Clock className="w-3 h-3 text-gray-600" />
-                <p className="text-xs text-gray-600 font-medium">Time Taken</p>
-              </div>
-              <p className="text-3xl font-bold text-gray-900">{timeTaken}</p>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-8 text-sm py-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#253A7B] border-2 border-gray-200"></div>
-              <span className="text-gray-700 font-medium">Correct</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-gray-400 border-2 border-gray-200"></div>
-              <span className="text-gray-700 font-medium">Wrong</span>
-            </div>
-            {skippedQuestions > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-gray-300 border-2 border-gray-200"></div>
-                <span className="text-gray-700 font-medium">Skipped</span>
-              </div>
-            )}
-          </div>
-
-          {/* Rank & Attempts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {rank && (
-              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">Your Rank</p>
-                <p className="text-xl font-bold text-[#253A7B]">{rank}</p>
-              </div>
-            )}
-            {attemptsUsed && totalAttempts && (
-              <div className="bg-white border-2 border-gray-200 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">Attempts Used</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {attemptsUsed} <span className="text-gray-500">of {totalAttempts}</span>
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Question Summary */}
-          <div className="border-2 border-gray-200 rounded-2xl overflow-hidden">
-            <button
-              onClick={() => setShowQuestionDetails(!showQuestionDetails)}
-              className="w-full p-4 bg-gray-50 hover:bg-gray-100 transition flex items-center justify-between"
-            >
-              <span className="font-bold text-gray-900">Question Summary</span>
-              {showQuestionDetails ? (
-                <ChevronUp className="w-5 h-5 text-gray-600" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-600" />
-              )}
-            </button>
-
-            {showQuestionDetails && (
-              <div className="max-h-64 overflow-y-auto p-4 space-y-2 bg-gray-50">
-                {questionResults.map((q) => (
-                  <div
-                    key={q.questionNumber}
-                    className="flex items-center gap-3 p-3 bg-white border-2 border-gray-200 rounded-xl hover:shadow-md transition"
+            <div className="space-y-4">
+              {questionResults.map((q) => (
+                <div
+                  key={q.questionNumber}
+                  className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:border-gray-200 transition-all"
+                >
+                  <div 
+                    className="px-5 py-4 flex items-center gap-4 sm:gap-6 cursor-pointer hover:bg-gray-50/50"
+                    onClick={() => toggleQuestionExpanded(q.questionNumber)}
                   >
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 border-2 border-gray-200 font-bold text-sm text-gray-700">
-                      Q{q.questionNumber}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border-2 ${
+                      q.status === 'correct' ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
+                    }`}>
+                      {getStatusIcon(q.status)}
                     </div>
-                    <div className="flex-1">
-                      {q.status === 'correct' ? (
-                        <p className="text-sm text-[#253A7B] font-semibold">Marked correct</p>
-                      ) : q.status === 'wrong' ? (
-                        <p className="text-sm text-gray-700">
-                          Your answer: <span className="font-semibold">{q.userAnswer}</span> • 
-                          Correct: <span className="font-semibold text-[#253A7B]">{q.correctAnswer}</span>
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-500 font-medium">Not answered</p>
-                      )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold text-gray-400">Question {q.questionNumber}</span>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                          q.status === 'correct' ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'
+                        }`}>
+                          {q.status === 'correct' ? '+1 Point' : '0 Points'}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-gray-900 line-clamp-1">{q.questionText}</p>
                     </div>
-                    {getStatusIcon(q.status)}
+
+                    <div className="shrink-0">
+                      {expandedQuestions[q.questionNumber] ? <ChevronUp className="w-5 h-5 text-gray-400 transition-transform" /> : <ChevronDown className="w-5 h-5 text-gray-400 transition-transform" />}
+                    </div>
                   </div>
-                ))}
+
+                  {expandedQuestions[q.questionNumber] && (
+                    <div className="px-5 pb-6 pt-0 border-t border-gray-50">
+                      <div className="pl-0 sm:pl-14 space-y-6 mt-5">
+                        <p className="text-xs text-gray-600 font-medium leading-relaxed max-w-2xl">{q.questionText}</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {q.options?.map((opt, oIdx) => {
+                            const normalizedOpt = opt.trim().toLowerCase();
+                            const normalizedUser = (q.userAnswer || "").trim().toLowerCase();
+                            const normalizedCorrect = (q.correctAnswer || "").trim().toLowerCase();
+
+                            const isUserChoice = normalizedOpt === normalizedUser;
+                            const isCorrectChoice = normalizedOpt === normalizedCorrect;
+                            const isBoth = isUserChoice && isCorrectChoice;
+                            const isWrongChoice = isUserChoice && !isCorrectChoice;
+
+                            let colorScheme = 'bg-white border-gray-100 text-gray-400 hover:border-gray-200';
+                            if (isBoth) colorScheme = 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm ring-1 ring-emerald-500/20';
+                            else if (isWrongChoice) colorScheme = 'bg-rose-50 border-rose-500 text-rose-900 shadow-sm ring-1 ring-rose-500/20';
+                            else if (isCorrectChoice) colorScheme = 'bg-emerald-50 border-emerald-400 text-emerald-800 shadow-sm transition-all';
+
+                            return (
+                              <div
+                                key={oIdx}
+                                className={`px-4 py-3.5 rounded-xl border-2 transition-all flex items-center justify-between group h-fit min-h-[44px] ${colorScheme}`}
+                              >
+                                <span className={`text-xs ${isUserChoice || isCorrectChoice ? 'font-bold' : 'font-medium'} leading-normal pr-4`}>{opt}</span>
+                                <div className="flex gap-2 shrink-0">
+                                  {isUserChoice && (
+                                    <span className={`text-[8px] font-bold px-2 py-1 rounded-lg shadow-sm border ${
+                                      isWrongChoice 
+                                        ? 'bg-rose-100 text-rose-700 border-rose-300' 
+                                        : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                                    }`}>
+                                      {isWrongChoice ? 'Selection: Incorrect' : 'Selection: Correct ✔'}
+                                    </span>
+                                  )}
+                                  {isCorrectChoice && !isUserChoice && (
+                                    <span className="text-[8px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-300 shadow-sm">
+                                      Actual Answer
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {q.explanation && (
+                          <div className="p-5 bg-blue-50/30 border border-blue-100 rounded-2xl shadow-inner-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Eye className="w-4 h-4 text-[#253A7B]/60" />
+                              <span className="text-[10px] text-[#253A7B] font-bold uppercase tracking-wider">Solution Rationale</span>
+                            </div>
+                            <p className="text-xs text-gray-600 leading-relaxed font-normal italic">{q.explanation}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Qualified Badge & Actions */}
+          {passed && (
+            <div className="bg-[#253A7B] rounded-3xl p-8 sm:p-12 text-center text-white relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 p-12 opacity-5 translate-x-1/4 -translate-y-1/4">
+                <Award className="w-64 h-64" />
               </div>
-            )}
-          </div>
-
-          {/* View Correct Answers Link */}
-          <div className="text-center">
-            <button className="text-sm text-[#253A7B] hover:underline font-semibold">
-              View correct answers in detail →
-            </button>
-          </div>
-
-          {/* Certificate Section */}
-          {passed ? (
-            <div className="bg-gradient-to-br from-blue-50 to-gray-50 border-2 border-[#253A7B] rounded-2xl p-6 text-center">
-              <Award className="w-16 h-16 text-[#253A7B] mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Congratulations! 🎉
-              </h3>
-              <p className="text-sm text-gray-700 mb-6 font-medium">
-                You are eligible for a certificate.
+              
+              <Award className="w-12 h-12 text-white/40 mx-auto mb-6" />
+              <h3 className="text-2xl font-bold tracking-tight mb-3">Qualified Assessment Success</h3>
+              <p className="text-sm text-white/70 font-medium mb-10 max-w-sm mx-auto leading-relaxed">
+                Congratulations on exceeding the performance benchmark. Your official certification is ready.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
                 <button
                   onClick={onDownloadCertificate}
-                  className="flex items-center gap-2 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-semibold shadow-lg"
+                  className="w-full sm:w-auto px-10 py-3.5 bg-white text-[#253A7B] rounded-xl text-xs font-bold hover:bg-blue-50 transition shadow-xl"
                 >
-                  <Download className="w-5 h-5" />
                   Download Certificate
                 </button>
                 <button
                   onClick={onViewCertificatePreview}
-                  className="flex items-center gap-2 px-6 py-3 border-2 border-[#253A7B] text-[#253A7B] rounded-xl hover:bg-[#253A7B] hover:text-white transition font-semibold"
+                  className="w-full sm:w-auto px-10 py-3.5 bg-white/10 text-white border border-white/20 rounded-xl text-xs font-bold hover:bg-white/20 transition backdrop-blur-sm"
                 >
-                  <Eye className="w-5 h-5" />
                   View Preview
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="bg-gray-50 border-2 border-gray-200 rounded-2xl p-6 text-center">
-              <p className="text-sm text-gray-600 font-medium">
-                Certificate is available only for passed quizzes. Keep practicing!
-              </p>
-            </div>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-6 border-t-2 border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-end gap-3">
+        {/* Footer */}
+        <div className="px-6 py-5 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition font-semibold"
+            className="w-full sm:w-auto px-8 py-3 text-xs font-bold text-gray-400 hover:text-gray-900 transition"
           >
-            Close
+            Close Dashboard
           </button>
           {canRetake && (
             <button
               onClick={onRetake}
-              className="w-full sm:w-auto px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-semibold shadow-lg"
+              className="w-full sm:w-auto px-12 py-3.5 bg-[#253A7B] text-white rounded-xl text-xs font-bold hover:bg-[#1a2a5e] transition shadow-lg"
             >
-              Retake Quiz
+              Retake Assessment
             </button>
           )}
         </div>

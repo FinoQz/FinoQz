@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
-import { Search, Filter, Clock, FileQuestion, X, CreditCard, Smartphone, Wallet, CheckCircle, Info, Play } from 'lucide-react';
+import { Search, Filter, Clock, FileQuestion, X, CreditCard, Smartphone, Wallet, CheckCircle, Info, Play, Lock, Unlock, ChevronRight } from 'lucide-react';
 import UserQuizAttempt from '../components/UserQuizAttempt';
 import QuizPreview from '../components/QuizPreview';
 import apiUser from '@/lib/apiUser';
@@ -21,6 +21,9 @@ interface Quiz {
   tags?: string[];
   createdAt: string;
   isPurchased?: boolean;
+  attemptLimit?: 'unlimited' | '1';
+  attemptStatus?: 'not-started' | 'in-progress' | 'completed';
+  totalAttempts?: number;
 }
 
 export default function Quizes() {
@@ -42,57 +45,72 @@ export default function Quizes() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [purchasedQuizIds, setPurchasedQuizIds] = useState<Set<string>>(new Set());
 
-  // Fetch quizzes from API
-  useEffect(() => {
-    const fetchQuizzes = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        
-        // Fetch all published quizzes
-        const response = await apiUser.get('/api/quizzes/quizzes');
-        const quizzesData = response.data.data || [];
-        
-        // Fetch user's purchased quizzes to mark isPurchased
-        try {
-          const purchasedResponse = await apiUser.get('/api/quizzes/my-quizzes');
-          const purchased = purchasedResponse.data.data || [];
-          const purchasedIds = new Set<string>(purchased.map((q: Quiz) => String(q._id)));
-          setPurchasedQuizIds(purchasedIds);
-          
-          // Mark purchased quizzes
-          const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
-            ...quiz,
-            isPurchased: purchasedIds.has(String(quiz._id))
-          }));
-          
-          setQuizzes(enrichedQuizzes);
-        } catch (err) {
-          // If fetching purchased quizzes fails, just show all quizzes
-          const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
-            ...quiz,
-            isPurchased: false
-          }));
-          setQuizzes(enrichedQuizzes);
-        }
-        
-        // Extract unique categories
-        const uniqueCategories = Array.from(new Set(quizzesData.map((q: Quiz) => q.category).filter(Boolean))) as string[];
-        setCategories(uniqueCategories);
-        
-      } catch (err) {
-        console.error('Error fetching quizzes:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load quizzes';
-        setError(errorMessage);
-        setQuizzes([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const isQuizOver = (quiz: Quiz) =>
+    Boolean(
+      quiz.attemptLimit !== 'unlimited' &&
+      quiz.attemptStatus === 'completed'
+    );
 
+  const fetchQuizzes = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const [quizzesRes, categoriesRes, purchasedRes] = await Promise.allSettled([
+        apiUser.get('/api/quizzes/quizzes'),
+        apiUser.get('/api/categories'),
+        apiUser.get('/api/quizzes/my-quizzes')
+      ]);
+
+      // Handle Category Response
+      const categoryList = categoriesRes.status === 'fulfilled' ? (categoriesRes.value.data || []) : [];
+      const categoryMap = new Map(categoryList.map((cat: any) => [cat._id, cat.name]));
+      setCategories(categoryList.map((cat: any) => ({ id: cat._id, name: cat.name })));
+
+      // Handle Purchased Response
+      const purchased = purchasedRes.status === 'fulfilled' && Array.isArray(purchasedRes.value.data?.data) 
+        ? purchasedRes.value.data.data 
+        : [];
+      const purchasedIds = new Set<string>(purchased.map((q: { _id: string }) => String(q._id)));
+      const purchasedMetaById = new Map<string, any>();
+      purchased.forEach((q: any) => {
+        const id = String(q._id || '');
+        if (!id) return;
+        purchasedMetaById.set(id, {
+          attemptLimit: q.attemptLimit === 'unlimited' ? 'unlimited' : '1',
+          attemptStatus: q.attemptStatus === 'completed' || q.attemptStatus === 'in-progress' ? q.attemptStatus : 'not-started',
+          totalAttempts: Number(q.totalAttempts || 0),
+        });
+      });
+      setPurchasedQuizIds(purchasedIds);
+
+      // Handle Quizzes Response
+      if (quizzesRes.status === 'fulfilled') {
+        const quizzesData = quizzesRes.value.data.data || [];
+        const enrichedQuizzes = quizzesData.map((quiz: Quiz) => ({
+          ...quiz,
+          category: categoryMap.get(quiz.category) || quiz.category, // Map ID to Name if possible
+          isPurchased: purchasedIds.has(String(quiz._id)),
+          attemptLimit: purchasedMetaById.get(String(quiz._id))?.attemptLimit || quiz.attemptLimit,
+          attemptStatus: purchasedMetaById.get(String(quiz._id))?.attemptStatus || quiz.attemptStatus,
+          totalAttempts: purchasedMetaById.get(String(quiz._id))?.totalAttempts || quiz.totalAttempts,
+        }));
+        setQuizzes(enrichedQuizzes);
+      } else {
+        throw new Error('Failed to load main components list');
+      }
+    } catch (err) {
+      console.error('Initialisation error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialise. Please refresh.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchQuizzes();
   }, []);
 
@@ -149,6 +167,11 @@ export default function Quizes() {
       alert('Please enroll before starting this quiz.');
       return;
     }
+
+    if (isQuizOver(quiz)) {
+      return;
+    }
+
     setSelectedQuizToStart(quiz);
     setShowStartQuizPopup(true);
   };
@@ -245,6 +268,10 @@ export default function Quizes() {
 
   const handleConfirmStartQuiz = () => {
     if (selectedQuizToStart) {
+      if (isQuizOver(selectedQuizToStart)) {
+        alert('You cannot attempt this quiz again. Attempt limit is 1 and it is already used.');
+        return;
+      }
       setAttemptingQuiz(selectedQuizToStart);
       handleCloseStartQuizPopup();
     }
@@ -271,24 +298,31 @@ export default function Quizes() {
     );
   }
 
-  // Show loading state
+  // Minimalist Skeleton Loading
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Quizes / Explore</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-2">Discover and explore quiz topics to expand your financial knowledge</p>
+        <div className="mb-10 animate-pulse">
+          <div className="h-8 w-48 bg-gray-100 rounded-lg mb-2"></div>
+          <div className="h-4 w-72 bg-gray-50 rounded-lg"></div>
         </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
-            >
-              Retry
-            </button>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-xl overflow-hidden animate-pulse">
+              <div className="h-40 bg-gray-50"></div>
+              <div className="p-5 space-y-4">
+                <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                <div className="flex gap-4">
+                  <div className="h-3 bg-gray-50 rounded w-1/4"></div>
+                  <div className="h-3 bg-gray-50 rounded w-1/4"></div>
+                </div>
+                <div className="pt-4 border-t border-gray-50 flex justify-between items-center">
+                  <div className="h-4 bg-gray-100 rounded w-12"></div>
+                  <div className="h-8 bg-gray-100 rounded w-24"></div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -307,8 +341,7 @@ export default function Quizes() {
           onClose={handleClosePreviewPopup}
           onPurchase={() => {
             handleClosePreviewPopup();
-            setSelectedQuizToBuy(selectedQuizForPreview);
-            setShowPaymentModal(true);
+            handleEnrollOnly(selectedQuizForPreview);
           }}
           canPreview={Boolean(selectedQuizForPreview.isPurchased)}
           fetchPreviewData={fetchPreviewData}
@@ -476,6 +509,19 @@ export default function Quizes() {
                       Purchased
                     </span>
                   )}
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    selectedQuizToStart.attemptLimit === 'unlimited'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {selectedQuizToStart.attemptLimit === 'unlimited' ? 'Unlimited Attempts' : '1 Time Only'}
+                  </span>
+                  {selectedQuizToStart.attemptLimit !== 'unlimited' &&
+                    (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0) && (
+                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-semibold">
+                        Expired
+                      </span>
+                    )}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">{selectedQuizToStart.quizTitle}</h3>
                 
@@ -523,10 +569,17 @@ export default function Quizes() {
                 </button>
                 <button
                   onClick={handleConfirmStartQuiz}
-                  className="flex-1 px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2"
+                  disabled={selectedQuizToStart.attemptLimit !== 'unlimited' && (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0)}
+                  className={`flex-1 px-6 py-3 rounded-xl transition font-medium flex items-center justify-center gap-2 ${
+                    selectedQuizToStart.attemptLimit !== 'unlimited' && (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0)
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
+                  }`}
                 >
                   <Play className="w-5 h-5" />
-                  Start Quiz
+                  {selectedQuizToStart.attemptLimit !== 'unlimited' && (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0)
+                    ? 'Attempt Expired'
+                    : 'Start Quiz'}
                 </button>
               </div>
             </div>
@@ -534,217 +587,178 @@ export default function Quizes() {
         </>
       )}
 
-      {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Quizes / Explore</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-2">Discover and explore quiz topics to expand your financial knowledge</p>
+      {/* Header Section */}
+      <div className="mb-10 max-w-4xl">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+          Explore Quizzes
+        </h1>
+        <p className="text-sm text-gray-500 mt-2 leading-relaxed font-medium">
+          Professional resources for mastering financial concepts and regulations.
+        </p>
       </div>
 
-      {/* Search & Filters Bar */}
-      <div className="bg-white border-2 border-gray-200 rounded-2xl p-4 sm:p-6 mb-6 space-y-4">
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search quizzes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm"
-          />
-        </div>
-
-        {/* Desktop Filters */}
-        <div className="hidden sm:flex flex-wrap items-center gap-3">
-          {/* Category Dropdown */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm bg-white cursor-pointer"
-          >
-            <option value="all">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-
-          {/* Price Filter Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
-            <button
-              onClick={() => setPriceFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                priceFilter === 'all'
-                  ? 'bg-white text-[#253A7B] shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setPriceFilter('free')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                priceFilter === 'free'
-                  ? 'bg-white text-[#253A7B] shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Free
-            </button>
-            <button
-              onClick={() => setPriceFilter('paid')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                priceFilter === 'paid'
-                  ? 'bg-white text-[#253A7B] shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Paid
-            </button>
+      {/* Simplified Search & Filters */}
+      <div className="mb-12">
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-transparent">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by title or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900 transition-colors text-sm font-medium"
+            />
           </div>
 
-          {/* Sort Dropdown */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'newest' | 'popular')}
-            className="px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition text-sm bg-white cursor-pointer"
-          >
-            <option value="newest">Newest</option>
-            <option value="popular">Popular</option>
-          </select>
-        </div>
+          {/* Filters */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="flex-1 md:flex-none px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900 transition-colors text-xs font-semibold cursor-pointer"
+            >
+              <option value="all">All Fields</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
 
-        {/* Mobile Filter Button */}
-        <button
-          onClick={() => setIsMobileFilterOpen(true)}
-          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium text-sm"
-        >
-          <Filter className="w-5 h-5" />
-          Filters
-        </button>
+            <select
+              value={priceFilter}
+              onChange={(e) => setPriceFilter(e.target.value as any)}
+              className="flex-1 md:flex-none px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900 transition-colors text-xs font-semibold cursor-pointer"
+            >
+              <option value="all">All Pricing</option>
+              <option value="free">Free</option>
+              <option value="paid">Premium</option>
+            </select>
+
+            <button
+              onClick={() => setIsMobileFilterOpen(true)}
+              className="md:hidden p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              <Filter className="w-4 h-4 text-gray-600" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Quiz Grid */}
+      {/* Quiz Grid - Minimalist Cards */}
       {filteredQuizzes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredQuizzes.map((quiz) => (
             <div
               key={quiz._id}
-              className="bg-white border-2 border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-shadow duration-300 group"
+              className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-900 transition-all duration-300 flex flex-col group"
             >
-              {/* Cover Image */}
-              <div className="relative h-48 bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] overflow-hidden">
+              {/* Media Section */}
+              <div className="relative aspect-video bg-gray-50 border-b border-gray-100 overflow-hidden">
                 {quiz.coverImage ? (
-                  <img src={quiz.coverImage} alt={quiz.quizTitle} className="w-full h-full object-cover" />
+                  <img src={quiz.coverImage} alt={quiz.quizTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <FileQuestion className="w-16 h-16 text-white/30" />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <FileQuestion className="w-8 h-8 text-gray-200" />
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                  <div className="flex items-center gap-2">
-                    {quiz.difficultyLevel && (
-                      <span className="text-white text-xs font-medium uppercase bg-white/20 px-2 py-1 rounded">
-                        {quiz.difficultyLevel}
-                      </span>
-                    )}
-                  </div>
+                
+                {/* Subtle Meta Badges */}
+                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+                  <span className="px-2 py-1 bg-white border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                    {quiz.category}
+                  </span>
+                  <span className={`px-2 py-1 border text-[10px] font-bold uppercase tracking-wider rounded-md ${
+                    quiz.attemptLimit === 'unlimited' 
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-700' 
+                      : 'bg-orange-50 border-orange-100 text-orange-700'
+                  }`}>
+                    {quiz.attemptLimit === 'unlimited' ? '∞ Attempts' : '1 Attempt'}
+                  </span>
                 </div>
               </div>
 
-              {/* Card Content */}
-              <div className="p-5 space-y-4">
-                {/* Title & Category */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-[#253A7B] transition">
-                    {quiz.quizTitle}
-                  </h3>
-                  <p className="text-sm text-gray-500">{quiz.category}</p>
-                </div>
+              {/* Data Section */}
+              <div className="p-4 flex-1 flex flex-col">
+                <h3 className="text-xs font-bold text-gray-900 leading-snug min-h-[2rem] line-clamp-2">
+                  {quiz.quizTitle}
+                </h3>
 
-                {/* Meta Info */}
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-3 mt-3 text-[9px] text-gray-400 font-bold uppercase tracking-widest">
                   <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{quiz.duration} min</span>
+                    <Clock className="w-2.5 h-2.5" />
+                    {quiz.duration} min
                   </div>
-                  <div className="flex items-center gap-1">
-                    <FileQuestion className="w-4 h-4" />
-                    <span>{quiz.totalMarks} marks</span>
+                  <div className="flex items-center gap-1 border-l border-gray-100 pl-3">
+                    <FileQuestion className="w-2.5 h-2.5" />
+                    {quiz.totalMarks} MQ
                   </div>
                 </div>
 
-                {/* Price Badge & Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="mt-6 pt-3 border-t border-gray-50 flex items-center justify-between">
                   <div>
-                    {quiz.pricingType === 'free' || quiz.price === 0 ? (
-                      <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
-                        Free
-                      </span>
-                    ) : (
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full">
-                        ₹{quiz.price}
-                      </span>
-                    )}
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Fee</p>
+                    <p className="text-sm font-black text-gray-900">
+                      {quiz.pricingType === 'free' || quiz.price === 0 ? 'Free' : `₹${quiz.price}`}
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handlePreviewQuiz(quiz)}
-                      className="px-3 py-1.5 border-2 border-[#253A7B] text-[#253A7B] rounded-lg hover:bg-[#253A7B] hover:text-white transition text-sm font-medium"
-                    >
-                      Preview
-                    </button>
-                    {!quiz.isPurchased && (
+                    {!quiz.isPurchased ? (
                       <button 
                         onClick={() => handleEnrollOnly(quiz)}
-                        className="px-3 py-1.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:border-[#253A7B] hover:text-[#253A7B] transition text-sm font-medium"
+                        className="px-4 py-2 bg-[#253A7B] text-white text-[11px] font-bold uppercase tracking-widest rounded-lg hover:bg-[#1a2a5e] transition shadow-sm"
                       >
-                        {quiz.pricingType === 'free' || quiz.price === 0 ? 'Enroll' : 'Buy'}
+                        Enroll Now
                       </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handlePreviewQuiz(quiz)}
+                          className="p-2 border border-gray-200 text-gray-500 rounded-lg hover:border-gray-900 hover:text-gray-900 transition-colors"
+                          title="Preview"
+                        >
+                          <Unlock className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleStartQuiz(quiz)}
+                          disabled={isQuizOver(quiz)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-widest transition shadow-sm ${
+                            isQuizOver(quiz)
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          }`}
+                        >
+                          {isQuizOver(quiz) ? 'Finished' : (
+                            <>
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              Start
+                            </>
+                          )}
+                        </button>
+                      </div>
                     )}
-                    <button 
-                      onClick={() => handleStartQuiz(quiz)}
-                      disabled={!quiz.isPurchased}
-                      className={`px-4 py-1.5 rounded-lg transition text-sm font-medium ${
-                        quiz.isPurchased
-                          ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      Start
-                    </button>
                   </div>
-                </div>
-
-                {/* Footer */}
-                <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
-                  {new Date(quiz.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        // Empty State
-        <div className="bg-white border-2 border-gray-200 rounded-2xl p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-            <FileQuestion className="w-10 h-10 text-gray-400" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-700 mb-2">No quizzes found</h3>
-          <p className="text-gray-600 mb-6">
-            Try adjusting your filters or search terms to find what you&apos;re looking for.
-          </p>
+        // Minimalist Empty State
+        <div className="py-24 text-center border-2 border-dashed border-gray-200 rounded-2xl">
+          <FileQuestion className="w-10 h-10 text-gray-200 mx-auto mb-4" />
+          <h3 className="text-sm font-bold text-gray-900 mb-2">No components found</h3>
+          <p className="text-xs text-gray-400 max-w-xs mx-auto mb-6">We couldn&apos;t find any quizzes matching your search criteria.</p>
           <button 
             onClick={() => {
               setSearchQuery('');
               setSelectedCategory('all');
               setPriceFilter('all');
             }}
-            className="px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium"
+            className="text-xs font-bold text-[#253A7B] hover:underline"
           >
-            Clear Filters
+            Reset all parameters
           </button>
         </div>
       )}
@@ -778,10 +792,10 @@ export default function Quizes() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#253A7B] focus:ring-2 focus:ring-[#253A7B]/20 transition bg-white"
               >
-                <option value="all">All Categories</option>
+                <option value="all">All Fields</option>
                 {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
                   </option>
                 ))}
               </select>

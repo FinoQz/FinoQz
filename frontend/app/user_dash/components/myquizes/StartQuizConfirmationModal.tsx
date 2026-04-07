@@ -14,6 +14,8 @@ interface StartQuizConfirmationModalProps {
   rating: number;
   isFree: boolean;
   price?: number;
+  attemptLimit?: 'unlimited' | '1';
+  isExpired?: boolean;
 }
 
 export default function StartQuizConfirmationModal({
@@ -27,6 +29,8 @@ export default function StartQuizConfirmationModal({
   rating,
   isFree,
   price,
+  attemptLimit = '1',
+  isExpired = false,
 }: StartQuizConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -69,6 +73,18 @@ export default function StartQuizConfirmationModal({
               ) : (
                 <span className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-semibold border border-blue-300">
                   ₹{price}
+                </span>
+              )}
+              <span className={`text-xs px-3 py-1.5 rounded-full font-semibold border ${
+                attemptLimit === 'unlimited'
+                  ? 'bg-green-100 text-green-700 border-green-300'
+                  : 'bg-gray-100 text-gray-700 border-gray-300'
+              }`}>
+                {attemptLimit === 'unlimited' ? 'Unlimited Attempts' : '1 Time Only'}
+              </span>
+              {isExpired && (
+                <span className="text-xs px-3 py-1.5 bg-red-100 text-red-700 rounded-full font-semibold border border-red-300">
+                  Expired
                 </span>
               )}
             </div>
@@ -141,10 +157,15 @@ export default function StartQuizConfirmationModal({
           </button>
           <button
             onClick={onConfirm}
-            className="w-full sm:w-auto flex-1 px-5 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] hover:shadow-xl transition font-semibold shadow-lg flex items-center justify-center gap-2 text-sm"
+            disabled={isExpired}
+            className={`w-full sm:w-auto flex-1 px-5 py-2.5 rounded-xl transition font-semibold shadow-lg flex items-center justify-center gap-2 text-sm ${
+              isExpired
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                : 'bg-[#253A7B] text-white hover:bg-[#1a2a5e] hover:shadow-xl'
+            }`}
           >
             <Play className="w-4 h-4" />
-            Start Quiz
+            {isExpired ? 'Attempt Expired' : 'Start Quiz'}
           </button>
         </div>
       </div>

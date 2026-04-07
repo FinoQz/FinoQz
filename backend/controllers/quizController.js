@@ -29,7 +29,7 @@ const ensureActiveUser = async (req, res) => {
     res.status(401).json({ message: 'Authentication required' });
     return null;
   }
-  const user = await User.findById(req.userId).select('status').lean();
+  const user = await User.findById(req.userId).select('status email').lean();
   if (!user) {
     res.status(401).json({ message: 'User not found' });
     return null;
@@ -58,9 +58,27 @@ const parseDateTime = (dateStr, timeStr) => {
   return d;
 };
 
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const normalizeStringArray = (arr) => {
   if (!Array.isArray(arr)) return [];
   return Array.from(new Set(arr.map((v) => String(v || '').trim()).filter(Boolean)));
+};
+
+const normalizeIndividualsArray = (arr) => {
+  const values = normalizeStringArray(arr);
+  return Array.from(
+    new Set(
+      values.map((value) => {
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          return normalizeEmail(value);
+        }
+        return value;
+      })
+    )
+  );
 };
 
 const splitUserTokens = (tokens = []) => {
@@ -429,7 +447,7 @@ export const updateQuiz = async (req, res) => {
       update.assignedGroups = Array.from(new Set(update.assignedGroups.map((v) => String(v).trim()).filter(Boolean)));
     }
     if (Array.isArray(update.assignedIndividuals)) {
-      update.assignedIndividuals = Array.from(new Set(update.assignedIndividuals.map((v) => String(v).trim()).filter(Boolean)));
+      update.assignedIndividuals = normalizeIndividualsArray(update.assignedIndividuals);
     }
     if (update.tags && !Array.isArray(update.tags)) update.tags = [];
 
@@ -565,10 +583,19 @@ export const listPublic = async (req, res) => {
     const { category, search, page = 1, limit = 20, upcoming } = req.query;
     const now = new Date();
     const userGroupTokens = await getUserGroupTokens(userId);
-    const userEmail = req.email || user.email || '';
+    const userEmail = normalizeEmail(req.email || user.email || '');
+    const escapedEmail = escapeRegExp(userEmail);
     const visibilityFilter = [
       { visibility: 'public' },
-      { visibility: 'individual', assignedIndividuals: { $in: [String(userId), userEmail].filter(Boolean) } }
+      {
+        visibility: 'individual',
+        $or: [
+          { assignedIndividuals: String(userId) },
+          ...(userEmail
+            ? [{ assignedIndividuals: { $regex: `^${escapedEmail}$`, $options: 'i' } }]
+            : []),
+        ],
+      }
     ];
     if (userGroupTokens.length > 0) {
       visibilityFilter.push({ visibility: 'private', assignedGroups: { $in: userGroupTokens } });
@@ -626,14 +653,16 @@ export const getById = async (req, res) => {
 
     if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
       const userGroupTokens = await getUserGroupTokens(req.userId);
-      const userEmail = req.email || user.email || '';
+      const userEmail = normalizeEmail(req.email || user.email || '');
       const assignedGroups = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
       const assignedIndivs = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals.map(String) : [];
+      const normalizedAssignedIndivs = assignedIndivs.map((value) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? normalizeEmail(value) : String(value).trim()));
       
       const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
-      const inIndivs = assignedIndivs.includes(String(req.userId)) || (userEmail && assignedIndivs.includes(String(userEmail)));
+      const inIndivs = normalizedAssignedIndivs.includes(String(req.userId)) || (userEmail && normalizedAssignedIndivs.includes(userEmail));
       
-      if (!inGroups && !inIndivs) {
+      const hasAccess = quiz.visibility === 'private' ? inGroups : inIndivs;
+      if (!hasAccess) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
@@ -689,7 +718,7 @@ export const deleteQuiz = async (req, res) => {
   }
 };
 
-// Enroll (increment participantCount) — user panel action
+// Enroll (increment enrolledCount) — user panel action
 export const enroll = async (req, res) => {
   try {
     const user = await ensureActiveUser(req, res);
@@ -709,14 +738,16 @@ export const enroll = async (req, res) => {
 
     if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
       const userGroupTokens = await getUserGroupTokens(req.userId);
-      const userEmail = req.email || user.email || '';
+      const userEmail = normalizeEmail(req.email || user.email || '');
       const assignedGroups = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
       const assignedIndivs = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals.map(String) : [];
+      const normalizedAssignedIndivs = assignedIndivs.map((value) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? normalizeEmail(value) : String(value).trim()));
       
       const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
-      const inIndivs = assignedIndivs.includes(String(req.userId)) || (userEmail && assignedIndivs.includes(String(userEmail)));
+      const inIndivs = normalizedAssignedIndivs.includes(String(req.userId)) || (userEmail && normalizedAssignedIndivs.includes(userEmail));
       
-      if (!inGroups && !inIndivs) {
+      const hasAccess = quiz.visibility === 'private' ? inGroups : inIndivs;
+      if (!hasAccess) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
@@ -732,12 +763,14 @@ export const enroll = async (req, res) => {
       quizId: id
     }).lean();
 
-    if (!existingPurchase && !existingAttempt && quiz.pricingType === 'paid') {
+    const isPaidQuiz = quiz.pricingType === 'paid' && Number(quiz.price || 0) > 0;
+
+    if (!existingPurchase && !existingAttempt && isPaidQuiz) {
       return res.status(400).json({ message: 'Payment required to enroll' });
     }
 
     let purchaseForEnroll = existingPurchase;
-    if (!purchaseForEnroll && quiz.pricingType === 'free') {
+    if (!purchaseForEnroll && !isPaidQuiz) {
       purchaseForEnroll = await Transaction.create({
         userId: req.userId,
         quizId: id,
@@ -751,12 +784,16 @@ export const enroll = async (req, res) => {
 
     const alreadyEnrolled = Boolean(existingAttempt) || Boolean(purchaseForEnroll?.metadata?.enrolled);
     if (alreadyEnrolled) {
-      return res.json({ message: 'Already enrolled', participantCount: quiz.participantCount || 0 });
+      return res.json({
+        message: 'Already enrolled',
+        enrolledCount: quiz.enrolledCount || 0,
+        participantCount: quiz.participantCount || 0,
+      });
     }
 
     const updated = await Quiz.findByIdAndUpdate(
       id,
-      { $inc: { participantCount: 1 } },
+      { $inc: { enrolledCount: 1 } },
       { new: true }
     );
     if (!updated) return res.status(404).json({ message: "Quiz not found" });
@@ -765,7 +802,11 @@ export const enroll = async (req, res) => {
       purchaseForEnroll.metadata = { ...(purchaseForEnroll.metadata || {}), enrolled: true };
       await purchaseForEnroll.save();
     }
-    return res.json({ message: "Enrolled", participantCount: updated.participantCount });
+    return res.json({
+      message: "Enrolled",
+      enrolledCount: updated.enrolledCount,
+      participantCount: updated.participantCount,
+    });
   } catch (err) {
     console.error("❌ enroll error:", err);
     return res.status(500).json({ message: "Server error enrolling" });
@@ -816,7 +857,7 @@ export const getQuizPreview = async (req, res) => {
       });
     }
     const quiz = await Quiz.findById(quizId)
-      .select('quizTitle description duration totalMarks pricingType price difficultyLevel category questions')
+      .select('quizTitle description duration totalMarks pricingType price difficultyLevel category questions attemptLimit')
       .lean();
 
     if (!quiz) {
@@ -874,14 +915,14 @@ export const getQuizPreview = async (req, res) => {
       }
     }
 
-    const previewQuestions = orderedQuestions.map(q => ({
+    // Limit to 2 questions and remove correct/explanation for preview
+    const previewQuestions = orderedQuestions.slice(0, 2).map(q => ({
       id: String(q._id),
       text: q.text,
       options: q.options || [],
       type: q.type || 'mcq',
       marks: (q.marks && q.marks > 1) ? q.marks : marksToShow,
-      correct: q.correct,
-      explanation: q.explanation
+      // Stripping correct and explanation to prevent cheating in preview
     }));
 
     return res.json({
@@ -895,11 +936,13 @@ export const getQuizPreview = async (req, res) => {
         price: quiz.price,
         difficultyLevel: quiz.difficultyLevel,
         category: quiz.category,
+        attemptLimit: quiz.attemptLimit === 'unlimited' ? 'unlimited' : '1',
         previewQuestions,
         totalQuestions: questionIds.length,
         isPreview: true
       }
     });
+
   } catch (err) {
     console.error('Preview error:', err);
     return res.status(500).json({ message: 'Failed to fetch quiz preview' });
@@ -918,7 +961,7 @@ export const getQuizQuestions = async (req, res) => {
     }
 
     const quiz = await Quiz.findById(quizId)
-      .select('status startAt endAt visibility assignedGroups questions shuffleQuestions numberOfQuestions')
+      .select('status startAt endAt visibility assignedGroups assignedIndividuals questions shuffleQuestions numberOfQuestions')
       .lean();
 
     if (!quiz || quiz.status !== 'published') {
@@ -936,14 +979,19 @@ export const getQuizQuestions = async (req, res) => {
     if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
       const userGroupTokens = await getUserGroupTokens(req.userId);
       const user = await User.findById(req.userId).select('email').lean();
-      const userEmail = req.email || user?.email || '';
+      const userEmail = String(req.email || user?.email || '').trim().toLowerCase();
       const assignedGroups = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups.map(String) : [];
       const assignedIndivs = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals.map(String) : [];
+      const normalizedAssignedIndivs = assignedIndivs.map((value) => {
+        const trimmed = String(value).trim();
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) ? trimmed.toLowerCase() : trimmed;
+      });
       
       const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
-      const inIndivs = assignedIndivs.includes(String(req.userId)) || (userEmail && assignedIndivs.includes(String(userEmail)));
-      
-      if (!inGroups && !inIndivs) {
+      const inIndivs = normalizedAssignedIndivs.includes(String(req.userId)) || (userEmail && normalizedAssignedIndivs.includes(userEmail));
+      const hasAccess = quiz.visibility === 'private' ? inGroups : inIndivs;
+
+      if (!hasAccess) {
         return res.status(403).json({ message: 'Access denied' });
       }
     }
@@ -1030,8 +1078,8 @@ export const getMyQuizzes = async (req, res) => {
 
     // Get quiz attempts to find enrolled/attempted quizzes
     const attempts = await QuizAttempt.find({ userId })
-      .select('quizId status totalScore percentage submittedAt attemptNumber')
-      .sort({ submittedAt: -1 })
+      .select('quizId status totalScore percentage submittedAt attemptNumber createdAt')
+      .sort({ createdAt: -1 })
       .lean();
 
     const attemptedQuizIds = [...new Set(attempts.map(a => String(a.quizId)))];
@@ -1041,29 +1089,37 @@ export const getMyQuizzes = async (req, res) => {
 
     // Get quiz details
     const quizzes = await Quiz.find({ _id: { $in: allQuizIds } })
-      .select('quizTitle description duration totalMarks pricingType price category difficultyLevel coverImage status')
+      .select('quizTitle description duration totalMarks pricingType price category difficultyLevel coverImage status attemptLimit')
       .lean();
+
+    // Group attempts by quiz once to avoid repeated filtering and ensure accurate per-quiz state.
+    const attemptsByQuizId = attempts.reduce((acc, attempt) => {
+      const key = String(attempt.quizId);
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(attempt);
+      return acc;
+    }, {});
 
     // Enrich with attempt information
     const enrichedQuizzes = quizzes.map(quiz => {
-      const quizAttempts = attempts.filter(a => String(a.quizId) === String(quiz._id));
-      const isPurchased = purchasedQuizIds.includes(String(quiz._id));
-      
+      const quizKey = String(quiz._id);
+      const quizAttempts = Array.isArray(attemptsByQuizId[quizKey]) ? attemptsByQuizId[quizKey] : [];
+      const isPurchased = purchasedQuizIds.includes(quizKey);
+
       let attemptStatus = 'not-started';
       let bestScore = null;
       let latestAttempt = null;
-      
+
       if (quizAttempts.length > 0) {
+        const latestByCreated = quizAttempts[0];
         const completedAttempts = quizAttempts.filter(a => a.status === 'submitted');
-        if (completedAttempts.length > 0) {
+
+        if (latestByCreated?.status === 'in_progress') {
+          attemptStatus = 'in-progress';
+        } else if (completedAttempts.length > 0) {
           attemptStatus = 'completed';
           bestScore = Math.max(...completedAttempts.map(a => a.percentage || 0));
           latestAttempt = completedAttempts[0];
-        } else {
-          const inProgressAttempt = quizAttempts.find(a => a.status === 'in_progress');
-          if (inProgressAttempt) {
-            attemptStatus = 'in-progress';
-          }
         }
       }
 
@@ -1074,6 +1130,7 @@ export const getMyQuizzes = async (req, res) => {
         bestScore,
         totalAttempts: quizAttempts.length,
         latestAttempt: latestAttempt ? {
+          _id: latestAttempt._id,
           score: latestAttempt.totalScore,
           percentage: latestAttempt.percentage,
           submittedAt: latestAttempt.submittedAt,

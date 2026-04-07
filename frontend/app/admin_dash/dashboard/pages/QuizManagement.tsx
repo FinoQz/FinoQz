@@ -23,6 +23,7 @@ interface Quiz {
   price: number;
   pricingType?: 'free' | 'paid';
   status: 'published' | 'draft';
+  enrolledCount?: number;
   participantCount?: number;
   totalMarks?: number;
   attemptLimit?: string;
