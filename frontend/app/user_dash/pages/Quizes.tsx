@@ -26,6 +26,18 @@ interface Quiz {
   totalAttempts?: number;
 }
 
+interface Category {
+  _id: string;
+  name: string;
+}
+
+interface PurchasedQuiz {
+  _id: string;
+  attemptLimit?: 'unlimited' | '1';
+  attemptStatus?: 'not-started' | 'in-progress' | 'completed';
+  totalAttempts?: number;
+}
+
 export default function Quizes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -66,17 +78,21 @@ export default function Quizes() {
       ]);
 
       // Handle Category Response
-      const categoryList = categoriesRes.status === 'fulfilled' ? (categoriesRes.value.data || []) : [];
-      const categoryMap = new Map(categoryList.map((cat: any) => [cat._id, cat.name]));
-      setCategories(categoryList.map((cat: any) => ({ id: cat._id, name: cat.name })));
+      const categoryList: Category[] = categoriesRes.status === 'fulfilled' ? (categoriesRes.value.data || []) : [];
+      const categoryMap = new Map<string, string>(categoryList.map((cat) => [cat._id, cat.name]));
+      setCategories(categoryList.map((cat) => ({ id: cat._id, name: cat.name })));
 
       // Handle Purchased Response
-      const purchased = purchasedRes.status === 'fulfilled' && Array.isArray(purchasedRes.value.data?.data) 
+      const purchased: PurchasedQuiz[] = purchasedRes.status === 'fulfilled' && Array.isArray(purchasedRes.value.data?.data) 
         ? purchasedRes.value.data.data 
         : [];
-      const purchasedIds = new Set<string>(purchased.map((q: { _id: string }) => String(q._id)));
-      const purchasedMetaById = new Map<string, any>();
-      purchased.forEach((q: any) => {
+      const purchasedIds = new Set<string>(purchased.map((q) => String(q._id)));
+      const purchasedMetaById = new Map<string, {
+        attemptLimit: 'unlimited' | '1';
+        attemptStatus: 'not-started' | 'in-progress' | 'completed';
+        totalAttempts: number;
+      }>();
+      purchased.forEach((q) => {
         const id = String(q._id || '');
         if (!id) return;
         purchasedMetaById.set(id, {
@@ -627,7 +643,7 @@ export default function Quizes() {
 
             <select
               value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value as any)}
+              onChange={(e) => setPriceFilter(e.target.value as 'all' | 'free' | 'paid')}
               className="flex-1 md:flex-none px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-900 transition-colors text-xs font-semibold cursor-pointer"
             >
               <option value="all">All Pricing</option>

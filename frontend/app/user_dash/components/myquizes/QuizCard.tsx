@@ -23,7 +23,7 @@ export interface QuizData {
 
 interface QuizCardProps {
   quiz: QuizData;
-  onAction: (quizId: any, action: 'start' | 'continue' | 'view' | 'retake') => void;
+  onAction: (quizId: QuizData['id'], action: 'start' | 'continue' | 'view' | 'retake') => void;
 }
 
 export default function QuizCard({ quiz, onAction }: QuizCardProps) {

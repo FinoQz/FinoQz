@@ -11,6 +11,58 @@ import StartQuizConfirmationModal from '../components/myquizes/StartQuizConfirma
 import UserQuizAttempt from '../components/UserQuizAttempt';
 import apiUser from '@/lib/apiUser';
 
+type CategoryDto = {
+  _id: string;
+  name: string;
+};
+
+type QuizApiItem = {
+  _id: string;
+  quizTitle: string;
+  category?: string | { _id?: string; name?: string };
+  price?: number;
+  duration: number;
+  totalMarks?: number;
+  pricingType?: string;
+  attemptStatus?: 'not-started' | 'in-progress' | 'completed';
+  latestAttempt?: {
+    _id?: string;
+    score?: number;
+    submittedAt?: string;
+  };
+  bestScore?: number;
+  totalAttempts?: number;
+  attemptLimit?: 'unlimited' | string;
+  coverImage?: string;
+};
+
+type DetailedAnswer = {
+  isCorrect: boolean;
+  selectedAnswer: string | number | null;
+  correctAnswer: string | number | null;
+  options: string[];
+  questionText?: string;
+  text?: string;
+  explanation?: string;
+};
+
+type DetailedResult = {
+  quizTitle?: string;
+  submittedAt?: string;
+  totalScore?: number;
+  totalQuestions?: number;
+  correctAnswers?: number;
+  incorrectAnswers?: number;
+  unanswered?: number;
+  timeTaken?: number;
+  percentage?: number;
+  passed?: boolean;
+  rank?: string;
+  attemptNumber?: number;
+  allowRetake?: boolean;
+  answers?: DetailedAnswer[];
+};
+
 export default function MyQuizes() {
   const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'free' | 'attempted'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +86,7 @@ export default function MyQuizes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isFetchingResult, setIsFetchingResult] = useState(false);
-  const [detailedResult, setDetailedResult] = useState<any>(null);
+  const [detailedResult, setDetailedResult] = useState<DetailedResult | null>(null);
 
   // Fetch user's quizzes and categories from API
   useEffect(() => {
@@ -49,13 +101,13 @@ export default function MyQuizes() {
         ]);
 
         // Handle Categories
-        const categoryList = categoriesRes.status === 'fulfilled' ? (categoriesRes.value.data || []) : [];
-        const categoryMap = new Map(categoryList.map((cat: any) => [cat._id, cat.name]));
+        const categoryList: CategoryDto[] = categoriesRes.status === 'fulfilled' ? ((categoriesRes.value.data as CategoryDto[]) || []) : [];
+        const categoryMap = new Map(categoryList.map((cat: CategoryDto) => [cat._id, cat.name]));
 
         // Handle My Quizzes
         if (myQuizzesRes.status === 'fulfilled') {
-          const quizzesData = myQuizzesRes.value.data.data || [];
-          const transformedQuizzes: QuizData[] = quizzesData.map((quiz: any) => {
+          const quizzesData: QuizApiItem[] = myQuizzesRes.value.data.data || [];
+          const transformedQuizzes: QuizData[] = quizzesData.map((quiz: QuizApiItem) => {
             // Robust category mapping: handle ID string or object
             const catId = typeof quiz.category === 'object' ? quiz.category?._id : quiz.category;
             const catNameFromMap = categoryMap.get(String(catId));
@@ -143,7 +195,7 @@ export default function MyQuizes() {
     attempted: allQuizzes.filter((q) => q.isAttempted).length,
   };
 
-  const handleQuizAction = (quizId: any, action: 'start' | 'continue' | 'view' | 'retake') => {
+  const handleQuizAction = (quizId: QuizData['id'], action: 'start' | 'continue' | 'view' | 'retake') => {
     const quiz = allQuizzes.find((q) => q.id === quizId);
     if (!quiz) return;
 
@@ -369,7 +421,9 @@ export default function MyQuizes() {
             <div className="relative w-full sm:w-40">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setSortBy(e.target.value as 'newest' | 'oldest' | 'highest')
+                }
                 className="w-full appearance-none pl-4 pr-10 py-2.5 bg-white border border-gray-100 rounded-xl focus:outline-none focus:border-[#253A7B] transition-all text-[11px] sm:text-xs font-bold text-gray-500 cursor-pointer shadow-sm"
               >
                 <option value="newest">Latest First</option>
@@ -431,8 +485,8 @@ export default function MyQuizes() {
           onRetake={handleRetakeFromModal}
           onDownloadCertificate={handleDownloadCertificate}
           onViewCertificatePreview={handleViewCertificatePreview}
-          questionResults={detailedResult?.answers?.map((ans: any, idx: number) => {
-            const getAnswerValue = (val: any, options: string[]) => {
+          questionResults={detailedResult?.answers?.map((ans: DetailedAnswer, idx: number) => {
+            const getAnswerValue = (val: string | number | null, options: string[]) => {
               if (!val && val !== 0) return '';
               
               if (Array.isArray(options) && options.length > 0) {
