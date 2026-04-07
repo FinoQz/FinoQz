@@ -9,7 +9,7 @@ interface Quiz {
   quizTitle: string;
   description: string;
   participantCount?: number;
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'scheduled';
 }
 
 interface DeleteConfirmDialogProps {

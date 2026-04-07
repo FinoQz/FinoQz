@@ -51,6 +51,8 @@ export interface QuizData {
   startTime: string;
   endDate: string;
   endTime: string;
+  postingDate: string;
+  postingTime: string;
   visibility: 'public' | 'private' | 'individual';
   assignedGroups: string[];
   assignedIndividuals: string[];
@@ -61,6 +63,7 @@ export interface QuizData {
   certificateEnabled: boolean;
   difficultyLevel: string;
   status: 'draft' | 'published';
+  broadcastEmail: boolean;
 };
 
 export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormProps) {
@@ -85,6 +88,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
     startTime: '',
     endDate: '',
     endTime: '',
+    postingDate: '',
+    postingTime: '',
     visibility: 'public',
     assignedGroups: [],
     assignedIndividuals: [],
@@ -95,6 +100,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
     certificateEnabled: false,
     difficultyLevel: 'medium',
     status: 'published',
+    broadcastEmail: false,
   });
 
   const steps = [
@@ -170,6 +176,8 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
         startTime: quizData.startTime,
         endDate: quizData.endDate,
         endTime: quizData.endTime,
+        postingDate: quizData.postingDate,
+        postingTime: quizData.postingTime,
       } : null,
       media: {
         banner: quizData.bannerImage,
@@ -183,6 +191,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       difficultyLevel: quizData.difficultyLevel,
       postType: quizData.postType,
       saveAsDraft: isDraft,
+      broadcastEmail: quizData.broadcastEmail,
     };
 
     try {

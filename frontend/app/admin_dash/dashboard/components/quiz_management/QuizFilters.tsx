@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
 
-type QuizStatus = 'all' | 'published' | 'draft';
+type QuizStatus = 'all' | 'published' | 'draft' | 'scheduled';
 type QuizPricing = 'all' | 'free' | 'paid';
 
 interface QuizFiltersProps {
@@ -63,6 +63,7 @@ export default function QuizFilters({ onSearch, onStatusChange, onPricingChange 
         >
           <option value="all">All Status</option>
           <option value="published">Published</option>
+          <option value="scheduled">Scheduled</option>
           <option value="draft">Draft</option>
         </select>
         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

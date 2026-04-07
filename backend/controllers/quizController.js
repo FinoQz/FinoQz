@@ -20,6 +20,8 @@ import Group from '../models/Group.js';
 import QuizActivityLog from '../models/QuizActivityLog.js';
 import emailQueue from '../utils/emailQueue.js';
 import quizAssignmentTemplate from '../emailTemplates/quizAssignmentTemplate.js';
+import { notifyQuizLaunch } from '../services/notificationService.js';
+import Category from '../models/Category.js';
 
 const ACTIVE_USER_STATUSES = new Set(['approved', 'active']);
 const DEFAULT_LIVE_END_DAYS = 3650; // 10 years
@@ -258,7 +260,9 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   'difficultyLevel',
   'coverImage',
   'status',
-  'saveAsDraft'
+  'broadcastEmail',
+  'saveAsDraft',
+  'scheduledAt'
 ]);
 
 // Create quiz
@@ -269,7 +273,7 @@ export const createQuiz = async (req, res) => {
       attemptLimit, shuffleQuestions,
       pricing, questions, visibility, groups, individuals,
       schedule, media, settings,
-      postType, tags, difficultyLevel, saveAsDraft
+      postType, tags, difficultyLevel, saveAsDraft, broadcastEmail
     } = req.body;
 
     if (!quizTitle) {
@@ -290,13 +294,28 @@ export const createQuiz = async (req, res) => {
     const now = new Date();
     const isScheduled = postType === 'scheduled';
     let startAt = now;
-    let endAt = new Date(now.getTime() + DEFAULT_LIVE_END_DAYS * 24 * 60 * 60 * 1000);
+    let endAt = null;
+    let scheduledAt = null;
 
-    if (isScheduled && schedule) {
+    if (schedule) {
       const s = parseDateTime(schedule.startDate, schedule.startTime);
       const e = parseDateTime(schedule.endDate, schedule.endTime);
       if (s) startAt = s;
       if (e) endAt = e;
+
+      // Handle custom posting time if provided
+      if (schedule.postingDate && schedule.postingTime) {
+        const p = parseDateTime(schedule.postingDate, schedule.postingTime);
+        if (p) scheduledAt = p;
+      } else {
+        // Default to startAt if no separate posting time is set
+        scheduledAt = startAt;
+      }
+    }
+
+    let finalStatus = saveAsDraft ? 'draft' : 'published';
+    if (isScheduled && !saveAsDraft && scheduledAt && scheduledAt > now) {
+      finalStatus = 'scheduled';
     }
 
     const quiz = new Quiz({
@@ -314,6 +333,7 @@ export const createQuiz = async (req, res) => {
       allowOfflinePayment: !!pricing?.allowOfflinePayment,
       startAt,
       endAt,
+      scheduledAt: scheduledAt || null,
       visibility,
       assignedGroups: Array.isArray(groups) ? groups.map(String) : [],
       assignedIndividuals: Array.isArray(individuals) ? individuals.map(String) : [],
@@ -322,7 +342,8 @@ export const createQuiz = async (req, res) => {
       coverImage: coverImageUrl,
       showResults: settings?.showResults !== false,
       showCorrectAnswers: settings?.showCorrectAnswers !== false,
-      status: saveAsDraft ? 'draft' : 'published',
+      status: finalStatus,
+      broadcastEmail: !!broadcastEmail,
       createdBy: req.adminId || req.userId || null,
     });
 
@@ -359,6 +380,16 @@ export const createQuiz = async (req, res) => {
         device: req.device || {},
         userAgent: req.headers['user-agent']
       });
+    }
+
+    // Trigger notifications if published and broadcast enabled
+    if (quiz.status === 'published' && quiz.broadcastEmail) {
+      try {
+        const cat = await Category.findById(quiz.category).select('name').lean();
+        await notifyQuizLaunch(quiz, cat?.name || 'General');
+      } catch (notifyErr) {
+        console.error("❌ Notification error during creation:", notifyErr);
+      }
     }
 
     return res.status(201).json({ message: "Quiz created successfully", data: quiz });
@@ -427,6 +458,19 @@ export const updateQuiz = async (req, res) => {
       if (!isNaN(d.getTime())) update.endAt = d;
     }
 
+    if (incoming.postingDate && incoming.postingTime) {
+      const parsed = parseDateTime(incoming.postingDate, incoming.postingTime);
+      if (parsed) update.scheduledAt = parsed;
+    } else if (incoming.scheduledAt) {
+      const d = new Date(incoming.scheduledAt);
+      if (!isNaN(d.getTime())) update.scheduledAt = d;
+    }
+
+    // Status logic for update
+    if (update.status === 'published' && update.scheduledAt && update.scheduledAt > new Date()) {
+      update.status = 'scheduled';
+    }
+
     // copy allowed fields only
     Object.keys(incoming).forEach(key => {
       if (ALLOWED_UPDATE_FIELDS.has(key) && key !== 'startAt' && key !== 'endAt') {
@@ -467,11 +511,15 @@ export const updateQuiz = async (req, res) => {
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
     try {
-      await queueQuizAssignmentEmails({ previousQuiz, updatedQuiz: quiz });
+      if (quiz.status === 'published' && quiz.broadcastEmail) {
+        const cat = await Category.findById(quiz.category).select('name').lean();
+        await notifyQuizLaunch(quiz, cat?.name || 'General');
+      } else {
+        await queueQuizAssignmentEmails({ previousQuiz, updatedQuiz: quiz });
+      }
     } catch (notifyErr) {
-      console.error('Quiz assignment email queue error:', notifyErr);
+      console.error('Quiz notification error:', notifyErr);
     }
-
     // Log quiz update (admin only)
     if (req.adminId && id) {
       await QuizActivityLog.create({
@@ -517,6 +565,15 @@ export const setStatus = async (req, res) => {
         device: req.device || {},
         userAgent: req.headers['user-agent']
       });
+    }
+
+    if (quiz.status === 'published' && quiz.broadcastEmail) {
+      try {
+        const cat = await Category.findById(quiz.category).select('name').lean();
+        await notifyQuizLaunch(quiz, cat?.name || 'General');
+      } catch (notifyErr) {
+        console.error("❌ Notification error during setStatus:", notifyErr);
+      }
     }
 
     return res.json({ message: "Status updated", data: quiz });
@@ -605,7 +662,15 @@ export const listPublic = async (req, res) => {
       status: 'published',
       $or: visibilityFilter,
       startAt: { $lte: now },
-      endAt: { $gte: now },
+      $and: [
+        {
+          $or: [
+            { endAt: { $gte: now } },
+            { endAt: null },
+            { endAt: { $exists: false } }
+          ]
+        }
+      ]
     };
 
     if (upcoming === 'true') {

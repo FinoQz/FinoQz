@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle, File, Loader2 } from 'lucide-react';
+import { FileText, CheckCircle, File, Loader2, Clock } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 import CreateQuizButton from '../components/quiz_management/CreateQuizButton';
 import QuizFilters from '../components/quiz_management/QuizFilters';
@@ -22,7 +22,10 @@ interface Quiz {
   duration: number;
   price: number;
   pricingType?: 'free' | 'paid';
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'scheduled';
+  startAt?: string;
+  endAt?: string;
+  scheduledAt?: string;
   enrolledCount?: number;
   participantCount?: number;
   totalMarks?: number;
@@ -239,10 +242,11 @@ export default function QuizManagement() {
       {error && <StatusMessage message={error} type="error" />}
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-5">
         {[
           { label: 'Total Quizzes', value: quizzes.length, icon: FileText, color: 'text-blue-600' },
           { label: 'Published', value: quizzes.filter(q => q.status === 'published').length, icon: CheckCircle, color: 'text-green-600' },
+          { label: 'Scheduled', value: quizzes.filter(q => q.status === 'scheduled').length, icon: Clock, color: 'text-amber-600' },
           { label: 'Drafts', value: quizzes.filter(q => q.status === 'draft').length, icon: File, color: 'text-gray-400' }
         ].map((stat, i) => (
           <div key={i} className="bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-sm flex items-center gap-3 sm:gap-4">

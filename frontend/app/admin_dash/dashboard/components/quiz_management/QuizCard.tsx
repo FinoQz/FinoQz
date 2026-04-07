@@ -10,7 +10,10 @@ interface Quiz {
   createdAt: string;
   duration: number;
   price: number;
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'scheduled';
+  startAt?: string;
+  endAt?: string;
+  scheduledAt?: string;
   enrolledCount?: number;
   participantCount?: number;
   category?: string;
@@ -68,7 +71,8 @@ export default function QuizCard({
 
   const visibilityMeta = getVisibilityMeta();
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -77,6 +81,71 @@ export default function QuizCard({
     });
   };
 
+  const formatDateTime = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusBadge = () => {
+    const now = new Date();
+    const start = quiz.startAt ? new Date(quiz.startAt) : null;
+    const end = quiz.endAt ? new Date(quiz.endAt) : null;
+    const scheduled = quiz.scheduledAt ? new Date(quiz.scheduledAt) : null;
+
+    if (quiz.status === 'draft') {
+      return {
+        label: 'Draft',
+        className: 'bg-gray-100 text-gray-500 border border-gray-200',
+        detail: `Created ${formatDate(quiz.createdAt)}`
+      };
+    }
+
+    if (quiz.status === 'scheduled') {
+      return {
+        label: 'Scheduled',
+        className: 'bg-amber-50 text-amber-600 border border-amber-200',
+        detail: `Posting at ${formatDateTime(quiz.scheduledAt)}`
+      };
+    }
+
+    if (quiz.status === 'published') {
+      if (end && now > end) {
+        return {
+          label: 'Expired',
+          className: 'bg-red-50 text-red-600 border border-red-200',
+          detail: `Ended on ${formatDate(quiz.endAt)}`
+        };
+      }
+      if (start && now < start) {
+        return {
+          label: 'Upcoming',
+          className: 'bg-blue-50 text-blue-600 border border-blue-200',
+          detail: `Starts at ${formatDateTime(quiz.startAt)}`
+        };
+      }
+      return {
+        label: 'Live',
+        className: 'bg-green-50 text-green-700 border border-green-200 shadow-sm shadow-green-100/50 animate-pulse-subtle',
+        detail: `Live until ${formatDate(quiz.endAt)}`
+      };
+    }
+
+    return {
+      label: quiz.status,
+      className: 'bg-gray-50 text-gray-400 border border-gray-200',
+      detail: ''
+    };
+  };
+
+  const statusBadge = getStatusBadge();
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 hover:border-[#253A7B]/30 hover:shadow-md transition-all group">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -84,12 +153,8 @@ export default function QuizCard({
         {/* Title + meta */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
-              quiz.status === 'published'
-                ? 'bg-green-50 text-green-700 border border-green-200'
-                : 'bg-gray-100 text-gray-500 border border-gray-200'
-            }`}>
-              {quiz.status}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide transition-all ${statusBadge.className}`}>
+              {statusBadge.label}
             </span>
             <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${visibilityMeta.className}`}>
               {visibilityMeta.label}
@@ -101,9 +166,9 @@ export default function QuizCard({
           <h3 className="text-sm sm:text-[15px] font-semibold text-gray-900 group-hover:text-[#253A7B] transition-colors leading-snug mb-0.5 break-words">
             {quiz.quizTitle}
           </h3>
-          <p className="text-[11px] text-gray-400">
-            ID: <span className="font-medium text-gray-500">{quiz._id.slice(-8)}</span>
-            &nbsp;·&nbsp;Created {formatDate(quiz.createdAt)}
+          <p className="text-[11px] text-gray-400 font-medium">
+            ID: <span className="text-gray-500 font-bold">{quiz._id.slice(-8)}</span>
+            &nbsp;·&nbsp;{statusBadge.detail}
           </p>
         </div>
 

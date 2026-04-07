@@ -17,6 +17,7 @@ export interface QuizData {
   lastAttempted?: string;
   progress?: number; // 0-100
   totalAttempts?: number;
+  bestScore?: number;
   coverImage?: string;
   attemptId?: string;
 }
@@ -106,42 +107,74 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
 
         {/* Achievement/Result Bar */}
         {isCompleted && quiz.score !== undefined ? (
-          <div className="mb-4 p-3 bg-gray-50/50 border border-gray-100 rounded-xl">
-            <div className="flex justify-between items-end mb-2">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-gray-400 font-bold leading-none mb-1.5">Achievement Score</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xl font-bold text-gray-900 tabular-nums">{quiz.score}</span>
-                  <span className="text-[11px] font-medium text-gray-400">/ {quiz.totalQuestions || quiz.questions}</span>
+          <div className="mb-4 space-y-3">
+            <div className="p-3 bg-gray-50/50 border border-gray-100 rounded-xl relative overflow-hidden group/score">
+              <div className="flex justify-between items-end mb-2 relative z-10">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-gray-400 font-bold leading-none mb-1.5 uppercase tracking-wider">Latest Performance</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-[#253A7B] tabular-nums">{quiz.score}</span>
+                    <span className="text-[11px] font-bold text-gray-400">/ {quiz.totalQuestions || quiz.questions}</span>
+                    <span className="ml-2 px-1.5 py-0.5 bg-[#253A7B]/5 text-[#253A7B] text-[9px] font-black rounded uppercase">
+                      {Math.round(((quiz.score || 0) / (quiz.totalQuestions || quiz.questions || 1)) * 100)}%
+                    </span>
+                  </div>
                 </div>
+                {quiz.lastAttempted && (
+                  <div className="text-right">
+                    <span className="text-[9px] text-gray-300 font-bold block uppercase mb-0.5 whitespace-nowrap">Attempted On</span>
+                    <span className="text-[10px] text-gray-500 font-bold whitespace-nowrap">{quiz.lastAttempted}</span>
+                  </div>
+                )}
               </div>
-              {quiz.lastAttempted && (
-                <span className="text-[10px] text-gray-400 font-bold">{quiz.lastAttempted}</span>
+              <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-gray-200 relative z-10">
+                <div
+                  style={{ width: `${(quiz.score / (quiz.totalQuestions || quiz.questions)) * 100}%` }}
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[#253A7B] transition-all duration-1000"
+                ></div>
+              </div>
+              {/* Subtle background decoration */}
+              <Trophy className="absolute -bottom-1 -right-1 w-12 h-12 text-[#253A7B]/5 rotate-12 group-hover/score:scale-110 transition-transform" />
+            </div>
+
+              {isUnlimited && quiz.bestScore !== undefined && quiz.bestScore !== quiz.score && (
+                <div className="flex items-center justify-between px-3 py-2 bg-emerald-50/50 border border-emerald-100/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-3 h-3 text-emerald-600" />
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-tight">Personal Best</span>
+                  </div>
+                  <span className="text-xs font-black text-emerald-700">{quiz.bestScore} <span className="text-[10px] font-medium opacity-60">pts</span></span>
+                </div>
+              )}
+
+              {isUnlimited && quiz.totalAttempts !== undefined && quiz.totalAttempts > 0 && (
+                <div className="flex items-center justify-between px-3 py-2 bg-blue-50/30 border border-blue-100/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-3 h-3 text-[#253A7B]" />
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight">Total Attempts</span>
+                  </div>
+                  <span className="text-xs font-black text-[#253A7B]">{quiz.totalAttempts}</span>
+                </div>
               )}
             </div>
-            <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-gray-200">
-              <div
-                style={{ width: `${(quiz.score / (quiz.totalQuestions || quiz.questions)) * 100}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[#253A7B] transition-all duration-1000"
-              ></div>
-            </div>
-          </div>
         ) : quiz.isAttempted && quiz.progress && quiz.progress < 100 ? (
-          <div className="mb-4 bg-amber-50/30 p-3 rounded-xl border border-amber-100/50">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] text-amber-600 font-bold leading-none">In Progress</span>
-              <span className="text-[11px] font-bold text-amber-600">{quiz.progress}%</span>
+          <div className="mb-4 bg-amber-50/30 p-3 rounded-xl border border-amber-100/50 relative overflow-hidden group/progress">
+            <div className="flex justify-between items-center mb-2 relative z-10">
+              <span className="text-[10px] text-amber-600 font-bold leading-none uppercase tracking-wider">In Progress</span>
+              <span className="text-[11px] font-black text-amber-600 tabular-nums">{quiz.progress}%</span>
             </div>
-            <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-amber-100/50">
+            <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-amber-100/50 relative z-10">
               <div
                 style={{ width: `${quiz.progress}%` }}
                 className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-amber-400 transition-all duration-1000"
               ></div>
             </div>
+            <RotateCcw className="absolute -bottom-1 -right-1 w-10 h-10 text-amber-500/10 -rotate-45 group-hover/progress:rotate-0 transition-transform duration-500" />
           </div>
         ) : (
-          <div className="mb-4 py-3 flex items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/30">
-            <span className="text-[10px] text-gray-400 font-bold tracking-tight">Available for attempt</span>
+          <div className="mb-4 py-4 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl bg-gray-50/30 group-hover:bg-gray-50/80 transition-colors">
+            <Play className="w-5 h-5 text-gray-200 mb-1 group-hover:text-[#253A7B] transition-colors" />
+            <span className="text-[10px] text-gray-400 font-bold tracking-tight uppercase">Ready for attempt</span>
           </div>
         )}
 
@@ -171,17 +204,18 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
                   else if (quiz.progress && quiz.progress < 100) onAction(quiz.id, 'continue');
                   else if (isUnlimited) onAction(quiz.id, 'retake');
                 }}
-                className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 shadow-sm ${
+                className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-[10px] sm:text-xs transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95 ${
                   !quiz.isAttempted
                     ? 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
                     : quiz.progress && quiz.progress < 100
                     ? 'bg-amber-500 text-white hover:bg-amber-600'
-                    : 'bg-white text-[#253A7B] border-2 border-[#253A7B]/10 hover:border-[#253A7B]/30 hover:bg-blue-50/50'
+                    : 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
                 }`}
               >
-                {!quiz.isAttempted ? 'Start' : quiz.progress && quiz.progress < 100 ? 'Resume' : 'Retake'}
+                {!quiz.isAttempted ? 'Start Now' : quiz.progress && quiz.progress < 100 ? 'Resume' : 'Retake Quiz'}
                 {!quiz.isAttempted && <ChevronRight className="w-3.5 h-3.5" />}
                 {quiz.progress && quiz.progress < 100 && <Play className="w-3 h-3 fill-current" />}
+                {isUnlimited && isCompleted && <RotateCcw className="w-3.5 h-3.5" />}
               </button>
 
               {isCompleted && (

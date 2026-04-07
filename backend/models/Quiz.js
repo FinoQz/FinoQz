@@ -18,7 +18,8 @@ const quizSchema = new mongoose.Schema({
   allowOfflinePayment: { type: Boolean, default: false },
 
   startAt: { type: Date, required: true },
-  endAt: { type: Date, required: true },
+  endAt: { type: Date },
+  scheduledAt: { type: Date }, // Time when the quiz should be published
   visibility: { type: String, enum: ["public", "unlisted", "private", "individual"], default: "public" },
   assignedGroups: [{ type: String }],
   assignedIndividuals: [{ type: String }],
@@ -30,7 +31,8 @@ const quizSchema = new mongoose.Schema({
   showResults: { type: Boolean, default: true },
   showCorrectAnswers: { type: Boolean, default: true },
 
-  status: { type: String, enum: ["draft", "published"], default: "draft" },
+  status: { type: String, enum: ["draft", "published", "scheduled"], default: "draft" },
+  broadcastEmail: { type: Boolean, default: false },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   enrolledCount: { type: Number, default: 0 },

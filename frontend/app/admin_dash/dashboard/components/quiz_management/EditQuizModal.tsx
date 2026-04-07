@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Save, Loader2, Search, Shuffle } from 'lucide-react';
+import { X, Save, Loader2, Search, Shuffle, Calendar, Clock } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
-
 interface Quiz {
   _id: string;
   quizTitle: string;
@@ -17,9 +16,13 @@ interface Quiz {
   category: string;
   shuffleQuestions?: boolean;
   visibility: string;
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'scheduled';
+  scheduledAt?: string;
+  startAt?: string;
+  endAt?: string;
   assignedGroups?: string[];
   assignedIndividuals?: string[];
+  broadcastEmail?: boolean;
 }
 
 interface EditQuizModalProps {
@@ -71,6 +74,16 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
     assignedGroups: Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups : [],
     assignedIndividuals: Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals : [],
     status: quiz.status || 'draft',
+    broadcastEmail: Boolean(quiz.broadcastEmail),
+    scheduledAt: quiz.scheduledAt || '',
+    startAt: quiz.startAt || '',
+    endAt: quiz.endAt || '',
+    startDate: quiz.startAt ? new Date(quiz.startAt).toISOString().split('T')[0] : '',
+    startTime: quiz.startAt ? new Date(quiz.startAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+    endDate: quiz.endAt ? new Date(quiz.endAt).toISOString().split('T')[0] : '',
+    endTime: quiz.endAt ? new Date(quiz.endAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+    postingDate: quiz.scheduledAt ? new Date(quiz.scheduledAt).toISOString().split('T')[0] : '',
+    postingTime: quiz.scheduledAt ? new Date(quiz.scheduledAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -239,6 +252,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
         shuffleQuestions: Boolean(formData.shuffleQuestions),
         assignedGroups: formData.visibility === 'private' ? formData.assignedGroups : [],
         assignedIndividuals: formData.visibility === 'individual' ? selectedIndividuals : [],
+        broadcastEmail: formData.broadcastEmail,
       };
 
       await apiAdmin.put(`/api/quizzes/admin/quizzes/${quiz._id}`, payload);
@@ -442,6 +456,26 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                  </div>
                </div>
 
+                <div className="pt-2 border-t border-slate-100">
+                  <div 
+                    className="flex items-center justify-between p-3 bg-blue-50/50 rounded-lg border border-blue-100/50 cursor-pointer hover:bg-blue-50 transition-all"
+                    onClick={() => setFormData(p => ({ ...p, broadcastEmail: !p.broadcastEmail }))}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${formData.broadcastEmail ? 'bg-[#253A7B] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <Shuffle className={`w-4 h-4 transition-transform ${formData.broadcastEmail ? 'rotate-45' : ''}`} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold text-slate-900">Broadcast Email</p>
+                        <p className="text-[9px] text-slate-500">Notify users when published/scheduled</p>
+                      </div>
+                    </div>
+                    <div className={`w-10 h-5 rounded-full relative transition-all duration-300 ${formData.broadcastEmail ? 'bg-[#253A7B]' : 'bg-slate-200'}`}>
+                      <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${formData.broadcastEmail ? 'left-5.5' : 'left-0.5'}`} />
+                    </div>
+                  </div>
+                </div>
+
                {formData.visibility === 'private' && (
                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                    <label className="text-[11px] font-medium text-slate-500">Select Groups</label>
@@ -466,95 +500,216 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                  </div>
                )}
 
-               {formData.visibility === 'individual' && (
-                 <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
-                   <label className="text-[11px] font-medium text-slate-500">Direct Assign (Email or User)</label>
-                   <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 w-full items-stretch">
-                     <input
-                       type="text"
-                       value={individualInput}
-                       onChange={(e) => setIndividualInput(e.target.value)}
-                       onKeyDown={(e) => {
-                         if (e.key === 'Enter') {
-                           e.preventDefault();
-                           addIndividual(individualInput);
-                           setIndividualInput('');
-                         }
-                       }}
-                       placeholder="Enter email"
-                       className="w-full min-w-0 max-w-full bg-white border border-slate-200 rounded-md px-3 py-2 text-xs font-semibold focus:border-[#253A7B] outline-none"
-                     />
-                     <button
-                       type="button"
-                       onClick={() => {
-                         addIndividual(individualInput);
-                         setIndividualInput('');
-                       }}
-                       className="w-full sm:w-auto min-w-[84px] sm:min-w-[90px] px-3 py-2 bg-[#253A7B] text-white rounded-md text-[11px] font-semibold whitespace-nowrap"
-                     >
-                       Add
-                     </button>
-                   </div>
+                {formData.visibility === 'individual' && (
+                  <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                    <label className="text-[11px] font-medium text-slate-500">Direct Assign (Email or User)</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 w-full items-stretch">
+                      <input
+                        type="text"
+                        value={individualInput}
+                        onChange={(e) => setIndividualInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addIndividual(individualInput);
+                            setIndividualInput('');
+                          }
+                        }}
+                        placeholder="Enter email"
+                        className="w-full min-w-0 max-w-full bg-white border border-slate-200 rounded-md px-3 py-2 text-xs font-semibold focus:border-[#253A7B] outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addIndividual(individualInput);
+                          setIndividualInput('');
+                        }}
+                        className="w-full sm:w-auto min-w-[84px] sm:min-w-[90px] px-3 py-2 bg-[#253A7B] text-white rounded-md text-[11px] font-semibold whitespace-nowrap"
+                      >
+                        Add
+                      </button>
+                    </div>
 
-                   <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
-                     <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/70 flex items-center gap-2">
-                       <Search className="w-3.5 h-3.5 text-slate-400" />
-                       <input
-                         type="text"
-                         value={userSearch}
-                         onChange={(e) => setUserSearch(e.target.value)}
-                         placeholder="Search users by name or email"
-                         className="w-full bg-transparent text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none"
+                    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                      <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/70 flex items-center gap-2">
+                        <Search className="w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="text"
+                          value={userSearch}
+                          onChange={(e) => setUserSearch(e.target.value)}
+                          placeholder="Search users by name or email"
+                          className="w-full bg-transparent text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none"
+                        />
+                      </div>
+                      <div className="max-h-40 overflow-y-auto p-2 space-y-1">
+                        {filteredUsers.length === 0 && (
+                          <p className="text-xs text-slate-400 px-1 py-2">No users matched.</p>
+                        )}
+                        {filteredUsers.map((user) => {
+                          const checked = selectedIndividuals.includes(user.email);
+                          return (
+                            <button
+                              key={user._id}
+                              type="button"
+                              onClick={() => toggleIndividual(user.email)}
+                             className={`w-full min-w-0 flex items-center gap-2 px-2 py-2 rounded-md border text-left transition-all ${checked ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                readOnly
+                                className="w-3.5 h-3.5 accent-[#253A7B]"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-semibold truncate">{user.fullName}</p>
+                                <p className="text-[10px] opacity-80 truncate">{user.email}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {selectedIndividuals.length === 0 && (
+                        <p className="text-xs text-slate-400">No users assigned yet.</p>
+                      )}
+                      {selectedIndividuals.map((item) => (
+                        <span key={item} className="inline-flex items-center gap-1 px-2 py-1 rounded border border-blue-200 bg-blue-50 text-[11px] font-semibold text-[#253A7B] max-w-full break-all">
+                          {item}
+                          <button
+                            type="button"
+                            onClick={() => removeIndividual(item)}
+                            className="text-[#253A7B] hover:text-red-500"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+               {/* Timeline & Schedule Section */}
+               <div className="space-y-4 sm:space-y-5 bg-slate-50/50 border border-slate-200/60 rounded-xl p-3 sm:p-5 shadow-sm mt-4 col-span-1 md:col-span-2">
+                 <div className="flex items-center gap-2 mb-2">
+                   <div className="w-1 h-4 bg-amber-500 rounded-full" />
+                   <h3 className="text-xs font-semibold tracking-wide text-slate-900 uppercase">Timeline & Schedule</h3>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-3">
+                     <label className="text-[11px] font-medium text-slate-500">Starts At</label>
+                     <div className="flex gap-2">
+                       <input 
+                         type="date" 
+                         name="startDate" 
+                         value={formData.startDate} 
+                         onChange={handleInputChange} 
+                         className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
+                       />
+                       <input 
+                         type="time" 
+                         name="startTime" 
+                         value={formData.startTime} 
+                         onChange={handleInputChange} 
+                         className="w-24 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
                        />
                      </div>
-                     <div className="max-h-40 overflow-y-auto p-2 space-y-1">
-                       {filteredUsers.length === 0 && (
-                         <p className="text-xs text-slate-400 px-1 py-2">No users matched.</p>
-                       )}
-                       {filteredUsers.map((user) => {
-                         const checked = selectedIndividuals.includes(user.email);
-                         return (
-                           <button
-                             key={user._id}
-                             type="button"
-                             onClick={() => toggleIndividual(user.email)}
-                            className={`w-full min-w-0 flex items-center gap-2 px-2 py-2 rounded-md border text-left transition-all ${checked ? 'border-[#253A7B] bg-blue-50 text-[#253A7B]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
-                           >
-                             <input
-                               type="checkbox"
-                               checked={checked}
-                               readOnly
-                               className="w-3.5 h-3.5 accent-[#253A7B]"
-                             />
-                             <div className="min-w-0 flex-1">
-                               <p className="text-[11px] font-semibold truncate">{user.fullName}</p>
-                               <p className="text-[10px] opacity-80 truncate">{user.email}</p>
-                             </div>
-                           </button>
-                         );
-                       })}
-                     </div>
                    </div>
 
-                   <div className="flex flex-wrap gap-2 pt-1">
-                     {selectedIndividuals.length === 0 && (
-                       <p className="text-xs text-slate-400">No users assigned yet.</p>
+                   <div className="space-y-3">
+                     <div className="flex items-center justify-between">
+                       <label className="text-[11px] font-medium text-slate-500">Ends At</label>
+                       <button
+                         type="button"
+                         onClick={() => {
+                           const hasEnd = !!(formData.endDate && formData.endTime);
+                           if (hasEnd) {
+                             setFormData(p => ({ ...p, endDate: '', endTime: '' }));
+                           } else {
+                             const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                             setFormData(p => ({ 
+                               ...p, 
+                               endDate: future.toISOString().split('T')[0], 
+                               endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+                             }));
+                           }
+                         }}
+                         className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider transition-all ${
+                            (formData.endDate && formData.endTime)
+                              ? 'bg-[#253A7B] text-white'
+                              : 'bg-slate-100 text-slate-400 hover:text-slate-600'
+                          }`}
+                       >
+                         {(formData.endDate && formData.endTime) ? 'Expires' : 'No Expiry (Until I Delete)'}
+                       </button>
+                     </div>
+                     
+                     {(formData.endDate && formData.endTime) ? (
+                       <div className="flex gap-2 animate-in slide-in-from-top-1">
+                         <input 
+                           type="date" 
+                           name="endDate" 
+                           value={formData.endDate} 
+                           onChange={handleInputChange} 
+                           className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
+                         />
+                         <input 
+                           type="time" 
+                           name="endTime" 
+                           value={formData.endTime} 
+                           onChange={handleInputChange} 
+                           className="w-24 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
+                         />
+                       </div>
+                     ) : (
+                        <div 
+                          onClick={() => {
+                            const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                            setFormData(p => ({ 
+                              ...p, 
+                              endDate: future.toISOString().split('T')[0], 
+                              endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+                            }));
+                          }}
+                          className="h-[34px] border border-dashed border-slate-200 rounded-md flex items-center justify-center text-[10px] text-slate-400 font-medium cursor-pointer hover:bg-slate-50 transition-all"
+                        >
+                          Click to set an expiration date if needed
+                        </div>
                      )}
-                     {selectedIndividuals.map((item) => (
-                       <span key={item} className="inline-flex items-center gap-1 px-2 py-1 rounded border border-blue-200 bg-blue-50 text-[11px] font-semibold text-[#253A7B] max-w-full break-all">
-                         {item}
-                         <button
-                           type="button"
-                           onClick={() => removeIndividual(item)}
-                           className="text-[#253A7B] hover:text-red-500"
-                         >
-                           <X className="w-3 h-3" />
-                         </button>
-                       </span>
-                     ))}
                    </div>
                  </div>
-               )}
+
+                 {(formData.status === 'scheduled' || formData.postingDate) && (
+                   <div className="pt-4 mt-2 border-t border-slate-200/60 animate-in slide-in-from-top-2">
+                     <div className="flex items-center gap-2 mb-3">
+                       <Clock className="w-3.5 h-3.5 text-amber-600" />
+                       <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Scheduled Posting Time</span>
+                     </div>
+                     <div className="flex gap-2 max-w-sm">
+                       <input 
+                         type="date" 
+                         name="postingDate" 
+                         value={formData.postingDate || formData.startDate} 
+                         onChange={handleInputChange} 
+                         className="flex-1 bg-white border border-amber-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-amber-500 outline-none" 
+                       />
+                       <input 
+                         type="time" 
+                         name="postingTime" 
+                         value={formData.postingTime || formData.startTime} 
+                         onChange={handleInputChange} 
+                         className="w-24 bg-white border border-amber-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-amber-500 outline-none" 
+                       />
+                     </div>
+                     <p className="text-[10px] text-slate-400 mt-2 italic flex items-center gap-1">
+                       <Loader2 className="w-3 h-3" />
+                       Visible in system at this time. Defaults to Start Time if left same.
+                     </p>
+                   </div>
+                 )}
+               </div>
             </div>
           </div>
         </form>
@@ -563,13 +718,20 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
           <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <span className="text-[11px] font-medium text-slate-500">Current Status:</span>
-              <div className="flex p-0.5 bg-slate-50 border border-slate-200 rounded-md">
+               <div className="flex p-0.5 bg-slate-50 border border-slate-200 rounded-md">
                  <button
                    type="button"
                    onClick={() => setFormData(p => ({ ...p, status: 'published' }))}
                    className={`px-3 py-1 rounded text-[11px] font-semibold transition-all ${formData.status === 'published' ? 'bg-[#253A7B] text-white' : 'text-slate-400 hover:text-slate-600'}`}
                  >
                    Published
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => setFormData(p => ({ ...p, status: 'scheduled' }))}
+                   className={`px-3 py-1 rounded text-[11px] font-semibold transition-all ${formData.status === 'scheduled' ? 'bg-[#253A7B] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                 >
+                   Scheduled
                  </button>
                  <button
                    type="button"

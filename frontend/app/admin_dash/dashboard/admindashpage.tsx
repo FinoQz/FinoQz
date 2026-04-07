@@ -14,6 +14,7 @@ import Analytics from './pages/Analytics';
 import ActivityLogsPage from './pages/ActivityLogsPage';
 import ReviewManagement from './pages/ReviewManagement';
 import InsightsManagement from './pages/InsightsManagement';
+import BannerManagement from './pages/BannerManagement';
 
 export default function AdminDashPage() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -46,6 +47,8 @@ export default function AdminDashPage() {
         return <ReviewManagement />;
       case 'insights':
         return <InsightsManagement />;
+      case 'banners':
+        return <BannerManagement />;
       default:
         return <DashboardOverview />;
     }

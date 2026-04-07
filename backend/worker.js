@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { connectDB } from './config/db.js';
 import './utils/emailWorker.js';
 import ScheduledEmail from './models/ScheduledEmail.js';
+import { checkAndPublishQuizzes } from './utils/quizWorker.js';
 import emailQueue from './utils/emailQueue.js';
 
 process.on('uncaughtException', (err) => {
@@ -38,6 +39,11 @@ const startWorker = async () => {
     }
 
     console.log('✅ Email worker started (BullMQ + MongoDB connected)');
+
+    // Periodically check for scheduled quizzes every minute
+    setInterval(checkAndPublishQuizzes, 60000);
+    // Initial check on startup
+    await checkAndPublishQuizzes();
   } catch (err) {
     console.error('❌ Worker startup failed:', err);
     process.exit(1);

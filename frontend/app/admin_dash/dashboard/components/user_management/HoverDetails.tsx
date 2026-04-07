@@ -47,6 +47,7 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
       className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => setIsHovered(true)}
     >
       {/* Main Card */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all duration-300 cursor-pointer">
@@ -95,11 +96,22 @@ export default function HoverDetails({ user, onAction }: HoverDetailsProps) {
 
       {/* Hover Popup */}
       {isHovered && (
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
-          <div className="pointer-events-auto bg-white border-2 border-gray-200 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:pointer-events-none">
+          {/* Mobile Overlay to Close */}
+          <div className="absolute inset-0 bg-black/20 sm:hidden pointer-events-auto" onClick={(e) => { e.stopPropagation(); setIsHovered(false); }} />
+          
+          <div className="pointer-events-auto relative bg-white border-2 border-gray-200 rounded-2xl shadow-2xl p-4 sm:p-6 w-full max-w-sm sm:max-w-md animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={(e) => { e.stopPropagation(); setIsHovered(false); }}
+              className="absolute top-4 right-4 sm:hidden p-1 bg-gray-100 rounded-full text-gray-500 hover:text-gray-900"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
             <div className="space-y-4">
-              <div className="pb-3 border-b border-gray-200">
-                <h4 className="text-lg font-bold text-gray-900">{user.fullName}</h4>
+              <div className="pb-3 border-b border-gray-200 pr-8">
+                <h4 className="text-lg font-bold text-gray-900 truncate">{user.fullName}</h4>
                 <p className="text-xs text-gray-600 font-medium uppercase tracking-wide mt-1">
                   Signup Details
                 </p>

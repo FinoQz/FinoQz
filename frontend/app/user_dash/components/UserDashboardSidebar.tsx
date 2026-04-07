@@ -29,7 +29,6 @@ const menuItems = [
   { id: 'quizes', label: 'Quizes', icon: BookOpen },
   { id: 'myquizes', label: 'My Quizes', icon: Library },
   { id: 'wallet', label: 'Wallet', icon: Wallet },
-  { id: 'certificates', label: 'Certificates', icon: Award },
   { id: 'community', label: 'Community', icon: MessageSquare },
   { id: 'content', label: 'Finance Content', icon: FileText },
   { id: 'profile', label: 'Profile', icon: User },
@@ -65,6 +64,9 @@ export default function UserDashboardSidebar({
     } catch (err) {
       console.error('Logout failed:', err);
     } finally {
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userName'); 
+      localStorage.removeItem('userEmail');
       router.push('/landing');
     }
   };

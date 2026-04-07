@@ -22,7 +22,7 @@ interface ParticipantsDrawerProps {
     createdAt: string;
     duration: number;
     price: number;
-    status: 'published' | 'draft';
+    status: 'published' | 'draft' | 'scheduled';
   };
 }
 

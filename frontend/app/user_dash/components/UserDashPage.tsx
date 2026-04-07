@@ -6,7 +6,6 @@ import Dashboard from '../pages/Dashboard';
 import Quizes from '../pages/Quizes';
 import MyQuizes from '../pages/MyQuizes';
 import Wallet from '../pages/Wallet';
-import Certificates from '../pages/Certificates';
 import Community from '../pages/Community';
 import FinanceContent from '../pages/FinanceContent';
 import Profile from '../pages/Profile';
@@ -24,8 +23,6 @@ export default function UserDashPage() {
         return <MyQuizes />;
       case 'wallet':
         return <Wallet />;
-      case 'certificates':
-        return <Certificates />;
       case 'community':
         return <Community />;
       case 'content':

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Eye, Check, Loader2, Globe, Shield, UserPlus, X } from 'lucide-react';
+import { Calendar, Clock, Eye, Check, Loader2, Globe, Shield, UserPlus, X, Plus } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 import { QuizData } from './CreateQuizForm';
 
@@ -100,57 +100,186 @@ export default function ScheduleVisibility({
           </button>
         </div>
 
-        {quizData.postType === 'scheduled' && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in slide-in-from-top-2">
+        {/* Unified Activity Period */}
+        <div className="mt-8 space-y-8 animate-in slide-in-from-top-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Starts At - Only shown for Scheduled, for Live it's 'Now' */}
             <div className="space-y-4">
-              <label className="text-xs font-medium text-gray-500 ml-0.5">Starts At</label>
-              <div className="flex gap-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-700 ml-0.5">Quiz Starts At</label>
+                {quizData.postType === 'live' && (
+                  <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Starting Now</span>
+                )}
+              </div>
+              <div className={`flex gap-3 ${quizData.postType === 'live' ? 'opacity-50 pointer-events-none' : ''}`}>
                 <div className="flex-1 relative">
                   <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
                   <input
                     type="date"
-                    value={quizData.startDate}
-                    onChange={(e) => updateQuizData({ startDate: e.target.value })}
-                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                    value={quizData.postType === 'live' ? new Date().toISOString().split('T')[0] : quizData.startDate}
+                    onChange={(e) => updateQuizData({ startDate: e.target.value, postingDate: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-sm font-medium focus:border-[#253A7B] outline-none transition-all shadow-sm"
                   />
                 </div>
                 <div className="flex-1 relative">
                   <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
                   <input
                     type="time"
-                    value={quizData.startTime}
-                    onChange={(e) => updateQuizData({ startTime: e.target.value })}
-                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                    value={quizData.postType === 'live' ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : quizData.startTime}
+                    onChange={(e) => updateQuizData({ startTime: e.target.value, postingTime: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-sm font-medium focus:border-[#253A7B] outline-none transition-all shadow-sm"
                   />
                 </div>
               </div>
             </div>
 
+            {/* Ends At */}
             <div className="space-y-4">
-              <label className="text-xs font-medium text-gray-500 ml-0.5">Ends At</label>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                  <input
-                    type="date"
-                    value={quizData.endDate}
-                    onChange={(e) => updateQuizData({ endDate: e.target.value })}
-                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
-                  />
-                </div>
-                <div className="flex-1 relative">
-                  <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                  <input
-                    type="time"
-                    value={quizData.endTime}
-                    onChange={(e) => updateQuizData({ endTime: e.target.value })}
-                    className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
-                  />
-                </div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-700 ml-0.5">Quiz Expires At</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const hasEnd = !!(quizData.endDate && quizData.endTime);
+                    if (hasEnd) {
+                      updateQuizData({ endDate: '', endTime: '' });
+                    } else {
+                      // Default to 7 days from now if enabling
+                      const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                      updateQuizData({ 
+                        endDate: future.toISOString().split('T')[0], 
+                        endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+                      });
+                    }
+                  }}
+                  className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider transition-all ${
+                    (quizData.endDate && quizData.endTime)
+                      ? 'bg-[#253A7B] text-white'
+                      : 'bg-gray-100 text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {(quizData.endDate && quizData.endTime) ? 'Expires' : 'No Expiry (Until I Delete)'}
+                </button>
               </div>
+
+              {(quizData.endDate && quizData.endTime) ? (
+                <div className="flex gap-3 animate-in slide-in-from-top-1">
+                  <div className="flex-1 relative">
+                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                    <input
+                      type="date"
+                      value={quizData.endDate}
+                      onChange={(e) => updateQuizData({ endDate: e.target.value })}
+                      className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-sm font-medium focus:border-[#253A7B] outline-none transition-all shadow-sm"
+                    />
+                  </div>
+                  <div className="flex-1 relative">
+                    <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                    <input
+                      type="time"
+                      value={quizData.endTime}
+                      onChange={(e) => updateQuizData({ endTime: e.target.value })}
+                      className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2.5 text-sm font-medium focus:border-[#253A7B] outline-none transition-all shadow-sm"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => {
+                    const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                    updateQuizData({ 
+                      endDate: future.toISOString().split('T')[0], 
+                      endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+                    });
+                  }}
+                  className="h-[42px] border border-dashed border-gray-200 rounded-md flex items-center justify-center text-[10px] text-gray-400 font-medium cursor-pointer hover:bg-gray-50 transition-all"
+                >
+                  Click to set an expiration date if needed
+                </div>
+              )}
             </div>
           </div>
-        )}
+
+          {/* Advanced Posting Time Toggle (Only for Scheduled) */}
+          {quizData.postType === 'scheduled' && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const isCustom = quizData.postingDate !== quizData.startDate || quizData.postingTime !== quizData.startTime;
+                  if (isCustom) {
+                    // Reset to match start time
+                    updateQuizData({ postingDate: quizData.startDate, postingTime: quizData.startTime });
+                  } else {
+                    // Just expand (it will already be matching)
+                    // We need a local state but since we can't easily add one to this functional component without props, 
+                    // we'll rely on checking if they differ. 
+                    // Actually, let's just use a local state.
+                  }
+                }}
+                className="text-[10px] font-bold text-[#253A7B] uppercase tracking-widest hover:underline flex items-center gap-1.5"
+              >
+                <Plus className={`w-3 h-3 transition-transform ${(quizData.postingDate !== quizData.startDate || quizData.postingTime !== quizData.startTime) ? 'rotate-45' : ''}`} />
+                {(quizData.postingDate !== quizData.startDate || quizData.postingTime !== quizData.startTime) ? 'Remove Custom Posting Time' : 'Set Different Posting Time (Optional)'}
+              </button>
+
+              {(quizData.postingDate !== quizData.startDate || quizData.postingTime !== quizData.startTime) && (
+                <div className="mt-4 p-4 bg-amber-50/50 border border-amber-100 rounded-xl space-y-4 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    <label className="text-xs font-bold text-amber-900 uppercase tracking-wider">Custom Posting Time</label>
+                  </div>
+                  <p className="text-[10px] text-amber-600 font-medium -mt-2 mb-2">The quiz will be visible in the system at this time, even if it hasn't started yet.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Posting Date</label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                        <input
+                          type="date"
+                          value={quizData.postingDate}
+                          onChange={(e) => updateQuizData({ postingDate: e.target.value })}
+                          className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Posting Time</label>
+                      <div className="relative">
+                        <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                        <input
+                          type="time"
+                          value={quizData.postingTime}
+                          onChange={(e) => updateQuizData({ postingTime: e.target.value })}
+                          className="w-full bg-white border border-gray-200 rounded-md pl-10 pr-4 py-2 text-sm font-normal focus:border-[#253A7B] outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Broadcast Toggle */}
+        <div className="mt-8 pt-8 border-t border-gray-100">
+          <div className="flex items-center justify-between p-4 bg-[#253A7B]/5 rounded-xl border border-[#253A7B]/10 group hover:bg-[#253A7B]/10 transition-all cursor-pointer" onClick={() => updateQuizData({ broadcastEmail: !quizData.broadcastEmail })}>
+            <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${quizData.broadcastEmail ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-gray-100 text-gray-400'}`}>
+                <Plus className={`w-6 h-6 transition-transform ${quizData.broadcastEmail ? 'rotate-45' : ''}`} />
+              </div>
+              <div>
+                <h4 className="text-[13px] font-bold text-gray-900 mb-0.5">Broadcast Email Notification</h4>
+                <p className="text-[10px] text-gray-500 font-medium">Send an automated announcement to eligible recipients when live.</p>
+              </div>
+            </div>
+            
+            <div className={`w-12 h-6 rounded-full relative transition-all duration-300 ${quizData.broadcastEmail ? 'bg-[#253A7B]' : 'bg-gray-200'}`}>
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${quizData.broadcastEmail ? 'left-7' : 'left-1'}`} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Visibility Options */}
