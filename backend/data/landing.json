@@ -103,5 +103,42 @@
         "Personalized tips"
       ]
     }
+  ],
+  "updates": [
+    {
+      "id": "1775770251398",
+      "date": "2026-05-15",
+      "title": "Improved quiz speed and UI",
+      "description": "Quiz UI is being properly analyized and speed increasing"
+    },
+    {
+      "id": "1775769779783",
+      "date": "2026-04-30",
+      "title": "Performance Score Tracking introduced",
+      "description": "All if your quiz performace is being trackend and analysed"
+    },
+    {
+      "id": "1775769546732",
+      "date": "2026-04-10",
+      "title": "Added Scenario-Based MCQs",
+      "description": "Deep quiz grinding platform upcoming"
+    }
+  ],
+  "comingSoon": [
+    {
+      "id": "1775770376544",
+      "name": "Chart Practice Game",
+      "timeline": "July 2026"
+    },
+    {
+      "id": "1775770424040",
+      "name": "AI Weakness Analysis",
+      "timeline": "May 2026"
+    },
+    {
+      "id": "1775770446485",
+      "name": "Downloadable Excel Reports",
+      "timeline": "April 2025"
+    }
   ]
 }

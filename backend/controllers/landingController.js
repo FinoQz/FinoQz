@@ -84,6 +84,29 @@ const validateReasons = (reasons) => {
     }));
 };
 
+const validateUpdates = (updates) => {
+  if (!Array.isArray(updates)) return [];
+  return updates
+    .filter(u => u && typeof u.title === 'string' && u.title.trim())
+    .map(u => ({
+      id: u.id || Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      date: typeof u.date === 'string' ? u.date.trim() : new Date().toISOString(),
+      title: u.title.trim(),
+      description: typeof u.description === 'string' ? u.description.trim() : '',
+    }));
+};
+
+const validateComingSoon = (comingSoon) => {
+  if (!Array.isArray(comingSoon)) return [];
+  return comingSoon
+    .filter(c => c && typeof c.name === 'string' && c.name.trim())
+    .map(c => ({
+      id: c.id || Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      name: c.name.trim(),
+      timeline: typeof c.timeline === 'string' ? c.timeline.trim() : '',
+    }));
+};
+
 export async function getLanding(req, res) {
   try {
     const data = await fs.readFile(LANDING_JSON, 'utf8');
@@ -96,6 +119,8 @@ export async function getLanding(req, res) {
         hero: {},
         categories: [],
         reasons: [],
+        updates: [],
+        comingSoon: [],
       });
     }
     console.error('❌ getLanding error:', err);
@@ -127,6 +152,8 @@ export async function saveLanding(req, res) {
       hero: validateHero(payload.hero || existing.hero),
       categories: validateCategories(payload.categories || existing.categories),
       reasons: validateReasons(payload.reasons || existing.reasons),
+      updates: validateUpdates(payload.updates || existing.updates || []),
+      comingSoon: validateComingSoon(payload.comingSoon || existing.comingSoon || []),
     };
 
     // Ensure directory exists

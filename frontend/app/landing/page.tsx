@@ -7,6 +7,7 @@ import Navbar from "./components/Navbar";
 import TryQuizPreview from "./components/TryQuiz";
 import QuizCategories from "./components/QuizCategories";
 import Reviews from "./components/Reviews";
+import Roadmap from "./components/Roadmap";
 import Footer from "./components/Footer";
 
 // Global Preloader Component
@@ -99,6 +100,7 @@ export default function LandingPage() {
         </div>
         <QuizCategories />
         <Reviews />
+        <Roadmap />
         <Footer />
       </motion.div>
     </div>
