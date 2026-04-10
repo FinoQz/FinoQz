@@ -59,7 +59,7 @@ export default function DashboardCharts({ userId }: DashboardChartsProps) {
         setError('');
         // Fetch user quiz attempts
         // Always include userId for user-specific chart data
-        let url = '/api/quiz-attempts/user/all?status=submitted&limit=1000';
+        const url = '/api/quiz-attempts/user/all?status=submitted&limit=1000';
         const res = await apiUser.get(url);
         const attempts = res.data?.attempts || [];
 

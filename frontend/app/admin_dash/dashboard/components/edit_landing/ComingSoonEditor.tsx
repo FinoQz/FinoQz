@@ -54,8 +54,9 @@ export default function ComingSoonEditor() {
     try {
       await apiAdmin.patch('/api/admin/landing', { comingSoon: items });
       setMessage({ type: 'success', text: 'Coming Soon list saved successfully!' });
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      const apiError = error as { response?: { status: number } };
+      if (apiError.response?.status === 401) {
         setMessage({ type: 'error', text: 'Session expired. Please log in again.' });
       } else {
         setMessage({ type: 'error', text: 'Failed to save Coming Soon list.' });

@@ -109,7 +109,7 @@ export default function BannerManagement() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 leading-tight">Dashboard Banners</h1>
         <p className="text-sm text-gray-500 mt-2">
-          Upload images here to display them on the user's dashboard carousel. Banners marked as "Active" will be visible immediately.
+          Upload images here to display them on the users dashboard carousel. Banners marked as Active will be visible immediately.
         </p>
       </div>
 
