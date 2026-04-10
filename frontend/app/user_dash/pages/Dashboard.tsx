@@ -85,7 +85,7 @@ export default function Dashboard() {
           setInProgressQuiz(null);
         }
 
-        const formattedActivities: RecentActivity[] = (activities || []).map((a: any) => ({
+        const formattedActivities: RecentActivity[] = (activities || []).map((a: { _id: string; quizTitle: string; score: number; percentage: number; submittedAt: string }) => ({
           _id: a._id,
           quizTitle: a.quizTitle,
           score: a.score,
