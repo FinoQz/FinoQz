@@ -229,7 +229,7 @@ export default function ScheduleVisibility({
                     <Clock className="w-4 h-4 text-amber-600" />
                     <label className="text-xs font-bold text-amber-900 uppercase tracking-wider">Custom Posting Time</label>
                   </div>
-                  <p className="text-[10px] text-amber-600 font-medium -mt-2 mb-2">The quiz will be visible in the system at this time, even if it hasn't started yet.</p>
+                  <p className="text-[10px] text-amber-600 font-medium -mt-2 mb-2">The quiz will be visible in the system at this time, even if it has not started yet.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-0.5">Posting Date</label>

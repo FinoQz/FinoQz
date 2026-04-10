@@ -65,7 +65,7 @@ export default function Roadmap() {
   };
 
   // Group updates by month
-  const groupedUpdates = updates.reduce((acc: any, update) => {
+  const groupedUpdates = updates.reduce((acc: Record<string, Update[]>, update) => {
     const date = new Date(update.date);
     const monthYear = date.toLocaleString('default', { month: 'long', year: 'numeric' });
     if (!acc[monthYear]) acc[monthYear] = [];
@@ -93,10 +93,10 @@ export default function Roadmap() {
             Product Journey
           </motion.span>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            What's <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#253A7B] to-blue-600">New & Next</span>
+            Whats <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#253A7B] to-blue-600">New & Next</span>
           </h2>
           <p className="text-gray-500 max-w-xl mx-auto">
-            Stay updated with our latest releases and see what we're building for the future of finance learning.
+            Stay updated with our latest releases and see what we are building for the future of finance learning.
           </p>
         </div>
 
@@ -109,7 +109,7 @@ export default function Roadmap() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'updates' | 'comingSoon' | 'suggest')}
               className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 border ${
                 activeTab === tab.id
                   ? 'bg-[#253A7B] text-white border-[#253A7B] shadow-lg shadow-blue-200 scale-105'

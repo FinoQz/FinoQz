@@ -32,10 +32,10 @@ export default function SuggestionsManager() {
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: string) => {
+  const handleUpdateStatus = async (id: string, status: 'pending' | 'reviewed' | 'implemented') => {
     try {
       await apiAdmin.patch(`/api/suggestions/${id}`, { status });
-      setSuggestions(suggestions.map(s => s._id === id ? { ...s, status: status as any } : s));
+      setSuggestions(suggestions.map(s => s._id === id ? { ...s, status } : s));
     } catch (error) {
       console.error('Error updating status:', error);
     }
@@ -91,7 +91,7 @@ export default function SuggestionsManager() {
             </div>
 
             <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 leading-relaxed border border-gray-100">
-              "{s.suggestion}"
+              {s.suggestion}
             </div>
 
             <div className="flex justify-between items-center pt-2">

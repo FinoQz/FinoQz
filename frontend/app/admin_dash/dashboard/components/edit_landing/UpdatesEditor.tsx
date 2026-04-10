@@ -56,8 +56,8 @@ export default function UpdatesEditor() {
     try {
       await apiAdmin.patch('/api/admin/landing', { updates });
       setMessage({ type: 'success', text: 'Updates saved successfully!' });
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as Error & { response?: { status: number } }).response?.status === 401) {
         setMessage({ type: 'error', text: 'Session expired. Please log in again.' });
       } else {
         setMessage({ type: 'error', text: 'Failed to save updates.' });
@@ -133,7 +133,7 @@ export default function UpdatesEditor() {
 
         {updates.length === 0 && (
           <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <p className="text-gray-400">No updates yet. Click "Add Update" to begin.</p>
+            <p className="text-gray-400">No updates yet. Click Add Update to begin.</p>
           </div>
         )}
       </div>
