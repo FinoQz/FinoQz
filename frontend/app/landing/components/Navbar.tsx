@@ -98,10 +98,10 @@ export default function Navbar() {
             Categories
           </button>
           <button
-            onClick={() => handleNavClick("reviews")}
+            onClick={() => handleNavClick("roadmap")}
             className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-gray-900 hover:bg-black/5 rounded-full transition-colors"
           >
-            Reviews
+            Whats New
           </button>
         </div>
 
@@ -173,10 +173,10 @@ export default function Navbar() {
               Categories
             </button>
             <button
-              onClick={() => handleNavClick("reviews")}
+              onClick={() => handleNavClick("roadmap")}
               className="px-4 py-3.5 text-sm font-semibold text-gray-700 hover:bg-black/5 rounded-2xl transition-colors text-left"
             >
-              Reviews
+              Whats New
             </button>
 
             <div className="h-px bg-gray-100 my-2 w-full" />

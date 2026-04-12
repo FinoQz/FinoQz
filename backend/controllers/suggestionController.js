@@ -2,11 +2,17 @@ import FeatureSuggestion from '../models/FeatureSuggestion.js';
 
 export const createSuggestion = async (req, res) => {
   try {
-    const { name, email, suggestion } = req.body;
+    const { name, email, suggestion, category, priority } = req.body;
     if (!suggestion) {
       return res.status(400).json({ error: 'Suggestion text is required' });
     }
-    const newSuggestion = new FeatureSuggestion({ name, email, suggestion });
+    const newSuggestion = new FeatureSuggestion({ 
+      name, 
+      email, 
+      suggestion,
+      category,
+      priority
+    });
     await newSuggestion.save();
     res.status(201).json({ message: 'Suggestion submitted successfully', suggestion: newSuggestion });
   } catch (error) {

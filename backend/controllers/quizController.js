@@ -54,6 +54,11 @@ const getUserGroupTokens = async (userId) => {
 // Helpers
 const parseDateTime = (dateStr, timeStr) => {
   if (!dateStr || !timeStr) return null;
+  // If it's already an ISO string (contains Z or +/-, and T)
+  if (dateStr.includes('T') && (dateStr.includes('Z') || dateStr.includes('+'))) {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
   const iso = `${dateStr}T${timeStr}:00`;
   const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
@@ -179,23 +184,32 @@ const resolveEmailsFromIndividuals = async (individualTokens = []) => {
 const queueQuizAssignmentEmails = async ({ previousQuiz, updatedQuiz }) => {
   if (!updatedQuiz) return;
 
-  const prevVisibility = String(previousQuiz?.visibility || '');
   const nextVisibility = String(updatedQuiz.visibility || '');
+  if (nextVisibility === 'public' || nextVisibility === 'unlisted') return;
 
+  const prevVisibility = String(previousQuiz?.visibility || '');
   let recipients = [];
 
+  // Check Groups (for private quizzes)
   if (nextVisibility === 'private') {
     const prevGroups = prevVisibility === 'private' ? normalizeStringArray(previousQuiz?.assignedGroups) : [];
     const nextGroups = normalizeStringArray(updatedQuiz.assignedGroups);
     const newGroups = nextGroups.filter((group) => !prevGroups.includes(group));
-    recipients = await resolveEmailsFromGroups(newGroups);
+    if (newGroups.length > 0) {
+      const groupRecipients = await resolveEmailsFromGroups(newGroups);
+      recipients.push(...groupRecipients);
+    }
   }
 
-  if (nextVisibility === 'individual') {
-    const prevIndividuals = prevVisibility === 'individual' ? normalizeStringArray(previousQuiz?.assignedIndividuals) : [];
+  // Check Individuals (for private OR individual quizzes)
+  if (nextVisibility === 'private' || nextVisibility === 'individual') {
+    const prevIndividuals = normalizeStringArray(previousQuiz?.assignedIndividuals);
     const nextIndividuals = normalizeStringArray(updatedQuiz.assignedIndividuals);
     const newIndividuals = nextIndividuals.filter((person) => !prevIndividuals.includes(person));
-    recipients = await resolveEmailsFromIndividuals(newIndividuals);
+    if (newIndividuals.length > 0) {
+      const individualRecipients = await resolveEmailsFromIndividuals(newIndividuals);
+      recipients.push(...individualRecipients);
+    }
   }
 
   if (recipients.length === 0) return;
@@ -293,24 +307,24 @@ export const createQuiz = async (req, res) => {
     // Dates
     const now = new Date();
     const isScheduled = postType === 'scheduled';
-    let startAt = now;
-    let endAt = null;
-    let scheduledAt = null;
+    let startAt = req.body.startAt ? new Date(req.body.startAt) : now;
+    let endAt = req.body.endAt ? new Date(req.body.endAt) : null;
+    let scheduledAt = req.body.scheduledAt ? new Date(req.body.scheduledAt) : null;
 
-    if (schedule) {
+    if (schedule && !req.body.startAt) {
       const s = parseDateTime(schedule.startDate, schedule.startTime);
       const e = parseDateTime(schedule.endDate, schedule.endTime);
       if (s) startAt = s;
       if (e) endAt = e;
 
-      // Handle custom posting time if provided
       if (schedule.postingDate && schedule.postingTime) {
         const p = parseDateTime(schedule.postingDate, schedule.postingTime);
         if (p) scheduledAt = p;
-      } else {
-        // Default to startAt if no separate posting time is set
-        scheduledAt = startAt;
       }
+    }
+
+    if (!scheduledAt) {
+      scheduledAt = startAt || now;
     }
 
     let finalStatus = saveAsDraft ? 'draft' : 'published';
@@ -500,9 +514,7 @@ export const updateQuiz = async (req, res) => {
       update.assignedGroups = [];
       update.assignedIndividuals = [];
     }
-    if (update.visibility === 'private') {
-      update.assignedIndividuals = [];
-    }
+    // Private mode now allows individuals too, so we DON'T clear assignedIndividuals here.
     if (update.visibility === 'individual') {
       update.assignedGroups = [];
     }
@@ -644,8 +656,8 @@ export const listPublic = async (req, res) => {
     const escapedEmail = escapeRegExp(userEmail);
     const visibilityFilter = [
       { visibility: 'public' },
+      // Direct individual assignment (works for both 'individual' and 'private' modes)
       {
-        visibility: 'individual',
         $or: [
           { assignedIndividuals: String(userId) },
           ...(userEmail
@@ -654,7 +666,9 @@ export const listPublic = async (req, res) => {
         ],
       }
     ];
+
     if (userGroupTokens.length > 0) {
+      // Group access remains restricted to 'private' quizzes
       visibilityFilter.push({ visibility: 'private', assignedGroups: { $in: userGroupTokens } });
     }
 
@@ -726,7 +740,7 @@ export const getById = async (req, res) => {
       const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
       const inIndivs = normalizedAssignedIndivs.includes(String(req.userId)) || (userEmail && normalizedAssignedIndivs.includes(userEmail));
       
-      const hasAccess = quiz.visibility === 'private' ? inGroups : inIndivs;
+      const hasAccess = quiz.visibility === 'private' ? (inGroups || inIndivs) : inIndivs;
       if (!hasAccess) {
         return res.status(403).json({ message: 'Access denied' });
       }
@@ -811,7 +825,7 @@ export const enroll = async (req, res) => {
       const inGroups = assignedGroups.some(g => userGroupTokens.includes(String(g)));
       const inIndivs = normalizedAssignedIndivs.includes(String(req.userId)) || (userEmail && normalizedAssignedIndivs.includes(userEmail));
       
-      const hasAccess = quiz.visibility === 'private' ? inGroups : inIndivs;
+      const hasAccess = quiz.visibility === 'private' ? (inGroups || inIndivs) : inIndivs;
       if (!hasAccess) {
         return res.status(403).json({ message: 'Access denied' });
       }

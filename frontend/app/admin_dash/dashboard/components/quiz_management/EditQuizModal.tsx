@@ -244,14 +244,27 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
     setLoading(true);
     setError('');
     try {
+      const toISO = (d: string, t: string) => {
+        if (!d || !t) return null;
+        try {
+          const localDate = new Date(`${d}T${t}:00`);
+          return isNaN(localDate.getTime()) ? null : localDate.toISOString();
+        } catch {
+          return null;
+        }
+      };
+
       const payload = {
         ...formData,
+        startAt: toISO(formData.startDate, formData.startTime),
+        endAt: toISO(formData.endDate, formData.endTime),
+        scheduledAt: toISO(formData.postingDate, formData.postingTime) || toISO(formData.startDate, formData.startTime),
         difficultyLevel: normalizeDifficulty(formData.difficultyLevel),
         attemptLimit: formData.attemptLimit === '1' ? '1' : 'unlimited',
         price: formData.pricingType === 'paid' ? Number(formData.price || 0) : 0,
         shuffleQuestions: Boolean(formData.shuffleQuestions),
         assignedGroups: formData.visibility === 'private' ? formData.assignedGroups : [],
-        assignedIndividuals: formData.visibility === 'individual' ? selectedIndividuals : [],
+        assignedIndividuals: (formData.visibility === 'individual' || formData.visibility === 'private') ? selectedIndividuals : [],
         broadcastEmail: formData.broadcastEmail,
       };
 
@@ -500,9 +513,14 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                  </div>
                )}
 
-                {formData.visibility === 'individual' && (
+                {(formData.visibility === 'individual' || formData.visibility === 'private') && (
                   <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
-                    <label className="text-[11px] font-medium text-slate-500">Direct Assign (Email or User)</label>
+                    <label className="text-[11px] font-medium text-slate-500">
+                      Direct Assign (Email or User)
+                      {formData.visibility === 'private' && (
+                        <span className="block text-[9px] text-slate-400 mt-0.5">Add specific individuals as exceptions explicitly.</span>
+                      )}
+                    </label>
                     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-2 w-full items-stretch">
                       <input
                         type="text"

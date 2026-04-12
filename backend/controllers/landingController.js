@@ -107,6 +107,13 @@ const validateComingSoon = (comingSoon) => {
     }));
 };
 
+const validateSuggestionOptions = (options, defaults) => {
+  if (!Array.isArray(options) || options.length === 0) return defaults;
+  return options
+    .filter(opt => typeof opt === 'string' && opt.trim())
+    .map(opt => opt.trim());
+};
+
 export async function getLanding(req, res) {
   try {
     const data = await fs.readFile(LANDING_JSON, 'utf8');
@@ -154,6 +161,14 @@ export async function saveLanding(req, res) {
       reasons: validateReasons(payload.reasons || existing.reasons),
       updates: validateUpdates(payload.updates || existing.updates || []),
       comingSoon: validateComingSoon(payload.comingSoon || existing.comingSoon || []),
+      suggestionCategories: validateSuggestionOptions(
+        payload.suggestionCategories || existing.suggestionCategories, 
+        ['Quiz Improvement', 'UI/UX', 'Performance', 'New Feature']
+      ),
+      suggestionPriorities: validateSuggestionOptions(
+        payload.suggestionPriorities || existing.suggestionPriorities, 
+        ['Nice to have', 'Important', 'Critical']
+      ),
     };
 
     // Ensure directory exists

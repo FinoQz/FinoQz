@@ -376,9 +376,14 @@ export default function ScheduleVisibility({
         )}
 
         {/* Individual Assignment */}
-        {quizData.visibility === 'individual' && (
+        {(quizData.visibility === 'individual' || quizData.visibility === 'private') && (
           <div className="mt-8 pt-8 border-t border-gray-100 animate-in slide-in-from-top-2">
-            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-6">Assign to Individuals</label>
+            <div className="mb-6">
+              <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Assign to Individuals</label>
+              {quizData.visibility === 'private' && (
+                <p className="text-[10px] text-gray-500 font-medium mt-1">Add specific individuals as exceptions who gain access alongside the selected cohorts.</p>
+              )}
+            </div>
             
             <div className="max-w-xl space-y-4">
               <div className="flex gap-2">

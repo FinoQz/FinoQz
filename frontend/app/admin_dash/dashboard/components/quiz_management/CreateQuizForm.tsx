@@ -151,8 +151,15 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       return setError('Both date and time are required for scheduled quizzes.');
     }
 
-    setLoading(true);
-    setError(null);
+    const toISO = (d: string, t: string) => {
+      if (!d || !t) return null;
+      try {
+        const localDate = new Date(`${d}T${t}:00`);
+        return isNaN(localDate.getTime()) ? null : localDate.toISOString();
+      } catch {
+        return null;
+      }
+    };
 
     const payload = {
       quizTitle: quizData.quizTitle,
@@ -171,6 +178,9 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       visibility: quizData.visibility,
       groups: quizData.assignedGroups,
       individuals: quizData.assignedIndividuals,
+      startAt: quizData.postType === 'live' ? new Date().toISOString() : toISO(quizData.startDate, quizData.startTime),
+      endAt: toISO(quizData.endDate, quizData.endTime),
+      scheduledAt: isScheduled ? (toISO(quizData.postingDate, quizData.postingTime) || toISO(quizData.startDate, quizData.startTime)) : new Date().toISOString(),
       schedule: isScheduled ? {
         startDate: quizData.startDate,
         startTime: quizData.startTime,

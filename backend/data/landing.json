@@ -126,19 +126,36 @@
   ],
   "comingSoon": [
     {
-      "id": "1775770376544",
-      "name": "Chart Practice Game",
+      "id": "1775770446485",
+      "name": "Downloadable Excel Reports",
+      "timeline": "April 2026"
+    },
+    {
+      "id": "1775980120253",
+      "name": "Trading Simultion platform",
       "timeline": "July 2026"
     },
     {
-      "id": "1775770424040",
-      "name": "AI Weakness Analysis",
-      "timeline": "May 2026"
+      "id": "1775980121769",
+      "name": "Advanced learning quizes",
+      "timeline": "June 2026"
     },
     {
-      "id": "1775770446485",
-      "name": "Downloadable Excel Reports",
-      "timeline": "April 2025"
+      "id": "1775980202754",
+      "name": "AI Weakness analysis",
+      "timeline": "May 2026"
     }
+  ],
+  "suggestionCategories": [
+    "Quiz Improvement",
+    "UI/UX",
+    "Performance",
+    "New Feature",
+    "Quality Content"
+  ],
+  "suggestionPriorities": [
+    "Nice to have",
+    "Important",
+    "Critical"
   ]
 }
