@@ -91,7 +91,7 @@ const updateSchema = celebrate({
       showCorrectAnswers: Joi.boolean(),
       certificateEnabled: Joi.boolean(),
     }),
-    status: Joi.string().valid('draft', 'published'),
+    status: Joi.string().valid('draft', 'published', 'scheduled'),
     tags: Joi.array().items(Joi.string()),
     difficultyLevel: Joi.string().valid('easy', 'medium', 'hard', 'low', 'high'),
   }).options({ allowUnknown: true })

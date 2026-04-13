@@ -64,6 +64,7 @@ export interface QuizData {
   difficultyLevel: string;
   status: 'draft' | 'published';
   broadcastEmail: boolean;
+  sendEarlyAlertEmail: boolean;
 };
 
 export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormProps) {
@@ -101,6 +102,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
     difficultyLevel: 'medium',
     status: 'published',
     broadcastEmail: false,
+    sendEarlyAlertEmail: false,
   });
 
   const steps = [
@@ -146,8 +148,10 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
   };
 
   const handleSubmit = async (isDraft: boolean = false) => {
+    setLoading(true);
     const isScheduled = quizData.postType === 'scheduled';
     if (!isDraft && isScheduled && (!quizData.startDate || !quizData.startTime)) {
+      setLoading(false);
       return setError('Both date and time are required for scheduled quizzes.');
     }
 
@@ -202,6 +206,7 @@ export default function CreateQuizForm({ onClose, onSuccess }: CreateQuizFormPro
       postType: quizData.postType,
       saveAsDraft: isDraft,
       broadcastEmail: quizData.broadcastEmail,
+      sendEarlyAlertEmail: quizData.sendEarlyAlertEmail,
     };
 
     try {

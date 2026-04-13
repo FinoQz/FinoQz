@@ -33,6 +33,7 @@ const quizSchema = new mongoose.Schema({
 
   status: { type: String, enum: ["draft", "published", "scheduled"], default: "draft" },
   broadcastEmail: { type: Boolean, default: false },
+  sendEarlyAlertEmail: { type: Boolean, default: false },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   enrolledCount: { type: Number, default: 0 },

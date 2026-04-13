@@ -279,6 +279,23 @@ export default function ScheduleVisibility({
               <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${quizData.broadcastEmail ? 'left-7' : 'left-1'}`} />
             </div>
           </div>
+          
+          {(quizData.visibility === 'private' || quizData.visibility === 'individual') && (quizData.postType === 'scheduled' || new Date(`${quizData.startDate}T${quizData.startTime}:00`) > new Date()) && (
+            <div className="mt-4 flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100 group hover:bg-blue-50 transition-all cursor-pointer animate-in slide-in-from-top-2" onClick={() => updateQuizData({ sendEarlyAlertEmail: !quizData.sendEarlyAlertEmail })}>
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${quizData.sendEarlyAlertEmail ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white border border-gray-200 text-gray-400'}`}>
+                   <Check className={`w-5 h-5 transition-transform ${quizData.sendEarlyAlertEmail ? 'rotate-0' : 'hidden'}`} />
+                </div>
+                <div>
+                  <h4 className="text-[13px] font-bold text-blue-900 mb-0.5">Notify Assigned Early</h4>
+                  <p className="text-[10px] text-blue-600/80 font-medium">Push an immediate alert email to assigned users warning them of this upcoming schedule.</p>
+                </div>
+              </div>
+              <div className={`w-12 h-6 rounded-full relative transition-all duration-300 ${quizData.sendEarlyAlertEmail ? 'bg-[#253A7B]' : 'bg-gray-200'}`}>
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm ${quizData.sendEarlyAlertEmail ? 'left-7' : 'left-1'}`} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

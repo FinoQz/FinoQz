@@ -23,6 +23,7 @@ interface Quiz {
   assignedGroups?: string[];
   assignedIndividuals?: string[];
   broadcastEmail?: boolean;
+  sendEarlyAlertEmail?: boolean;
 }
 
 interface EditQuizModalProps {
@@ -84,6 +85,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
     endTime: quiz.endAt ? new Date(quiz.endAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
     postingDate: quiz.scheduledAt ? new Date(quiz.scheduledAt).toISOString().split('T')[0] : '',
     postingTime: quiz.scheduledAt ? new Date(quiz.scheduledAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+    sendEarlyAlertEmail: Boolean(quiz.sendEarlyAlertEmail),
   });
 
   const [loading, setLoading] = useState(false);
@@ -101,6 +103,12 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
       [name]: ['duration', 'totalMarks', 'price'].includes(name) ? Number(value) : value
     }));
   };
+
+  useEffect(() => {
+    if (formData.visibility === 'public' && formData.status === 'scheduled') {
+      setFormData(prev => ({ ...prev, status: 'published' })); // or draft, published is better since they usually want to publish it live
+    }
+  }, [formData.visibility, formData.status]);
 
   useEffect(() => {
     let mounted = true;
@@ -266,6 +274,7 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
         assignedGroups: formData.visibility === 'private' ? formData.assignedGroups : [],
         assignedIndividuals: (formData.visibility === 'individual' || formData.visibility === 'private') ? selectedIndividuals : [],
         broadcastEmail: formData.broadcastEmail,
+        sendEarlyAlertEmail: formData.sendEarlyAlertEmail,
       };
 
       await apiAdmin.put(`/api/quizzes/admin/quizzes/${quiz._id}`, payload);
@@ -609,125 +618,143 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                 )}
 
                {/* Timeline & Schedule Section */}
-               <div className="space-y-4 sm:space-y-5 bg-slate-50/50 border border-slate-200/60 rounded-xl p-3 sm:p-5 shadow-sm mt-4 col-span-1 md:col-span-2">
-                 <div className="flex items-center gap-2 mb-2">
-                   <div className="w-1 h-4 bg-amber-500 rounded-full" />
-                   <h3 className="text-xs font-semibold tracking-wide text-slate-900 uppercase">Timeline & Schedule</h3>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div className="space-y-3">
-                     <label className="text-[11px] font-medium text-slate-500">Starts At</label>
-                     <div className="flex gap-2">
-                       <input 
-                         type="date" 
-                         name="startDate" 
-                         value={formData.startDate} 
-                         onChange={handleInputChange} 
-                         className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
-                       />
-                       <input 
-                         type="time" 
-                         name="startTime" 
-                         value={formData.startTime} 
-                         onChange={handleInputChange} 
-                         className="w-24 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
-                       />
-                     </div>
+               {formData.visibility !== 'public' && (
+                 <div className="space-y-4 sm:space-y-5 bg-slate-50/50 border border-slate-200/60 rounded-xl p-3 sm:p-5 shadow-sm mt-4 col-span-1 md:col-span-2">
+                   <div className="flex items-center gap-2 mb-2">
+                     <div className="w-1 h-4 bg-amber-500 rounded-full" />
+                     <h3 className="text-xs font-semibold tracking-wide text-slate-900 uppercase">Timeline & Schedule</h3>
                    </div>
 
-                   <div className="space-y-3">
-                     <div className="flex items-center justify-between">
-                       <label className="text-[11px] font-medium text-slate-500">Ends At</label>
-                       <button
-                         type="button"
-                         onClick={() => {
-                           const hasEnd = !!(formData.endDate && formData.endTime);
-                           if (hasEnd) {
-                             setFormData(p => ({ ...p, endDate: '', endTime: '' }));
-                           } else {
-                             const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                             setFormData(p => ({ 
-                               ...p, 
-                               endDate: future.toISOString().split('T')[0], 
-                               endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
-                             }));
-                           }
-                         }}
-                         className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider transition-all ${
-                            (formData.endDate && formData.endTime)
-                              ? 'bg-[#253A7B] text-white'
-                              : 'bg-slate-100 text-slate-400 hover:text-slate-600'
-                          }`}
-                       >
-                         {(formData.endDate && formData.endTime) ? 'Expires' : 'No Expiry (Until I Delete)'}
-                       </button>
-                     </div>
-                     
-                     {(formData.endDate && formData.endTime) ? (
-                       <div className="flex gap-2 animate-in slide-in-from-top-1">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                     {/* Starts At container */}
+                     <div className="flex flex-col bg-white border border-slate-200 rounded-lg p-2.5 shadow-sm">
+                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Available From</label>
+                       <div className="grid grid-cols-2 gap-2">
                          <input 
                            type="date" 
-                           name="endDate" 
-                           value={formData.endDate} 
+                           name="startDate" 
+                           value={formData.startDate} 
                            onChange={handleInputChange} 
-                           className="flex-1 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
+                           className="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[10px] font-medium focus:border-[#253A7B] outline-none transition-all" 
                          />
                          <input 
                            type="time" 
-                           name="endTime" 
-                           value={formData.endTime} 
+                           name="startTime" 
+                           value={formData.startTime} 
                            onChange={handleInputChange} 
-                           className="w-24 bg-white border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-[#253A7B] outline-none" 
+                           className="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-[10px] font-medium focus:border-[#253A7B] outline-none transition-all" 
                          />
                        </div>
-                     ) : (
-                        <div 
-                          onClick={() => {
-                            const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                            setFormData(p => ({ 
-                              ...p, 
-                              endDate: future.toISOString().split('T')[0], 
-                              endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
-                            }));
-                          }}
-                          className="h-[34px] border border-dashed border-slate-200 rounded-md flex items-center justify-center text-[10px] text-slate-400 font-medium cursor-pointer hover:bg-slate-50 transition-all"
-                        >
-                          Click to set an expiration date if needed
-                        </div>
-                     )}
-                   </div>
-                 </div>
+                     </div>
 
-                 {(formData.status === 'scheduled' || formData.postingDate) && (
-                   <div className="pt-4 mt-2 border-t border-slate-200/60 animate-in slide-in-from-top-2">
-                     <div className="flex items-center gap-2 mb-3">
-                       <Clock className="w-3.5 h-3.5 text-amber-600" />
-                       <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Scheduled Posting Time</span>
+                     {/* Ends At container */}
+                     <div className="flex flex-col bg-white border border-slate-200 rounded-lg p-2.5 shadow-sm">
+                       <div className="flex items-center justify-between mb-2">
+                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Available Until</label>
+                         {(formData.endDate && formData.endTime) && (
+                           <button
+                             type="button"
+                             onClick={() => setFormData(p => ({ ...p, endDate: '', endTime: '' }))}
+                             className="text-[9px] font-bold text-red-500 hover:text-red-700 uppercase tracking-wide bg-red-50 hover:bg-red-100 px-1.5 py-0.5 rounded transition-all"
+                           >
+                             Remove
+                           </button>
+                         )}
+                       </div>
+                       
+                       {(formData.endDate && formData.endTime) ? (
+                         <div className="grid grid-cols-2 gap-2 animate-in slide-in-from-top-1 h-full">
+                           <input 
+                             type="date" 
+                             name="endDate" 
+                             value={formData.endDate} 
+                             onChange={handleInputChange} 
+                             className="w-full bg-red-50/50 border border-red-200 rounded px-2 py-1.5 text-[10px] font-medium focus:border-red-500 outline-none transition-all" 
+                           />
+                           <input 
+                             type="time" 
+                             name="endTime" 
+                             value={formData.endTime} 
+                             onChange={handleInputChange} 
+                             className="w-full bg-red-50/50 border border-red-200 rounded px-2 py-1.5 text-[10px] font-medium focus:border-red-500 outline-none transition-all" 
+                           />
+                         </div>
+                       ) : (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                              setFormData(p => ({ 
+                                ...p, 
+                                endDate: future.toISOString().split('T')[0], 
+                                endTime: future.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+                              }));
+                            }}
+                            className="w-full h-full min-h-[28px] bg-slate-50 border border-dashed border-slate-300 hover:border-[#253A7B] rounded px-3 py-1.5 text-[10px] font-semibold text-slate-400 hover:text-[#253A7B] hover:bg-[#253A7B]/5 transition-all outline-none"
+                          >
+                            + Set Expiry Date
+                          </button>
+                       )}
                      </div>
-                     <div className="flex gap-2 max-w-sm">
-                       <input 
-                         type="date" 
-                         name="postingDate" 
-                         value={formData.postingDate || formData.startDate} 
-                         onChange={handleInputChange} 
-                         className="flex-1 bg-white border border-amber-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-amber-500 outline-none" 
-                       />
-                       <input 
-                         type="time" 
-                         name="postingTime" 
-                         value={formData.postingTime || formData.startTime} 
-                         onChange={handleInputChange} 
-                         className="w-24 bg-white border border-amber-200 rounded-md px-3 py-1.5 text-xs font-medium focus:border-amber-500 outline-none" 
-                       />
-                     </div>
-                     <p className="text-[10px] text-slate-400 mt-2 italic flex items-center gap-1">
-                       <Loader2 className="w-3 h-3" />
-                       Visible in system at this time. Defaults to Start Time if left same.
-                     </p>
                    </div>
-                 )}
-               </div>
+
+                   {(formData.status === 'scheduled' || formData.postingDate) && (
+                     <div className="mt-3 pt-3 border-t border-slate-200/60 animate-in slide-in-from-top-2">
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-amber-200 bg-amber-50/50 p-2 rounded-md shadow-sm">
+                         <div className="flex items-center gap-1.5 shrink-0">
+                           <Clock className="w-3.5 h-3.5 text-amber-600" />
+                           <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest">Schedule</span>
+                         </div>
+                         <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                           <input 
+                             type="date" 
+                             name="postingDate" 
+                             value={formData.postingDate || formData.startDate} 
+                             onChange={handleInputChange} 
+                             className="flex-1 sm:flex-none min-w-0 sm:w-[105px] bg-white border border-amber-200 rounded px-1.5 py-1 text-[10px] font-medium focus:border-amber-500 outline-none transition-all shadow-sm" 
+                           />
+                           <input 
+                             type="time" 
+                             name="postingTime" 
+                             value={formData.postingTime || formData.startTime} 
+                             onChange={handleInputChange} 
+                             className="flex-1 sm:flex-none min-w-0 sm:w-[75px] bg-white border border-amber-200 rounded px-1.5 py-1 text-[10px] font-medium focus:border-amber-500 outline-none transition-all shadow-sm" 
+                           />
+                           {(formData.postingDate || formData.postingTime) && (
+                             <button
+                               type="button"
+                               onClick={() => setFormData(p => ({ ...p, postingDate: '', postingTime: '' }))}
+                               className="p-1 text-amber-500 hover:text-amber-700 bg-white rounded border border-amber-100 hover:border-amber-300 shadow-sm shrink-0"
+                               title="Clear Schedule"
+                             >
+                               <X className="w-3 h-3" />
+                             </button>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                   {(formData.visibility === 'private' || formData.visibility === 'individual') && (formData.status === 'scheduled' || formData.postingDate || new Date(`${formData.startDate}T${formData.startTime}:00`) > new Date()) && (
+                     <div className="mt-3 pt-3 border-t border-slate-200/60 animate-in slide-in-from-top-2">
+                       <label className="flex items-center gap-3 p-2.5 bg-blue-50/50 border border-blue-100 rounded-lg cursor-pointer hover:bg-blue-50 transition-all shadow-sm">
+                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${formData.sendEarlyAlertEmail ? 'bg-[#253A7B] border-[#253A7B]' : 'bg-white border-slate-300'}`}>
+                           {formData.sendEarlyAlertEmail && <Shuffle className="w-2.5 h-2.5 text-white" />}
+                         </div>
+                         <div>
+                           <p className="text-[11px] font-bold text-blue-900 tracking-wide uppercase">Notify Assigned Early</p>
+                           <p className="text-[9px] text-blue-600/80 leading-tight mt-0.5">Push an immediate alert email to assigned users warning them of this upcoming schedule.</p>
+                         </div>
+                         <input
+                           type="checkbox"
+                           className="hidden"
+                           checked={formData.sendEarlyAlertEmail}
+                           onChange={(e) => setFormData(p => ({ ...p, sendEarlyAlertEmail: e.target.checked }))}
+                         />
+                       </label>
+                     </div>
+                   )}
+                 </div>
+               )}
             </div>
           </div>
         </form>
@@ -744,13 +771,15 @@ export default function EditQuizModal({ quiz, onClose, onSuccess }: EditQuizModa
                  >
                    Published
                  </button>
-                 <button
-                   type="button"
-                   onClick={() => setFormData(p => ({ ...p, status: 'scheduled' }))}
-                   className={`px-3 py-1 rounded text-[11px] font-semibold transition-all ${formData.status === 'scheduled' ? 'bg-[#253A7B] text-white' : 'text-slate-400 hover:text-slate-600'}`}
-                 >
-                   Scheduled
-                 </button>
+                 {formData.visibility !== 'public' && (
+                   <button
+                     type="button"
+                     onClick={() => setFormData(p => ({ ...p, status: 'scheduled' }))}
+                     className={`px-3 py-1 rounded text-[11px] font-semibold transition-all ${formData.status === 'scheduled' ? 'bg-[#253A7B] text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                   >
+                     Scheduled
+                   </button>
+                 )}
                  <button
                    type="button"
                    onClick={() => setFormData(p => ({ ...p, status: 'draft' }))}

@@ -181,7 +181,7 @@ const resolveEmailsFromIndividuals = async (individualTokens = []) => {
   return recipients;
 };
 
-const queueQuizAssignmentEmails = async ({ previousQuiz, updatedQuiz }) => {
+const queueQuizAssignmentEmails = async ({ previousQuiz, updatedQuiz, forceSendAll = false }) => {
   if (!updatedQuiz) return;
 
   const nextVisibility = String(updatedQuiz.visibility || '');
@@ -192,7 +192,7 @@ const queueQuizAssignmentEmails = async ({ previousQuiz, updatedQuiz }) => {
 
   // Check Groups (for private quizzes)
   if (nextVisibility === 'private') {
-    const prevGroups = prevVisibility === 'private' ? normalizeStringArray(previousQuiz?.assignedGroups) : [];
+    const prevGroups = (!forceSendAll && prevVisibility === 'private') ? normalizeStringArray(previousQuiz?.assignedGroups) : [];
     const nextGroups = normalizeStringArray(updatedQuiz.assignedGroups);
     const newGroups = nextGroups.filter((group) => !prevGroups.includes(group));
     if (newGroups.length > 0) {
@@ -203,7 +203,7 @@ const queueQuizAssignmentEmails = async ({ previousQuiz, updatedQuiz }) => {
 
   // Check Individuals (for private OR individual quizzes)
   if (nextVisibility === 'private' || nextVisibility === 'individual') {
-    const prevIndividuals = normalizeStringArray(previousQuiz?.assignedIndividuals);
+    const prevIndividuals = !forceSendAll ? normalizeStringArray(previousQuiz?.assignedIndividuals) : [];
     const nextIndividuals = normalizeStringArray(updatedQuiz.assignedIndividuals);
     const newIndividuals = nextIndividuals.filter((person) => !prevIndividuals.includes(person));
     if (newIndividuals.length > 0) {
@@ -275,6 +275,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   'coverImage',
   'status',
   'broadcastEmail',
+  'sendEarlyAlertEmail',
   'saveAsDraft',
   'scheduledAt'
 ]);
@@ -287,7 +288,7 @@ export const createQuiz = async (req, res) => {
       attemptLimit, shuffleQuestions,
       pricing, questions, visibility, groups, individuals,
       schedule, media, settings,
-      postType, tags, difficultyLevel, saveAsDraft, broadcastEmail
+      postType, tags, difficultyLevel, saveAsDraft, broadcastEmail, sendEarlyAlertEmail
     } = req.body;
 
     if (!quizTitle) {
@@ -358,6 +359,7 @@ export const createQuiz = async (req, res) => {
       showCorrectAnswers: settings?.showCorrectAnswers !== false,
       status: finalStatus,
       broadcastEmail: !!broadcastEmail,
+      sendEarlyAlertEmail: !!sendEarlyAlertEmail,
       createdBy: req.adminId || req.userId || null,
     });
 
@@ -405,6 +407,17 @@ export const createQuiz = async (req, res) => {
         console.error("❌ Notification error during creation:", notifyErr);
       }
     }
+    
+    // Process direct assignment emails
+    if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
+       if (quiz.status === 'published') {
+           // Live now, definitely send assignment emails
+           await queueQuizAssignmentEmails({ previousQuiz: null, updatedQuiz: quiz, forceSendAll: true });
+       } else if (quiz.status === 'scheduled' && quiz.sendEarlyAlertEmail) {
+           // Scheduled, only send if they requested early alert
+           await queueQuizAssignmentEmails({ previousQuiz: null, updatedQuiz: quiz, forceSendAll: true });
+       }
+    }
 
     return res.status(201).json({ message: "Quiz created successfully", data: quiz });
   } catch (err) {
@@ -432,7 +445,7 @@ export const updateQuiz = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid quiz id' });
 
     const previousQuiz = await Quiz.findById(id)
-      .select('visibility assignedGroups assignedIndividuals quizTitle description startAt endAt')
+      .select('visibility assignedGroups assignedIndividuals quizTitle description startAt endAt sendEarlyAlertEmail')
       .lean();
     if (!previousQuiz) return res.status(404).json({ message: 'Quiz not found' });
 
@@ -527,7 +540,8 @@ export const updateQuiz = async (req, res) => {
         const cat = await Category.findById(quiz.category).select('name').lean();
         await notifyQuizLaunch(quiz, cat?.name || 'General');
       } else {
-        await queueQuizAssignmentEmails({ previousQuiz, updatedQuiz: quiz });
+        const forceSendAll = Boolean(quiz.sendEarlyAlertEmail && !previousQuiz.sendEarlyAlertEmail);
+        await queueQuizAssignmentEmails({ previousQuiz, updatedQuiz: quiz, forceSendAll });
       }
     } catch (notifyErr) {
       console.error('Quiz notification error:', notifyErr);
