@@ -1227,7 +1227,8 @@ export const getMyQuizzes = async (req, res) => {
           score: latestAttempt.totalScore,
           percentage: latestAttempt.percentage,
           submittedAt: latestAttempt.submittedAt,
-          attemptNumber: latestAttempt.attemptNumber
+          attemptNumber: latestAttempt.attemptNumber,
+          answeredCount: Array.isArray(latestAttempt.answers) ? latestAttempt.answers.length : 0
         } : null
       };
     });

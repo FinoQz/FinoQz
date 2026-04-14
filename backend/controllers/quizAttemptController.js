@@ -7,8 +7,12 @@ import Transaction from '../models/Transaction.js';
 import mongoose from 'mongoose';
 
 const getRequestUserId = (req) => {
-  // Prioritize userId from query param for admin/user-specific analytics
-  return req.query.userId || req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
+  // Ensure strict scoping: regular users CANNOT override their identity via query params.
+  const isAdmin = req.role === 'admin' || req.user?.role === 'admin' || (req.adminId && !req.userId);
+  if (isAdmin && req.query.userId && mongoose.Types.ObjectId.isValid(req.query.userId)) {
+    return req.query.userId;
+  }
+  return req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
 };
 
 /**
@@ -19,8 +23,9 @@ const startAttempt = async (req, res) => {
   try {
     const { quizId } = req.body;
     const userId = getRequestUserId(req);
-    if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    // Explicitly validate identity to prevent cross-user leakages
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({ message: 'Unauthorized: Invalid User Identity' });
     }
 
     if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
@@ -259,14 +264,14 @@ const submitAttempt = async (req, res) => {
       timeTaken,
       certificateIssued
     };
- 
+
     if (quiz.showResults !== false) {
       responseData.totalScore = totalScore;
       responseData.percentage = percentage;
     } else {
       responseData.message = 'Quiz submitted. Results will be available later.';
     }
- 
+
     res.json(responseData);
   } catch (error) {
     console.error('Submit attempt error:', error);
@@ -288,17 +293,53 @@ const getAttemptDetails = async (req, res) => {
     const isAdmin = (req.role || req.user?.role) === 'admin';
 
     const query = isAdmin ? { _id: attemptId } : { _id: attemptId, userId };
-    
+
     const attempt = await QuizAttempt.findOne(query)
-      .populate('userId', 'fullName email')
-      .populate('quizId', 'quizTitle totalMarks duration')
-      .populate('answers.questionId', 'text type marks');
+      .populate('userId', 'fullName email mobile')
+      .populate('quizId', 'quizTitle totalMarks duration pricingType')
+      .populate('answers.questionId', 'text type marks options correct explanation')
+      .lean();
 
     if (!attempt) {
       return res.status(404).json({ message: 'Attempt not found' });
     }
 
-    res.json(attempt);
+    // Enrich answers with correctAnswer display string for admin
+    const enrichedAnswers = (attempt.answers || []).map(ans => {
+      const q = ans.questionId;
+      let correctAnswerDisplay = '—';
+      if (q) {
+        const correctIdx = Array.isArray(q.correct)
+          ? q.correct.map(Number)
+          : [Number(q.correct)];
+        const opts = Array.isArray(q.options) ? q.options : [];
+        correctAnswerDisplay = correctIdx
+          .filter(i => i >= 0 && i < opts.length)
+          .map(i => opts[i])
+          .join(', ') || String(q.correct ?? '—');
+      }
+      let selectedDisplay = '—';
+      const sel = ans.selectedAnswer;
+      if (Array.isArray(sel)) {
+        const opts = Array.isArray(q?.options) ? q.options : [];
+        selectedDisplay = sel.map(s => {
+          const idx = Number(s);
+          return isNaN(idx) ? String(s) : (opts[idx] ?? String(s));
+        }).join(', ');
+      } else if (sel !== undefined && sel !== null) {
+        const idx = Number(sel);
+        const opts = Array.isArray(q?.options) ? q.options : [];
+        selectedDisplay = !isNaN(idx) && opts[idx] !== undefined ? opts[idx] : String(sel);
+      }
+
+      return {
+        ...ans,
+        correctAnswerDisplay,
+        selectedAnswerDisplay: selectedDisplay,
+      };
+    });
+
+    res.json({ ...attempt, answers: enrichedAnswers });
   } catch (error) {
     console.error('Get attempt details error:', error);
     res.status(500).json({ message: 'Failed to fetch attempt details' });
@@ -476,8 +517,8 @@ const getAttemptResult = async (req, res) => {
 
     // Check if retake is allowed
     const quizData = typeof attempt.quizId === 'object' ? attempt.quizId : { attemptLimit: '1' };
-    const allowRetake = quizData.attemptLimit === 'unlimited' || 
-                        attempt.attemptNumber < parseInt(quizData.attemptLimit || '1');
+    const allowRetake = quizData.attemptLimit === 'unlimited' ||
+      attempt.attemptNumber < parseInt(quizData.attemptLimit || '1');
 
     const result = {
       attemptId: attempt._id,

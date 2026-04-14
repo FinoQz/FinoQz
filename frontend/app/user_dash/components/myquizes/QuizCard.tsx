@@ -30,7 +30,9 @@ interface QuizCardProps {
 export default function QuizCard({ quiz, onAction }: QuizCardProps) {
   const isUnlimited = quiz.attemptLimit === 'unlimited';
   const isCompleted = quiz.isAttempted && quiz.progress === 100;
-  const isExpired = isCompleted && !isUnlimited;
+  // A quiz is deactivated if it's single-attempt and completed
+  const isDeactivated = isCompleted && !isUnlimited;
+  const isInProgress = quiz.isAttempted && quiz.progress !== undefined && quiz.progress < 100;
 
   const getStatusBadge = () => {
     if (!quiz.isAttempted) {
@@ -59,9 +61,15 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
   };
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-900 transition-all duration-300 flex flex-col group ${
-      isExpired ? 'opacity-80' : 'opacity-100'
+    <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-900 transition-all duration-300 flex flex-col group relative ${
+      isDeactivated ? 'opacity-90' : 'opacity-100'
     }`}>
+      {/* Deactivated Overlay */}
+      {isDeactivated && (
+        <div className="absolute inset-0 z-20 bg-gray-50/10 backdrop-blur-[0.5px] pointer-events-none flex flex-col items-center justify-center p-6 text-center">
+           {/* We keep it subtle so the report is still visible underneath */}
+        </div>
+      )}
       {/* Media Section */}
       <div className="relative aspect-video bg-gray-50 border-b border-gray-100 overflow-hidden">
         {quiz.coverImage ? (
@@ -82,8 +90,12 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
           </div>
         </div>
 
-        <div className="absolute bottom-3 right-3">
-          {getStatusBadge()}
+        <div className="absolute bottom-3 right-3 z-30">
+          {isDeactivated ? (
+            <span className="px-2 py-0.5 bg-gray-900 text-white text-[10px] font-bold rounded flex items-center gap-1 shadow-lg">
+              <Lock className="w-3 h-3" /> Locked
+            </span>
+          ) : getStatusBadge()}
         </div>
       </div>
 
@@ -130,7 +142,9 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
               <div className="overflow-hidden h-1.5 text-xs flex rounded-full bg-gray-200 relative z-10">
                 <div
                   style={{ width: `${(quiz.score / (quiz.totalQuestions || quiz.questions)) * 100}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-[#253A7B] transition-all duration-1000"
+                  className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center transition-all duration-1000 ${
+                    ((quiz.score / (quiz.totalQuestions || quiz.questions)) * 100) >= 40 ? 'bg-emerald-500' : 'bg-rose-500'
+                  }`}
                 ></div>
               </div>
               {/* Subtle background decoration */}
@@ -180,17 +194,17 @@ export default function QuizCard({ quiz, onAction }: QuizCardProps) {
 
         {/* Structured Footer Actions */}
         <div className="mt-auto pt-3 border-t border-gray-50 flex items-center gap-2">
-          {isExpired ? (
+          {isDeactivated ? (
             <div className="w-full flex items-center gap-2">
-              <div className="flex-1 py-2.5 px-4 bg-gray-50 text-gray-400 rounded-xl font-bold text-[10px] sm:text-xs text-center border border-gray-100 flex items-center justify-center gap-2">
+              <div className="flex-1 py-2.5 px-4 bg-gray-100 text-gray-500 rounded-xl font-bold text-[10px] sm:text-xs text-center border border-gray-200 flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                Assessment Finalized
+                No Retakes Available
               </div>
               {isCompleted && (
                 <button
                   onClick={() => onAction(quiz.id, 'view')}
-                  className="p-2.5 bg-white border border-gray-200 text-gray-400 rounded-xl hover:border-[#253A7B] hover:text-[#253A7B] transition-all shadow-sm"
-                  title="View Analytics"
+                  className="p-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition-all shadow-md z-30"
+                  title="View Report"
                 >
                   <BarChart3 className="w-4 h-4" />
                 </button>

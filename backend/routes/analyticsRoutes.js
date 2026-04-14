@@ -8,7 +8,10 @@ import {
   getCategoryPerformance,
   getQuestionInsights,
   getQuizPaidUsers,
-  getQuizRevenue
+  getQuizRevenue,
+  getQuizRegisteredUsers,
+  getQuizEnrolledUsers,
+  getQuizParticipants
 } from '../controllers/analyticsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import requireAdmin from '../middlewares/requireAdmin.js';
@@ -44,5 +47,14 @@ router.get('/quiz-paid-users', getQuizPaidUsers);
 
 // Get total revenue for a quiz
 router.get('/quiz-revenue', getQuizRevenue);
+
+// Get registered users for a quiz (visibility-aware)
+router.get('/quiz-registered-users', getQuizRegisteredUsers);
+
+// Get enrolled users for a quiz
+router.get('/quiz-enrolled-users', getQuizEnrolledUsers);
+
+// Get participants (all attempted users) for a quiz with full details
+router.get('/quiz-participants', getQuizParticipants);
 
 export default router;

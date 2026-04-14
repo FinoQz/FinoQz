@@ -7,6 +7,11 @@ import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from 'pg-sdk-
 import { v4 as uuid } from 'uuid';
 
 const getRequestUserId = (req) => {
+  // Ensure strict scoping: regular users CANNOT override their identity via query params.
+  const isAdmin = req.role === 'admin' || req.user?.role === 'admin' || (req.adminId && !req.userId);
+  if (isAdmin && req.query.userId && mongoose.Types.ObjectId.isValid(req.query.userId)) {
+    return req.query.userId;
+  }
   return req.userId || req.user?._id || req.user?.id || req.user?.userId || null;
 };
 
@@ -274,7 +279,8 @@ const processRefund = async (req, res) => {
     }
 
     transaction.status = 'refunded';
-    transaction.metadata = { ...transaction.metadata, 
+    transaction.metadata = {
+      ...transaction.metadata,
       refundReason: reason,
       refundedAt: new Date()
     };
@@ -297,13 +303,15 @@ const processRefund = async (req, res) => {
 const getRevenueStats = async (req, res) => {
   try {
     const { dateRange = '30' } = req.query;
-    const days = parseInt(dateRange); 
+    const days = parseInt(dateRange);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     const stats = await Transaction.aggregate([
-      { $match: {
-        createdAt: { $gte: startDate }
-      } },
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
       {
         $group: {
           _id: '$status',

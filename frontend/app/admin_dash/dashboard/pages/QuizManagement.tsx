@@ -344,7 +344,16 @@ export default function QuizManagement() {
         <ParticipantsDrawer
           isOpen={showParticipantsDrawer}
           onClose={() => setShowParticipantsDrawer(false)}
-          quizData={selectedQuiz}
+          quizData={{
+            _id: selectedQuiz._id,
+            quizTitle: selectedQuiz.quizTitle,
+            createdAt: selectedQuiz.createdAt,
+            duration: selectedQuiz.duration,
+            price: selectedQuiz.price,
+            pricingType: selectedQuiz.pricingType ?? 'free',
+            visibility: selectedQuiz.visibility ?? 'public',
+            status: selectedQuiz.status,
+          }}
         />
       )}
 

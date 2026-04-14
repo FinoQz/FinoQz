@@ -62,6 +62,133 @@ import redis from '../utils/redis.js';
 import mongoose from 'mongoose';
 
 /**
+ * Internal logic for fetching registered users for a quiz
+ */
+const fetchQuizRegisteredUsersLogic = async (quizId) => {
+  const quiz = await Quiz.findById(quizId)
+    .select('visibility assignedGroups assignedIndividuals pricingType')
+    .lean();
+  if (!quiz) throw new Error('Quiz not found');
+
+  let users = [];
+  const visibility = quiz.visibility || 'public';
+
+  if (visibility === 'public') {
+    users = await User.find({ status: { $in: ['approved', 'active', 'email_verified'] } })
+      .select('fullName email mobile city country gender profilePicture createdAt status lastLoginAt')
+      .lean();
+  } else if (visibility === 'private') {
+    // Resolve group members
+    const groupTokens = Array.isArray(quiz.assignedGroups) ? quiz.assignedGroups : [];
+    if (groupTokens.length > 0) {
+      const Group = (await import('../models/Group.js')).default;
+      const groups = await Group.find({
+        $or: [
+          { _id: { $in: groupTokens.filter(t => mongoose.Types.ObjectId.isValid(t)).map(t => new mongoose.Types.ObjectId(t)) } },
+          { name: { $in: groupTokens } }
+        ]
+      }).select('members').lean();
+      const memberIds = Array.from(new Set(groups.flatMap(g => (g.members || []).map(String))));
+      users = await User.find({ _id: { $in: memberIds } })
+        .select('fullName email mobile city country gender profilePicture createdAt status lastLoginAt')
+        .lean();
+    }
+  } else if (visibility === 'individual') {
+    const tokens = Array.isArray(quiz.assignedIndividuals) ? quiz.assignedIndividuals : [];
+    const ids = tokens.filter(t => mongoose.Types.ObjectId.isValid(t));
+    const emails = tokens.filter(t => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t));
+    const criteria = [];
+    if (ids.length) criteria.push({ _id: { $in: ids.map(id => new mongoose.Types.ObjectId(id)) } });
+    if (emails.length) criteria.push({ email: { $in: emails.map(e => e.toLowerCase()) } });
+    if (criteria.length) {
+      users = await User.find({ $or: criteria })
+        .select('fullName email mobile city country gender profilePicture createdAt status lastLoginAt')
+        .lean();
+    }
+  }
+
+  // Fallback name to email if fullName is missing
+  users = users.map(u => ({
+    ...u,
+    fullName: u.fullName || u.name || u.email?.split('@')[0] || 'Unknown'
+  }));
+
+  return { users, total: users.length, visibility };
+};
+
+/**
+ * Internal logic for fetching enrolled users for a quiz
+ */
+const fetchQuizEnrolledUsersLogic = async (quizId) => {
+  const quiz = await Quiz.findById(quizId).select('pricingType price visibility').lean();
+  if (!quiz) throw new Error('Quiz not found');
+
+  const isPaid = quiz.pricingType === 'paid' && Number(quiz.price || 0) > 0;
+  let users = [];
+
+  if (isPaid) {
+    const transactions = await Transaction.find({
+      quizId: new mongoose.Types.ObjectId(quizId),
+      status: 'success'
+    }).populate('userId', 'fullName email mobile city country gender profilePicture createdAt status lastLoginAt').lean();
+    users = transactions.map(t => {
+      const u = t.userId || {};
+      const nameFallback = u.fullName || u.name || u.email?.split('@')[0] || (t.userId ? `Deleted User (${t.userId})` : 'Unknown');
+      return {
+        ...u,
+        fullName: nameFallback,
+        enrolledAt: t.createdAt,
+        amount: t.amount,
+        transactionId: t._id
+      };
+    });
+  } else {
+    // For free quizzes, enrolled = anyone who started an attempt
+    // BUT for restricted quizzes (private/individual), enrollment = being assigned
+    const attempts = await QuizAttempt.find({ quizId })
+      .sort({ createdAt: 1 })
+      .populate('userId', 'fullName email mobile city country gender profilePicture createdAt status lastLoginAt')
+      .lean();
+    
+    const seen = new Set();
+    const attemptUsers = attempts.reduce((acc, a) => {
+      const uid = String(a.userId?._id || a.userId || '');
+      if (uid && !seen.has(uid)) {
+        seen.add(uid);
+        const u = a.userId || {};
+        const nameFallback = u.fullName || u.name || u.email?.split('@')[0] || (a.userId ? `Deleted User (${a.userId})` : 'Unknown');
+        acc.push({ 
+          ...u, 
+          fullName: nameFallback,
+          enrolledAt: a.startedAt || a.createdAt 
+        });
+      }
+      return acc;
+    }, []);
+
+    if (quiz.visibility === 'private' || quiz.visibility === 'individual') {
+      // Fetch ALL assigned users and merge them
+      const regRes = await fetchQuizRegisteredUsersLogic(quizId);
+      const registeredUsers = regRes.users || [];
+      
+      registeredUsers.forEach(ru => {
+        const uid = String(ru._id || '');
+        if (uid && !seen.has(uid)) {
+          seen.add(uid);
+          attemptUsers.push({
+            ...ru,
+            enrolledAt: ru.createdAt // Fallback to their user creation date or just current date if needed
+          });
+        }
+      });
+    }
+    users = attemptUsers;
+  }
+
+  return { users, total: users.length, isPaid };
+};
+
+/**
  * Get dashboard KPI stats
  * @route GET /api/analytics/dashboard-stats
  */
@@ -337,6 +464,10 @@ const getTopPerformers = async (req, res) => {
           fullName: '$user.fullName',
           email: '$user.email',
           profilePicture: '$user.profilePicture',
+          city: '$user.city',
+          country: '$user.country',
+          gender: '$user.gender',
+          createdAt: '$user.createdAt',
           totalScore: 1,
           avgPercentage: { $round: ['$avgPercentage', 2] },
           totalAttempts: 1,
@@ -478,6 +609,181 @@ const getQuestionInsights = async (req, res) => {
   }
 };
 
+/**
+ * Get registered users for a quiz (visibility-aware)
+ * - public: all platform users
+ * - private: members of assignedGroups
+ * - individual: assignedIndividuals (resolved to user docs)
+ * @route GET /api/analytics/quiz-registered-users?quizId=...
+ */
+const getQuizRegisteredUsers = async (req, res) => {
+  try {
+    const { quizId } = req.query;
+    if (!quizId) return res.status(400).json({ message: 'quizId is required' });
+    const result = await fetchQuizRegisteredUsersLogic(quizId);
+    res.json(result);
+  } catch (error) {
+    console.error('Get quiz registered users error:', error);
+    res.status(error.message === 'Quiz not found' ? 404 : 500).json({ message: error.message || 'Failed to fetch registered users' });
+  }
+};
+
+/**
+ * Get enrolled users for a quiz
+ * - paid quiz: users with successful transactions
+ * - free quiz: unique users who started an attempt
+ * @route GET /api/analytics/quiz-enrolled-users?quizId=...
+ */
+const getQuizEnrolledUsers = async (req, res) => {
+  try {
+    const { quizId } = req.query;
+    if (!quizId) return res.status(400).json({ message: 'quizId is required' });
+    const result = await fetchQuizEnrolledUsersLogic(quizId);
+    res.json(result);
+  } catch (error) {
+    console.error('Get quiz enrolled users error:', error);
+    res.status(error.message === 'Quiz not found' ? 404 : 500).json({ message: error.message || 'Failed to fetch enrolled users' });
+  }
+};
+
+/**
+ * Get participants (attempted users) for a quiz with full details
+ * Supports filters: search, paymentStatus, attemptStatus, scoreMin, scoreMax, dateFrom, dateTo
+ * @route GET /api/analytics/quiz-participants?quizId=...
+ */
+const getQuizParticipants = async (req, res) => {
+  try {
+    const { quizId, search, paymentStatus, attemptStatus, scoreMin, scoreMax, dateFrom, dateTo } = req.query;
+    if (!quizId) return res.status(400).json({ message: 'quizId is required' });
+
+    const quiz = await Quiz.findById(quizId).select('pricingType price totalMarks').lean();
+    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+
+    const attemptQuery = { quizId: new mongoose.Types.ObjectId(quizId) };
+    if (attemptStatus && attemptStatus !== 'all') attemptQuery.status = attemptStatus;
+    if (dateFrom || dateTo) {
+      attemptQuery.startedAt = {};
+      if (dateFrom) attemptQuery.startedAt.$gte = new Date(dateFrom);
+      if (dateTo) attemptQuery.startedAt.$lte = new Date(dateTo);
+    }
+
+    let attempts = await QuizAttempt.find(attemptQuery)
+      .populate('userId', 'fullName email mobile city country gender profilePicture createdAt status lastLoginAt')
+      .sort({ startedAt: -1 })
+      .lean();
+
+    // Fetch transactions for payment status
+    const userIds = [...new Set(attempts.map(a => String(a.userId?._id || a.userId || '')).filter(Boolean))];
+    const transactions = await Transaction.find({
+      quizId: new mongoose.Types.ObjectId(quizId),
+      userId: { $in: userIds }
+    }).select('userId status amount createdAt').lean();
+    const txnMap = new Map();
+    transactions.forEach(t => { txnMap.set(String(t.userId), t); });
+
+    // Compute correct/incorrect counts per attempt
+    const enriched = attempts.map(a => {
+      const uid = String(a.userId?._id || a.userId || '');
+      const txn = txnMap.get(uid);
+      const pStatus = txn?.status === 'success' ? 'paid' : txn?.status === 'pending' ? 'pending' : 'unpaid';
+      const correctCount = (a.answers || []).filter(ans => ans.isCorrect).length;
+      const incorrectCount = (a.answers || []).filter(ans => !ans.isCorrect).length;
+      const totalQ = (a.answers || []).length;
+      const rawUserId = String(a.userId?._id || a.userId || '');
+      const name = a.userId?.fullName || a.userId?.name || a.userId?.email?.split('@')[0] || (a.userId ? `Deleted User (${rawUserId.slice(-6)})` : 'Unknown');
+      
+      return {
+        attemptId: String(a._id),
+        userId: uid,
+        name,
+        email: a.userId?.email || 'N/A',
+        phone: a.userId?.mobile || a.userId?.phone || 'N/A', 
+        city: a.userId?.city || '—',
+        country: a.userId?.country || '—',
+        gender: a.userId?.gender || '—',
+        userStatus: a.userId?.status || '—',
+        joinDate: a.userId?.createdAt || null,
+        enrolledAt: a.userId?.createdAt || null,
+        startedAt: a.startedAt || null,
+        submittedAt: a.submittedAt || null,
+        timeTaken: a.timeTaken || null,
+        attemptStatus: a.status || 'in_progress',
+        score: typeof a.percentage === 'number' ? Math.round(a.percentage * 10) / 10 : null,
+        totalScore: a.totalScore || 0,
+        totalMarks: quiz.totalMarks || 0,
+        correctCount,
+        incorrectCount,
+        totalQuestions: totalQ,
+        paymentStatus: pStatus,
+        paidAmount: txn?.amount || 0,
+      };
+    });
+
+    // If includeEnrolled is true (or by default for admin views), merge with enrolled users who haven't attempted
+    const includeEnrolled = req.query.includeEnrolled !== 'false'; // Default to true if not specified
+    let finalParticipants = enriched;
+
+    if (includeEnrolled) {
+      const enrollmentRes = await fetchQuizEnrolledUsersLogic(quizId);
+      const enrolledUsers = enrollmentRes.users || [];
+      
+      const attemptedUserIds = new Set(enriched.map(e => e.userId));
+      
+      enrolledUsers.forEach(eu => {
+        const uid = String(eu._id || '');
+        if (uid && !attemptedUserIds.has(uid)) {
+          finalParticipants.push({
+            attemptId: `not-started-${uid}`,
+            userId: uid,
+            name: eu.fullName || eu.name || eu.email?.split('@')[0] || (eu._id ? `Deleted User (${String(eu._id).slice(-6)})` : 'Unknown'),
+            email: eu.email || 'N/A',
+            phone: eu.mobile || eu.phone || 'N/A',
+            city: eu.city || '—',
+            country: eu.country || '—',
+            gender: eu.gender || '—',
+            userStatus: eu.status || '—',
+            joinDate: eu.createdAt || null,
+            enrolledAt: eu.enrolledAt || eu.createdAt || null,
+            startedAt: null,
+            submittedAt: null,
+            timeTaken: null,
+            attemptStatus: 'not-attempted',
+            score: null,
+            totalScore: 0,
+            totalMarks: quiz.totalMarks || 0,
+            correctCount: 0,
+            incorrectCount: 0,
+            totalQuestions: 0,
+            paymentStatus: eu.amount ? 'paid' : 'unpaid',
+            paidAmount: eu.amount || 0,
+          });
+        }
+      });
+    }
+
+    // Apply in-memory filters
+    let filtered = finalParticipants;
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+    }
+    if (paymentStatus && paymentStatus !== 'all') {
+      filtered = filtered.filter(u => u.paymentStatus === paymentStatus);
+    }
+    if (scoreMin !== undefined && scoreMin !== '') {
+      filtered = filtered.filter(u => u.score === null || u.score >= Number(scoreMin));
+    }
+    if (scoreMax !== undefined && scoreMax !== '') {
+      filtered = filtered.filter(u => u.score === null || u.score <= Number(scoreMax));
+    }
+
+    res.json({ participants: filtered, total: filtered.length });
+  } catch (error) {
+    console.error('Get quiz participants error:', error);
+    res.status(500).json({ message: 'Failed to fetch participants' });
+  }
+};
+
 export {
   getDashboardStats,
   getUserGrowth,
@@ -487,5 +793,8 @@ export {
   getCategoryPerformance,
   getQuestionInsights,
   getQuizPaidUsers,
-  getQuizRevenue
+  getQuizRevenue,
+  getQuizRegisteredUsers,
+  getQuizEnrolledUsers,
+  getQuizParticipants
 };

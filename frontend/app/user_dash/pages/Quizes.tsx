@@ -585,17 +585,17 @@ export default function Quizes() {
                 </button>
                 <button
                   onClick={handleConfirmStartQuiz}
-                  disabled={selectedQuizToStart.attemptLimit !== 'unlimited' && (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0)}
+                  disabled={selectedQuizToStart.attemptLimit !== 'unlimited' && selectedQuizToStart.attemptStatus === 'completed'}
                   className={`flex-1 px-6 py-3 rounded-xl transition font-medium flex items-center justify-center gap-2 ${
-                    selectedQuizToStart.attemptLimit !== 'unlimited' && (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0)
+                    selectedQuizToStart.attemptLimit !== 'unlimited' && selectedQuizToStart.attemptStatus === 'completed'
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-[#253A7B] text-white hover:bg-[#1a2a5e]'
                   }`}
                 >
                   <Play className="w-5 h-5" />
-                  {selectedQuizToStart.attemptLimit !== 'unlimited' && (selectedQuizToStart.attemptStatus === 'completed' || (selectedQuizToStart.totalAttempts || 0) > 0)
+                  {selectedQuizToStart.attemptLimit !== 'unlimited' && selectedQuizToStart.attemptStatus === 'completed'
                     ? 'Attempt Expired'
-                    : 'Start Quiz'}
+                    : selectedQuizToStart.attemptStatus === 'in-progress' ? 'Resume Quiz' : 'Start Quiz'}
                 </button>
               </div>
             </div>

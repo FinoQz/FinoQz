@@ -29,6 +29,7 @@ type QuizApiItem = {
     _id?: string;
     score?: number;
     submittedAt?: string;
+    answeredCount?: number;
   };
   bestScore?: number;
   totalAttempts?: number;
@@ -128,7 +129,9 @@ export default function MyQuizes() {
                 ? new Date(quiz.latestAttempt.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : undefined,
               progress: quiz.attemptStatus === 'completed' ? 100 : 
-                       quiz.attemptStatus === 'in-progress' ? 50 : 0,
+                       (quiz.attemptStatus === 'in-progress' && quiz.totalMarks && quiz.latestAttempt?.answeredCount)
+                       ? Math.round((quiz.latestAttempt.answeredCount / quiz.totalMarks) * 100)
+                       : quiz.attemptStatus === 'in-progress' ? 10 : 0,
               bestScore: quiz.bestScore,
               totalAttempts: quiz.totalAttempts || 0,
               attemptLimit: quiz.attemptLimit === 'unlimited' ? 'unlimited' : '1',

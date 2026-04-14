@@ -29,8 +29,8 @@ const verifyToken = (requiredRole = null) => {
       const decoded = jwt.verify(token, secret);
 
       req.user = decoded;
-      req.userId = decoded.id || decoded.userId || null;
-      req.adminId = decoded.id;
+      req.userId = decoded._id || decoded.id || decoded.userId || null;
+      req.adminId = decoded.role === 'admin' ? (decoded._id || decoded.id) : null;
 
       if (requiredRole && decoded.role?.toLowerCase() !== requiredRole.toLowerCase()) {
         return res.status(403).json({ message: "Forbidden: Admin access only" });
