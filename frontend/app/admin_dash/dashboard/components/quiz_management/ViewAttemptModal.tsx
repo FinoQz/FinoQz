@@ -45,7 +45,7 @@ export default function ViewAttemptModal({ attemptData, onClose }: ViewAttemptMo
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [attempt, setAttempt] = useState<{ submittedAt?: string; percentage?: number; totalScore?: number; timeTaken?: number }>({});
+  const [attempt, setAttempt] = useState<{ submittedAt?: string; percentage?: number; totalScore?: number; timeTaken?: number; userInfo?: { city?: string; country?: string; gender?: string; joinDate?: string | null } }>({});
 
   useEffect(() => {
     if (!attemptData.attemptId) return;
