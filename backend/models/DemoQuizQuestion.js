@@ -6,6 +6,11 @@ const DemoQuizQuestionSchema = new mongoose.Schema({
     ref: 'DemoQuizCategory',
     required: true,
   },
+  subcategoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'DemoQuizSubcategory',
+    required: true,
+  },
   question: { type: String, required: true },
   options: [{ type: String, required: true }],
   correctIndex: { type: Number, required: true },

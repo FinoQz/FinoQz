@@ -6,6 +6,7 @@ import apiAdmin from '@/lib/apiAdmin';
 
 interface QuizQuestionFormProps {
   categoryId: string;
+  subcategoryId: string;
   onQuestionsUpdated?: () => void | Promise<void>;
 }
 
@@ -17,7 +18,7 @@ interface Question {
   explanation: string;
 }
 
-export default function QuizQuestionForm({ categoryId, onQuestionsUpdated }: QuizQuestionFormProps) {
+export default function QuizQuestionForm({ categoryId, subcategoryId, onQuestionsUpdated }: QuizQuestionFormProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [newOptions, setNewOptions] = useState<string[]>(['', '', '', '']);
@@ -26,12 +27,14 @@ export default function QuizQuestionForm({ categoryId, onQuestionsUpdated }: Qui
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchQuestions();
-  }, [categoryId]);
+    if (subcategoryId) {
+      fetchQuestions();
+    }
+  }, [subcategoryId]);
 
   const fetchQuestions = async () => {
     try {
-      const res = await apiAdmin.get(`api/admin/demo-quiz/questions?categoryId=${categoryId}`);
+      const res = await apiAdmin.get(`api/admin/demo-quiz/questions?subcategoryId=${subcategoryId}`);
       setQuestions(res.data || []);
     } catch (err) {
       console.error('Failed to load questions', err);
@@ -40,6 +43,8 @@ export default function QuizQuestionForm({ categoryId, onQuestionsUpdated }: Qui
 
   const addQuestion = async () => {
     if (
+      !categoryId ||
+      !subcategoryId ||
       !newQuestion.trim() ||
       newOptions.some((opt) => !opt.trim()) ||
       correctIndex === null ||
@@ -49,6 +54,7 @@ export default function QuizQuestionForm({ categoryId, onQuestionsUpdated }: Qui
 
     const payload = {
       categoryId,
+      subcategoryId,
       question: newQuestion.trim(),
       options: newOptions.map((opt) => opt.trim()),
       correctIndex,
@@ -85,7 +91,7 @@ export default function QuizQuestionForm({ categoryId, onQuestionsUpdated }: Qui
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-[#253A7B]">
-        Add Questions to: <span className="text-gray-800">{categoryId}</span>
+        Add Questions
       </h3>
 
       {/* New Question Form */}

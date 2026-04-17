@@ -6,6 +6,7 @@ import apiAdmin from '@/lib/apiAdmin';
 
 interface QuizAIFormProps {
   categoryId: string;
+  subcategoryId: string;
   onQuestionsUpdated?: () => void | Promise<void>;
 }
 
@@ -17,7 +18,7 @@ interface AIQuestion {
   explanation: string;
 }
 
-export default function QuizAIForm({ categoryId, onQuestionsUpdated }: QuizAIFormProps) {
+export default function QuizAIForm({ categoryId, subcategoryId, onQuestionsUpdated }: QuizAIFormProps) {
   const [prompt, setPrompt] = useState('');
   const [count, setCount] = useState(5);
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,7 @@ export default function QuizAIForm({ categoryId, onQuestionsUpdated }: QuizAIFor
     try {
       const res = await apiAdmin.post('api/admin/demo-quiz/ai-generate', {
         categoryId,
+        subcategoryId,
         prompt,
         count,
       });

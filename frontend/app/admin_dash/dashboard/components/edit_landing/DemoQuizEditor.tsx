@@ -23,6 +23,11 @@ interface Category {
   name: string;
 }
 
+interface Subcategory {
+  _id: string;
+  name: string;
+}
+
 interface Question {
   _id: string;
   question: string;
@@ -34,9 +39,12 @@ interface Question {
 export default function DemoQuizEditor() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string>('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [mode, setMode] = useState<'manual' | 'ai' | 'file'>('manual');
   const [loading, setLoading] = useState(false);
+  const [fetchingSubcategories, setFetchingSubcategories] = useState(false);
   const [fetchingQuestions, setFetchingQuestions] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -47,11 +55,20 @@ export default function DemoQuizEditor() {
 
   useEffect(() => {
     if (selectedCategoryId) {
-      fetchQuestions(selectedCategoryId);
+      fetchSubcategories(selectedCategoryId);
+    } else {
+      setSubcategories([]);
+      setSelectedSubcategoryId('');
+    }
+  }, [selectedCategoryId]);
+
+  useEffect(() => {
+    if (selectedSubcategoryId) {
+      fetchQuestions(selectedSubcategoryId);
     } else {
       setQuestions([]);
     }
-  }, [selectedCategoryId]);
+  }, [selectedSubcategoryId]);
 
   const fetchCategories = async () => {
     try {
@@ -65,10 +82,28 @@ export default function DemoQuizEditor() {
     }
   };
 
-  const fetchQuestions = async (catId: string) => {
+  const fetchSubcategories = async (catId: string) => {
+    try {
+      setFetchingSubcategories(true);
+      const res = await apiAdmin.get(`api/admin/demo-quiz/subcategories?categoryId=${catId}`);
+      setSubcategories(res.data || []);
+      if (res.data && res.data.length > 0) {
+        setSelectedSubcategoryId(res.data[0]._id);
+      } else {
+        setSelectedSubcategoryId('');
+        setQuestions([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch subcategories:', err);
+    } finally {
+      setFetchingSubcategories(false);
+    }
+  };
+
+  const fetchQuestions = async (subId: string) => {
     try {
       setFetchingQuestions(true);
-      const res = await apiAdmin.get(`api/admin/demo-quiz/questions?categoryId=${catId}`);
+      const res = await apiAdmin.get(`api/admin/demo-quiz/questions?subcategoryId=${subId}`);
       setQuestions(res.data || []);
     } catch (err) {
       console.error('Failed to fetch questions:', err);
@@ -78,8 +113,8 @@ export default function DemoQuizEditor() {
   };
 
   const refreshCurrentQuestions = async () => {
-    if (!selectedCategoryId) return;
-    await fetchQuestions(selectedCategoryId);
+    if (!selectedSubcategoryId) return;
+    await fetchQuestions(selectedSubcategoryId);
   };
 
   const handleDeleteQuestion = async (id: string) => {
@@ -137,11 +172,12 @@ export default function DemoQuizEditor() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedCategoryId) return;
+    if (!file || !selectedCategoryId || !selectedSubcategoryId) return;
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('categoryId', selectedCategoryId);
+    formData.append('subcategoryId', selectedSubcategoryId);
 
     try {
       setLoading(true);
@@ -149,7 +185,7 @@ export default function DemoQuizEditor() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       alert(`Imported ${res.data.data.length} questions!`);
-      fetchQuestions(selectedCategoryId);
+      fetchQuestions(selectedSubcategoryId);
     } catch (err: unknown) {
       console.error('File upload error:', err);
       const message =
@@ -168,24 +204,45 @@ export default function DemoQuizEditor() {
   return (
     <div className="space-y-8 pb-20">
       {/* Selector Section */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
-        <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Select Category to Manage Quiz</label>
-        <div className="relative group max-w-md">
-          <select 
-            value={selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value)}
-            className="w-full appearance-none px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer font-bold text-gray-800"
-          >
-            {categories.length === 0 && <option value="">No categories found</option>}
-            {categories.map(cat => (
-              <option key={cat._id} value={cat._id}>{cat.name}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none group-focus-within:text-blue-500 transition-colors" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+          <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Step 1: Select Category</label>
+          <div className="relative group">
+            <select 
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="w-full appearance-none px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer font-bold text-gray-800"
+            >
+              {categories.length === 0 && <option value="">No categories found</option>}
+              {categories.map(cat => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none group-focus-within:text-blue-500 transition-colors" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm">
+          <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Step 2: Select Subcategory</label>
+          <div className="relative group">
+            <select 
+              value={selectedSubcategoryId}
+              onChange={(e) => setSelectedSubcategoryId(e.target.value)}
+              disabled={fetchingSubcategories || subcategories.length === 0}
+              className="w-full appearance-none px-6 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer font-bold text-gray-800 disabled:opacity-50"
+            >
+              {fetchingSubcategories && <option value="">Loading...</option>}
+              {!fetchingSubcategories && subcategories.length === 0 && <option value="">No subcategories</option>}
+              {subcategories.map(sub => (
+                <option key={sub._id} value={sub._id}>{sub.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none group-focus-within:text-blue-500 transition-colors" />
+          </div>
         </div>
       </div>
 
-      {selectedCategoryId ? (
+      {selectedSubcategoryId ? (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
           {/* Left Side: Addition Panel (5/12 cols) */}
           <div className="xl:col-span-12 lg:col-span-12 space-y-6">
@@ -222,7 +279,11 @@ export default function DemoQuizEditor() {
                 <AnimatePresence mode="wait">
                   {mode === 'manual' && (
                     <motion.div key="manual" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
-                      <QuizQuestionForm categoryId={selectedCategoryId} onQuestionsUpdated={refreshCurrentQuestions} />
+                      <QuizQuestionForm 
+                        categoryId={selectedCategoryId} 
+                        subcategoryId={selectedSubcategoryId}
+                        onQuestionsUpdated={refreshCurrentQuestions} 
+                      />
                     </motion.div>
                   )}
                   
@@ -264,7 +325,11 @@ export default function DemoQuizEditor() {
 
                   {mode === 'ai' && (
                     <motion.div key="ai" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
-                      <QuizAIForm categoryId={selectedCategoryId} onQuestionsUpdated={refreshCurrentQuestions} />
+                      <QuizAIForm 
+                        categoryId={selectedCategoryId} 
+                        subcategoryId={selectedSubcategoryId}
+                        onQuestionsUpdated={refreshCurrentQuestions} 
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -342,10 +407,10 @@ export default function DemoQuizEditor() {
           </div>
         </div>
       ) : (
-        <div className="bg-red-50 border border-red-100 rounded-3xl p-10 text-center">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
-          <h4 className="text-lg font-bold text-red-900">No Category Selected</h4>
-          <p className="text-red-800/60 max-w-sm mx-auto mt-2">Please select or create a category in the Categories tab first to manage its quiz questions.</p>
+        <div className="bg-blue-50 border border-blue-100 rounded-3xl p-10 text-center">
+          <HelpCircle className="w-10 h-10 text-blue-500 mx-auto mb-4" />
+          <h4 className="text-lg font-bold text-blue-900">Select Category & Subcategory</h4>
+          <p className="text-blue-800/60 max-w-sm mx-auto mt-2">Please select both a category and a subcategory above to manage its quiz questions.</p>
         </div>
       )}
 

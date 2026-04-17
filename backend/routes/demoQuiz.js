@@ -11,6 +11,11 @@ router.post('/categories', verifyToken(), requireAdmin, controller.createCategor
 router.put('/categories/:id', verifyToken(), requireAdmin, controller.updateCategory);
 router.delete('/categories/:id', verifyToken(), requireAdmin, controller.deleteCategory);
 
+router.get('/subcategories', verifyToken(), requireAdmin, controller.getSubcategories);
+router.post('/subcategories', verifyToken(), requireAdmin, controller.createSubcategory);
+router.put('/subcategories/:id', verifyToken(), requireAdmin, controller.updateSubcategory);
+router.delete('/subcategories/:id', verifyToken(), requireAdmin, controller.deleteSubcategory);
+
 router.get('/questions', verifyToken(), requireAdmin, controller.getQuestions);
 router.post('/questions', verifyToken(), requireAdmin, controller.createQuestion);
 router.put('/questions/:id', verifyToken(), requireAdmin, controller.updateQuestion);
@@ -23,6 +28,6 @@ router.post('/ai-generate', verifyToken(), requireAdmin, controller.generateAIQu
 
 // 🌐 Public Routes for Landing Page (No Auth Required)
 router.get('/public/categories', controller.getPublicCategories);
-router.get('/public/quiz', controller.getPublicQuizByCategory);
+router.get('/public/quiz', controller.getPublicQuizBySubcategory);
 
 export default router;

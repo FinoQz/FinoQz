@@ -1,4 +1,5 @@
 import DemoQuizCategory from '../models/DemoQuizCategory.js';
+import DemoQuizSubcategory from '../models/DemoQuizSubcategory.js';
 import DemoQuizQuestion from '../models/DemoQuizQuestion.js';
 import XLSX from 'xlsx';
 import multer from 'multer';
@@ -183,19 +184,89 @@ export const deleteCategory = async (req, res) => {
   }
 };
 
-// Get questions by category (admin)
-export const getQuestions = async (req, res) => {
+// ---------------------------------------------------------
+// ✅ SUBCATEGORY CRUD (ADMIN)
+// ---------------------------------------------------------
+
+// Get subcategories by category
+export const getSubcategories = async (req, res) => {
   const { categoryId } = req.query;
   if (!categoryId) return res.status(400).json({ error: 'Missing categoryId' });
 
-  const questions = await DemoQuizQuestion.find({ categoryId }).sort({ createdAt: -1 });
+  try {
+    const subcategories = await DemoQuizSubcategory.find({ categoryId }).sort({ createdAt: -1 });
+    res.json(subcategories);
+  } catch (err) {
+    console.error('Get subcategories error:', err);
+    res.status(500).json({ error: 'Failed to fetch subcategories' });
+  }
+};
+
+// Create subcategory
+export const createSubcategory = async (req, res) => {
+  const { categoryId, name, description } = req.body;
+  if (!categoryId || !name) return res.status(400).json({ error: 'Category ID and Name are required' });
+
+  try {
+    const subcategory = await DemoQuizSubcategory.create({ categoryId, name, description });
+    res.json(subcategory);
+  } catch (err) {
+    console.error('Create subcategory error:', err);
+    res.status(500).json({ error: 'Failed to create subcategory' });
+  }
+};
+
+// Update subcategory
+export const updateSubcategory = async (req, res) => {
+  const { id } = req.params;
+  const { name, description } = req.body;
+
+  try {
+    const subcategory = await DemoQuizSubcategory.findByIdAndUpdate(
+      id,
+      { name, description },
+      { new: true }
+    );
+    if (!subcategory) return res.status(404).json({ error: 'Subcategory not found' });
+    res.json(subcategory);
+  } catch (err) {
+    console.error('Update subcategory error:', err);
+    res.status(500).json({ error: 'Failed to update subcategory' });
+  }
+};
+
+// Delete subcategory
+export const deleteSubcategory = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const subcategory = await DemoQuizSubcategory.findById(id);
+    if (!subcategory) return res.status(404).json({ error: 'Subcategory not found' });
+
+    // Cascade delete questions
+    await DemoQuizQuestion.deleteMany({ subcategoryId: id });
+    await DemoQuizSubcategory.findByIdAndDelete(id);
+
+    res.json({ ok: true, message: 'Subcategory and its questions deleted' });
+  } catch (err) {
+    console.error('Delete subcategory error:', err);
+    res.status(500).json({ error: 'Failed to delete subcategory' });
+  }
+};
+
+// Get questions by subcategory (admin)
+export const getQuestions = async (req, res) => {
+  const { subcategoryId } = req.query;
+  if (!subcategoryId) return res.status(400).json({ error: 'Missing subcategoryId' });
+
+  const questions = await DemoQuizQuestion.find({ subcategoryId }).sort({ createdAt: -1 });
   res.json(questions);
 };
 
 // Create a new question (admin)
 export const createQuestion = async (req, res) => {
-  const { categoryId, question, options, correctIndex, explanation } = req.body;
-  if (!categoryId || !question || !Array.isArray(options) || correctIndex == null) {
+  const { categoryId, subcategoryId, question, options, correctIndex, explanation } = req.body;
+  if (!categoryId || !subcategoryId || !question || !Array.isArray(options) || correctIndex == null) {
     return res.status(400).json({ error: 'Invalid question payload' });
   }
 
@@ -207,6 +278,7 @@ export const createQuestion = async (req, res) => {
 
   const newQuestion = await DemoQuizQuestion.create({
     categoryId,
+    subcategoryId,
     question,
     options,
     correctIndex,
@@ -263,8 +335,8 @@ export const deleteQuestion = async (req, res) => {
 
 
 export const generateAIQuestions = async (req, res) => {
-  const { categoryId, prompt, count } = req.body;
-  if (!categoryId || !prompt || typeof count !== 'number') {
+  const { categoryId, subcategoryId, prompt, count } = req.body;
+  if (!categoryId || !subcategoryId || !prompt || typeof count !== 'number') {
     return res.status(400).json({ error: 'Invalid AI payload' });
   }
 
@@ -389,6 +461,7 @@ Return this exact format:
 
       return {
         categoryId,
+        subcategoryId,
         question: questionText,
         options,
         correctIndex,
@@ -431,8 +504,8 @@ const pickRow = (r, keys) =>
 export const uploadQuestionsFile = [
   upload.single('file'),
   async (req, res) => {
-    const { categoryId } = req.body;
-    if (!categoryId) return res.status(400).json({ error: 'Missing categoryId' });
+    const { categoryId, subcategoryId } = req.body;
+    if (!categoryId || !subcategoryId) return res.status(400).json({ error: 'Missing categoryId or subcategoryId' });
 
     try {
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -488,6 +561,7 @@ export const uploadQuestionsFile = [
 
       const docs = filtered.map(q => ({
         categoryId,
+        subcategoryId,
         ...q
       }));
 
@@ -509,33 +583,46 @@ export const uploadQuestionsFile = [
 export const getPublicCategories = async (req, res) => {
   try {
     const categories = await DemoQuizCategory.find().sort({ createdAt: -1 });
-    res.json(categories.map(c => ({ 
-      _id: c._id, 
-      name: c.name,
-      description: c.description,
-      bullets: c.bullets,
-      imageUrl: c.imageUrl
-    })));
+    
+    // Fetch subcategories for each category
+    const result = await Promise.all(categories.map(async (c) => {
+      const subcategories = await DemoQuizSubcategory.find({ categoryId: c._id }).sort({ createdAt: 1 });
+      return { 
+        _id: c._id, 
+        name: c.name,
+        description: c.description,
+        bullets: c.bullets,
+        imageUrl: c.imageUrl,
+        subcategories: subcategories.map(s => ({
+          _id: s._id,
+          name: s.name,
+          description: s.description
+        }))
+      };
+    }));
+
+    res.json(result);
   } catch (err) {
     console.error('Public get categories error:', err);
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
 };
 
-// GET /api/public/demo-quiz/quiz?categoryId=...
-export const getPublicQuizByCategory = async (req, res) => {
+// GET /api/public/demo-quiz/quiz?subcategoryId=...
+export const getPublicQuizBySubcategory = async (req, res) => {
   try {
-    const { categoryId } = req.query;
-    if (!categoryId) return res.status(400).json({ error: 'Missing categoryId' });
+    const { subcategoryId } = req.query;
+    if (!subcategoryId) return res.status(400).json({ error: 'Missing subcategoryId' });
 
-    const category = await DemoQuizCategory.findById(categoryId);
-    if (!category) return res.status(404).json({ error: 'Category not found' });
+    const subcategory = await DemoQuizSubcategory.findById(subcategoryId).populate('categoryId');
+    if (!subcategory) return res.status(404).json({ error: 'Subcategory not found' });
 
-    const questions = await DemoQuizQuestion.find({ categoryId }).sort({ createdAt: -1 });
+    const questions = await DemoQuizQuestion.find({ subcategoryId }).sort({ createdAt: -1 });
 
     res.json({
-      id: category._id,
-      title: category.name,
+      id: subcategory._id,
+      title: subcategory.name,
+      categoryTitle: subcategory.categoryId?.name,
       questions: questions.map(q => ({
         _id: q._id,
         question: q.question,

@@ -11,8 +11,17 @@ import {
   X, 
   Layout, 
   ListPlus,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  ChevronRight
 } from 'lucide-react';
+
+interface Subcategory {
+  _id: string;
+  name: string;
+  description: string;
+  categoryId: string;
+}
 
 interface Category {
   _id: string;
@@ -25,6 +34,13 @@ export default function CategoryEditor() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Subcategory related state
+  const [manageSubcatId, setManageSubcatId] = useState<string | null>(null);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [fetchingSubcats, setFetchingSubcats] = useState(false);
+  const [newSubcat, setNewSubcat] = useState({ name: '', description: '' });
+  const [savingSubcat, setSavingSubcat] = useState(false);
   
   // Form state for Add/Edit
   const [formData, setFormData] = useState({
@@ -112,6 +128,50 @@ export default function CategoryEditor() {
     });
     // Scroll to form or show modal
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openSubcatManager = async (catId: string) => {
+    setManageSubcatId(catId);
+    await fetchSubcategories(catId);
+  };
+
+  const fetchSubcategories = async (catId: string) => {
+    try {
+      setFetchingSubcats(true);
+      const res = await apiAdmin.get(`api/admin/demo-quiz/subcategories?categoryId=${catId}`);
+      setSubcategories(res.data || []);
+    } catch (err) {
+      console.error('Fetch subcategories error:', err);
+    } finally {
+      setFetchingSubcats(false);
+    }
+  };
+
+  const handleAddSubcat = async () => {
+    if (!newSubcat.name.trim() || !manageSubcatId) return;
+    try {
+      setSavingSubcat(true);
+      const res = await apiAdmin.post('api/admin/demo-quiz/subcategories', {
+        categoryId: manageSubcatId,
+        ...newSubcat
+      });
+      setSubcategories(prev => [res.data, ...prev]);
+      setNewSubcat({ name: '', description: '' });
+    } catch (err) {
+      console.error('Add subcategory error:', err);
+    } finally {
+      setSavingSubcat(false);
+    }
+  };
+
+  const handleDeleteSubcat = async (subId: string) => {
+    if (!confirm('Are you sure? This will delete all questions in this subcategory.')) return;
+    try {
+      await apiAdmin.delete(`api/admin/demo-quiz/subcategories/${subId}`);
+      setSubcategories(prev => prev.filter(s => s._id !== subId));
+    } catch (err) {
+      console.error('Delete subcategory error:', err);
+    }
   };
 
   if (loading) return <div className="flex justify-center p-20 animate-pulse text-gray-400">Loading categories...</div>;
@@ -254,6 +314,17 @@ export default function CategoryEditor() {
                     {cat.description || 'No description provided.'}
                   </p>
 
+                  <div className="mt-auto pt-4 space-y-4">
+                    <button 
+                      onClick={() => openSubcatManager(cat._id)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-[#253A7B] text-xs font-bold hover:bg-blue-50 transition-all group/btn"
+                    >
+                      <span className="flex items-center gap-2">
+                        <ListPlus className="w-4 h-4" /> Manage Subcategories
+                      </span>
+                      <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
                   <div className="space-y-2 border-t border-gray-50 pt-4">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Key Topics</p>
                     <div className="flex flex-wrap gap-1.5">
@@ -277,6 +348,99 @@ export default function CategoryEditor() {
           </div>
         )}
       </div>
+
+      {/* Subcategory Manager Modal */}
+      <AnimatePresence>
+        {manageSubcatId && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8 pb-4 flex justify-between items-center border-b border-gray-50">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">Manage Subcategories</h3>
+                  <p className="text-sm text-gray-500 mt-1">Add sub-levels to {categories.find(c => c._id === manageSubcatId)?.name}</p>
+                </div>
+                <button 
+                  onClick={() => setManageSubcatId(null)}
+                  className="p-3 hover:bg-gray-100 rounded-2xl transition-colors text-gray-400"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-8 pt-6 space-y-8">
+                {/* Add Subcat Form */}
+                <div className="bg-gray-50/50 border border-gray-100 rounded-3xl p-5 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <input 
+                      type="text" 
+                      placeholder="Subcategory Name"
+                      value={newSubcat.name}
+                      onChange={e => setNewSubcat(s => ({ ...s, name: e.target.value }))}
+                      className="px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 outline-none text-sm transition-all shadow-sm"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Short Description (Optional)"
+                      value={newSubcat.description}
+                      onChange={e => setNewSubcat(s => ({ ...s, description: e.target.value }))}
+                      className="px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-blue-500 outline-none text-sm transition-all shadow-sm"
+                    />
+                  </div>
+                  <button 
+                    onClick={handleAddSubcat}
+                    disabled={savingSubcat || !newSubcat.name.trim()}
+                    className="w-full py-3.5 rounded-xl bg-[#253A7B] text-white font-bold text-sm hover:bg-[#1a2a5e] transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-900/10 disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" /> {savingSubcat ? 'Saving...' : 'Add Subcategory'}
+                  </button>
+                </div>
+
+                {/* List */}
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Active Subcategories</h4>
+                  {fetchingSubcats ? (
+                    <div className="py-12 text-center text-gray-400 animate-pulse font-medium">Fetching subcategories...</div>
+                  ) : subcategories.length === 0 ? (
+                    <div className="py-12 text-center border border-dashed border-gray-200 rounded-3xl">
+                      <p className="text-gray-400 text-sm">No subcategories yet. Create the first one above!</p>
+                    </div>
+                  ) : (
+                    subcategories.map(sub => (
+                      <div key={sub._id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-100 hover:shadow-lg hover:shadow-blue-900/5 transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h5 className="font-bold text-gray-900 text-sm">{sub.name}</h5>
+                            {sub.description && <p className="text-[10px] text-gray-500 line-clamp-1">{sub.description}</p>}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteSubcat(sub._id)}
+                          className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all lg:opacity-0 lg:group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Info Alert */}
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex gap-4 items-start">

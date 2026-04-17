@@ -17,9 +17,16 @@ type Question = {
   explanation?: string;
 };
 
+type Subcategory = {
+  _id: string;
+  name: string;
+  description?: string;
+};
+
 type Category = {
   _id: string;
   name: string;
+  subcategories: Subcategory[];
 };
 
 export default function TryQuiz() {
@@ -27,6 +34,7 @@ export default function TryQuiz() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -81,7 +89,11 @@ export default function TryQuiz() {
         if (!active) return;
         setCategories(res.data || []);
         if (res.data && res.data.length > 0) {
-          setSelectedCategoryId(res.data[0]._id);
+          const firstCat = res.data[0];
+          setSelectedCategoryId(firstCat._id);
+          if (firstCat.subcategories && firstCat.subcategories.length > 0) {
+            setSelectedSubcategoryId(firstCat.subcategories[0]._id);
+          }
         } else {
           setLoading(false);
         }
@@ -95,9 +107,9 @@ export default function TryQuiz() {
 
   useEffect(() => {
     let active = true;
-    if (selectedCategoryId) {
+    if (selectedSubcategoryId) {
       setLoading(true);
-      apiAdmin.get(`/api/admin/demo-quiz/public/quiz?categoryId=${selectedCategoryId}`)
+      apiAdmin.get(`/api/admin/demo-quiz/public/quiz?subcategoryId=${selectedSubcategoryId}`)
         .then(res => {
           if (!active) return;
           setQuestions(res.data?.questions || []);
@@ -116,7 +128,7 @@ export default function TryQuiz() {
         });
     }
     return () => { active = false; };
-  }, [selectedCategoryId]);
+  }, [selectedSubcategoryId]);
 
   const handleSelect = (idx: number) => {
     if (selectedAnswer !== null || revealClicked) return;
@@ -144,6 +156,17 @@ export default function TryQuiz() {
     setRevealClicked(false);
     setShowExplanation(false);
     setCurrentQ(q => q + 1);
+  };
+
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategoryId(catId);
+    const cat = categories.find(c => c._id === catId);
+    if (cat && cat.subcategories && cat.subcategories.length > 0) {
+      setSelectedSubcategoryId(cat.subcategories[0]._id);
+    } else {
+      setSelectedSubcategoryId(null);
+      setQuestions([]);
+    }
   };
 
   const handleRestart = () => {
@@ -195,17 +218,51 @@ export default function TryQuiz() {
                 Test and improve your <span className="font-medium text-[#253A7B]">investment IQ</span>
               </p>
 
-              <div className="w-full max-w-3xl mx-auto flex flex-col items-center gap-4">
-                <div className="w-full flex items-center flex-nowrap overflow-x-auto gap-2 pb-2 justify-start md:justify-center scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  <style dangerouslySetInnerHTML={{ __html: `::-webkit-scrollbar { display: none; }` }} />
-                  <span className="text-sm text-gray-500 mr-2 shrink-0">Quiz Categories:</span>
-                  {categories.map(cat => (
-                    <button key={cat._id} onClick={() => setSelectedCategoryId(cat._id)} disabled={loading} className={`shrink-0 px-3 py-1.5 rounded-md border text-xs transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${selectedCategoryId === cat._id ? 'border-[#253A7B] text-[#253A7B] bg-white/80 shadow-md backdrop-blur-sm font-medium' : 'border-gray-200/50 bg-white/40 text-gray-600 hover:border-gray-300 hover:bg-white/60'}`}>
-                      {cat.name}
-                    </button>
-                  ))}
+              <div className="w-full max-w-3xl mx-auto flex flex-col items-center gap-6">
+                <div className="space-y-4 w-full">
+                  {/* Category Selection */}
+                  <div className="w-full flex items-center flex-nowrap overflow-x-auto gap-2 pb-2 justify-start md:justify-center scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <style dangerouslySetInnerHTML={{ __html: `::-webkit-scrollbar { display: none; }` }} />
+                    <span className="text-sm font-bold text-gray-400 mr-2 shrink-0 uppercase tracking-widest">Category:</span>
+                    {categories.map(cat => (
+                      <button 
+                        key={cat._id} 
+                        onClick={() => handleCategoryChange(cat._id)} 
+                        disabled={loading} 
+                        className={`shrink-0 px-4 py-2 rounded-xl border text-xs transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${selectedCategoryId === cat._id ? 'border-[#253A7B] text-[#253A7B] bg-white/90 shadow-lg shadow-blue-900/5 backdrop-blur-sm font-bold' : 'border-gray-200/50 bg-white/40 text-gray-500 hover:border-gray-300 hover:bg-white/60'}`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Subcategory Selection */}
+                  {selectedCategoryId && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="w-full flex items-center flex-nowrap overflow-x-auto gap-2 pb-2 justify-start md:justify-center scrollbar-hide" 
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      <span className="text-[10px] font-bold text-gray-400 mr-2 shrink-0 uppercase tracking-widest">Subcategory:</span>
+                      {categories.find(c => c._id === selectedCategoryId)?.subcategories.map(sub => (
+                        <button 
+                          key={sub._id} 
+                          onClick={() => setSelectedSubcategoryId(sub._id)} 
+                          disabled={loading} 
+                          className={`shrink-0 px-3 py-1.5 rounded-lg border text-[10px] transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${selectedSubcategoryId === sub._id ? 'border-blue-500 text-blue-600 bg-blue-50/50 font-bold' : 'border-gray-200/30 bg-white/20 text-gray-500 hover:border-gray-300'}`}
+                        >
+                          {sub.name}
+                        </button>
+                      ))}
+                      {(!categories.find(c => c._id === selectedCategoryId)?.subcategories || categories.find(c => c._id === selectedCategoryId)?.subcategories.length === 0) && (
+                        <span className="text-[10px] text-gray-400 italic">No subcategories available</span>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
-                <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-blue-200/50 shadow-sm text-blue-700 text-xs font-medium uppercase tracking-widest backdrop-blur-md">
+
+                <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-50/80 to-purple-50/80 border border-blue-200/50 shadow-sm text-blue-700 text-[10px] font-bold uppercase tracking-widest backdrop-blur-md">
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2 animate-pulse"></div>Try Free Quiz
                 </motion.span>
               </div>
