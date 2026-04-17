@@ -5,12 +5,18 @@ import { motion } from 'framer-motion';
 import { Check, BookOpen, Layers, Globe, Zap, Heart } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
+type RemoteSubcategory = {
+  _id: string;
+  name: string;
+};
+
 type RemoteCategory = {
   _id?: string;
   id?: string;
   name?: string;
   description?: string;
   bullets?: string[];
+  subcategories?: RemoteSubcategory[];
 };
 
 type LocalCategory = {
@@ -18,6 +24,7 @@ type LocalCategory = {
   name: string;
   description: string;
   topics: string[];
+  subcategories: RemoteSubcategory[];
   color: string;
   iconColor: string;
 };
@@ -51,6 +58,7 @@ export default function QuizCategories() {
             name: rc.name || `Category ${idx + 1}`,
             description: rc.description || '',
             topics: Array.isArray(rc.bullets) ? rc.bullets : [],
+            subcategories: Array.isArray(rc.subcategories) ? rc.subcategories : [],
             color: pal.color,
             iconColor: pal.iconColor,
           };
@@ -134,11 +142,26 @@ export default function QuizCategories() {
                         </p>
                      </div>
 
-                     <ul className="space-y-1.5 mt-2 hidden md:block">
+                     {/* Subcategories (Dynamic Hierarchy) */}
+                     {cat.subcategories.length > 0 && (
+                       <div className="flex flex-wrap gap-1.5 mt-4 justify-center">
+                         {cat.subcategories.slice(0, 4).map((sub, j) => (
+                           <span key={j} className="px-2 py-0.5 rounded-md bg-blue-50/50 text-[7px] md:text-[8px] text-blue-600 font-medium border border-blue-100/30 transition-all duration-300 hover:bg-green-50 hover:text-green-700 hover:border-green-200 hover:scale-105 active:scale-95 cursor-default">
+                             {sub.name}
+                           </span>
+                         ))}
+                         {cat.subcategories.length > 4 && (
+                           <span className="text-[7px] text-gray-400 font-medium self-center">+{cat.subcategories.length - 4} more</span>
+                         )}
+                       </div>
+                     )}
+
+                     {/* Points / Topics */}
+                     <ul className="space-y-1 mt-4 hidden md:block">
                         {(cat.topics || []).slice(0, 3).map((topic, j) => (
                           <li key={j} className="flex items-center gap-1.5 justify-center">
-                             <div className="w-1 h-1 rounded-full bg-blue-300" />
-                             <span className="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-wider">{topic}</span>
+                             <div className="w-1 h-1 rounded-full bg-black/80" />
+                             <span className="text-[9px] md:text-[10px] text-gray-800 font-medium tracking-tight whitespace-nowrap">{topic}</span>
                           </li>
                         ))}
                      </ul>
