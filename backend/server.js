@@ -40,6 +40,7 @@ import financeContentRoutes from './routes/financeContentRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
 import userDashboardRoutes from './routes/userDashboardRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
+import chatRoutes from './routes/chat.js';
 
 
 const app = express();
@@ -156,6 +157,7 @@ app.use('/api/finance-content', financeContentRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/user/dashboard', userDashboardRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+app.use('/api/public/chat', chatRoutes);
 
 
 // ✅ Celebrate validation errors (with console logging for debugging)

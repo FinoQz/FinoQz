@@ -9,6 +9,7 @@ import QuizCategories from "./components/QuizCategories";
 import Reviews from "./components/Reviews";
 import Roadmap from "./components/Roadmap";
 import Footer from "./components/Footer";
+import ChatBot from "./components/ChatBot";
 
 // Global Preloader Component
 function Preloader() {
@@ -102,6 +103,7 @@ export default function LandingPage() {
         <Reviews />
         <Roadmap />
         <Footer />
+        <ChatBot />
       </motion.div>
     </div>
   );
