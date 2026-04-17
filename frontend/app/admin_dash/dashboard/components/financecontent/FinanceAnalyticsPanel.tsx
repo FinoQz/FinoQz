@@ -3,13 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, Eye, MessageSquare, TrendingUp, BarChart3,
-  ArrowUpRight, ArrowDownRight, Activity, Zap, Award
+  Eye, MessageSquare, TrendingUp,
+  ArrowUpRight, Activity, Zap, Award
 } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
+interface ActiveTopic {
+  title: string;
+  count: number;
+}
+
+interface FinanceAnalyticsData {
+  totalViews: number;
+  totalEngagement: number;
+  activeTopics: ActiveTopic[];
+}
+
 export default function FinanceAnalyticsPanel() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<FinanceAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,10 +29,10 @@ export default function FinanceAnalyticsPanel() {
 
   const fetchAnalytics = async () => {
     try {
-      const res = await apiAdmin.get('/api/finance-content/admin/analytics');
+      const res = await apiAdmin.get<FinanceAnalyticsData>('/api/finance-content/admin/analytics');
       setData(res.data);
     } catch (err) {
-      console.error('Analytics Fetch Error');
+      console.error('Analytics Fetch Error', err);
     } finally {
       setLoading(false);
     }
@@ -29,10 +40,12 @@ export default function FinanceAnalyticsPanel() {
 
   if (loading) return <div className="animate-pulse flex items-center gap-2 text-xs text-gray-400 p-4"><Zap className="w-3 h-3" /> CALCULATING INSIGHTS...</div>;
 
+  const activeTopics = data?.activeTopics ?? [];
+
   const stats = [
     { label: 'Total Visibility', value: data?.totalViews || 0, icon: Eye, color: 'blue', trend: '+12%' },
     { label: 'Network Engagement', value: data?.totalEngagement || 0, icon: MessageSquare, color: 'indigo', trend: '+5%' },
-    { label: 'Active Topics', value: data?.activeTopics?.length || 0, icon: Activity, color: 'emerald', trend: 'STABLE' },
+    { label: 'Active Topics', value: activeTopics.length, icon: Activity, color: 'emerald', trend: 'STABLE' },
   ];
 
   return (
@@ -80,8 +93,8 @@ export default function FinanceAnalyticsPanel() {
           </div>
 
           <div className="space-y-4">
-            {data?.activeTopics?.length > 0 ? (
-              data.activeTopics.map((topic: any, i: number) => (
+            {activeTopics.length > 0 ? (
+              activeTopics.map((topic: ActiveTopic, i: number) => (
                 <div key={i} className="flex items-center justify-between group">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[12px] font-bold text-slate-400 group-hover:bg-[#253A7B] group-hover:text-white transition-all">
@@ -115,7 +128,7 @@ export default function FinanceAnalyticsPanel() {
               <Award className="w-4 h-4 text-blue-400" />
               Expert Visibility Score
             </h4>
-            <p className="text-[11px] font-medium text-blue-200/60 leading-relaxed mb-6">Your platform's finance authority is calculated based on unique visits and sustained discussions.</p>
+            <p className="text-[11px] font-medium text-blue-200/60 leading-relaxed mb-6">Your platforms finance authority is calculated based on unique visits and sustained discussions.</p>
 
             <div className="mt-auto flex items-end justify-between">
               <div>

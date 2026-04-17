@@ -10,25 +10,58 @@ import {
 } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 
+type ContentType = 'blog' | 'video' | 'pdf' | 'excel';
+
+interface FinanceSubcategory {
+  _id: string;
+  name: string;
+}
+
+interface FinanceCategory {
+  _id: string;
+  name: string;
+  subcategories: FinanceSubcategory[];
+}
+
+interface FinanceContent {
+  _id?: string;
+  type?: ContentType;
+  title?: string;
+  excerpt?: string;
+  content?: string;
+  categoryId?: string | { _id: string };
+  subCategoryId?: string | { _id: string };
+  thumbnail?: string;
+  tags?: string[];
+  isPublished?: boolean;
+  isFeatured?: boolean;
+  blogData?: { images?: string[] };
+  videoData?: { url?: string; thumbnail?: string; title?: string };
+  fileData?: { url?: string; filename?: string };
+}
+
 interface ResourceEditorProps {
-  content: any | null;
+  content: FinanceContent | null;
   onClose: () => void;
   onSave: () => void;
 }
 
 export default function ResourceEditor({ content, onClose, onSave }: ResourceEditorProps) {
-  const [contentType, setContentType] = useState<'blog' | 'video' | 'pdf' | 'excel'>(content?.type || 'blog');
+  const [contentType, setContentType] = useState<ContentType>(content?.type || 'blog');
   const [isSaving, setIsSaving] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [ytLoading, setYtLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState<{ thumbnail?: boolean, blog?: boolean }>({});
+
+  const getRefId = (value?: string | { _id: string }) =>
+    typeof value === 'string' ? value : value?._id || '';
 
   const [formData, setFormData] = useState({
     title: content?.title || '',
     excerpt: content?.excerpt || '',
     content: content?.content || '',
-    categoryId: content?.categoryId?._id || content?.categoryId || '',
-    subCategoryId: content?.subCategoryId?._id || content?.subCategoryId || '',
+    categoryId: getRefId(content?.categoryId),
+    subCategoryId: getRefId(content?.subCategoryId),
     thumbnail: content?.thumbnail || '',
     tags: content?.tags?.join(', ') || '',
     isPublished: content?.isPublished ?? false,
@@ -136,7 +169,7 @@ export default function ResourceEditor({ content, onClose, onSave }: ResourceEdi
     }
   };
 
-  const subcategories = categories.find(c => c._id === formData.categoryId)?.subcategories || [];
+  const subcategories: FinanceSubcategory[] = categories.find(c => c._id === formData.categoryId)?.subcategories || [];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -235,7 +268,7 @@ export default function ResourceEditor({ content, onClose, onSave }: ResourceEdi
                   className="w-full px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-[13px] font-bold text-gray-700 outline-none disabled:opacity-50"
                 >
                   <option value="">Select Subcategory...</option>
-                  {subcategories.map((s: any) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                  {subcategories.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
               </div>
             </div>

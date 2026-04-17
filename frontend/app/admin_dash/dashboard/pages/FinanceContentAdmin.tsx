@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, Edit, Trash2, Eye, EyeOff, Layout,
-  BarChart3, Folders, BookOpen, Filter, ArrowUpDown, MoreVertical,
-  ChevronRight, Globe, CheckCircle2, Clock, MessageSquare, User
+  BarChart3, Folders, BookOpen,
+  ChevronRight, Globe, CheckCircle2, Clock, MessageSquare
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
 import CategoryManagement from '../components/financecontent/CategoryManagement';
 import ResourceEditor from '../components/financecontent/ResourceEditor';
@@ -17,44 +19,80 @@ interface FinanceResource {
   title: string;
   slug: string;
   type: 'blog' | 'video' | 'pdf' | 'excel';
-  categoryId: { name: string; icon: string };
-  subCategoryId: { name: string };
+  excerpt?: string;
+  content?: string;
+  categoryId?: string | { _id: string; name?: string; icon?: string };
+  subCategoryId?: string | { _id: string; name?: string };
+  thumbnail?: string;
+  tags?: string[];
+  isFeatured?: boolean;
+  blogData?: { images?: string[] };
+  videoData?: { url?: string; thumbnail?: string; title?: string };
+  fileData?: { url?: string; filename?: string };
   isPublished: boolean;
   isVisible: boolean;
   analytics: { views: number; engagementScore: number };
   createdAt: string;
 }
 
+type ActiveTab = 'insights' | 'hub' | 'hierarchy' | 'discussions';
+
+interface DiscussionReply {
+  _id: string;
+  userName?: string;
+  text: string;
+}
+
+interface DiscussionItem {
+  _id: string;
+  userAvatar?: string;
+  userName?: string;
+  createdAt: string;
+  text: string;
+  likes?: unknown[];
+  replies?: DiscussionReply[];
+  resourceId?: {
+    title?: string;
+  };
+}
+
+const tabs: Array<{ id: ActiveTab; label: string; icon: LucideIcon }> = [
+  { id: 'insights', label: 'Platform Insights', icon: BarChart3 },
+  { id: 'hub', label: 'Content Hub', icon: Layout },
+  { id: 'hierarchy', label: 'Folders & Hierarchy', icon: Folders },
+  { id: 'discussions', label: 'Discussions', icon: MessageSquare }
+];
+
 export default function FinanceContentAdmin() {
-  const [activeTab, setActiveTab] = useState<'insights' | 'hub' | 'hierarchy' | 'discussions'>('hub');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('hub');
   const [resources, setResources] = useState<FinanceResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [editingResource, setEditingResource] = useState<any>(null);
+  const [editingResource, setEditingResource] = useState<FinanceResource | null>(null);
   const [showEditor, setShowEditor] = useState(false);
-  const [discussions, setDiscussions] = useState<any[]>([]);
+  const [discussions, setDiscussions] = useState<DiscussionItem[]>([]);
   const [discussionsLoading, setDiscussionsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchResources();
-  }, [search]);
-
-  const fetchResources = async () => {
+  const fetchResources = React.useCallback(async () => {
     try {
       const res = await apiAdmin.get('/api/finance-content/admin/all', { params: { search } });
       setResources(res.data.content || []);
-    } catch (err) {
+    } catch {
       console.error('Fetch Resources Error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    fetchResources();
+  }, [fetchResources]);
 
   const handleTogglePublished = async (id: string) => {
     try {
       await apiAdmin.patch(`/api/finance-content/admin/${id}/publish`);
       fetchResources();
-    } catch (err) { alert('Update failed'); }
+    } catch { alert('Update failed'); }
   };
 
   const handleDelete = async (id: string) => {
@@ -62,7 +100,7 @@ export default function FinanceContentAdmin() {
     try {
       await apiAdmin.delete(`/api/finance-content/admin/${id}`);
       fetchResources();
-    } catch (err) { alert('Delete failed'); }
+    } catch { alert('Delete failed'); }
   };
 
   const fetchDiscussions = async () => {
@@ -70,7 +108,7 @@ export default function FinanceContentAdmin() {
     try {
       const res = await apiAdmin.get('/api/finance-content/admin/discussions');
       setDiscussions(res.data.discussions || []);
-    } catch (err) { console.error('Discussion fetch error'); }
+    } catch { console.error('Discussion fetch error'); }
     finally { setDiscussionsLoading(false); }
   };
 
@@ -79,7 +117,7 @@ export default function FinanceContentAdmin() {
     try {
       await apiAdmin.delete(`/api/finance-content/admin/discussions/${commentId}`);
       fetchDiscussions();
-    } catch (err) { alert('Delete comment failed'); }
+    } catch { alert('Delete comment failed'); }
   };
 
   return (
@@ -118,16 +156,11 @@ export default function FinanceContentAdmin() {
 
       {/* Tabs Navigation */}
       <nav className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-2xl w-fit border border-gray-100">
-        {[
-          { id: 'insights', label: 'Platform Insights', icon: BarChart3 },
-          { id: 'hub', label: 'Content Hub', icon: Layout },
-          { id: 'hierarchy', label: 'Folders & Hierarchy', icon: Folders },
-          { id: 'discussions', label: 'Discussions', icon: MessageSquare }
-        ].map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => {
-              setActiveTab(tab.id as any);
+              setActiveTab(tab.id);
               if (tab.id === 'discussions') fetchDiscussions();
             }}
             className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-bold transition-all ${activeTab === tab.id
@@ -173,7 +206,15 @@ export default function FinanceContentAdmin() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-xl bg-slate-50 border border-gray-100 flex items-center justify-center text-gray-400 font-bold text-[11px] flex-shrink-0">
-                        {d.userAvatar ? <img src={d.userAvatar} className="w-full h-full object-cover rounded-xl" /> : d.userName?.[0]?.toUpperCase()}
+                        {d.userAvatar ? (
+                          <Image
+                            src={d.userAvatar}
+                            alt={`${d.userName || 'User'} avatar`}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        ) : d.userName?.[0]?.toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -194,9 +235,9 @@ export default function FinanceContentAdmin() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  {d.replies?.length > 0 && (
+                  {(d.replies ?? []).length > 0 && (
                     <div className="pl-11 space-y-3 pt-3 border-t border-gray-50">
-                      {d.replies.map((r: any) => (
+                      {(d.replies ?? []).map((r: DiscussionReply) => (
                         <div key={r._id} className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-2">
                             <div className="w-6 h-6 rounded-lg bg-slate-50 border border-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 flex-shrink-0">
@@ -270,9 +311,9 @@ export default function FinanceContentAdmin() {
                         </td>
                         <td className="px-6 py-5 text-center">
                           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/50 text-[#253A7B] rounded-lg border border-blue-100/30">
-                            <span className="text-[10px] font-bold uppercase tracking-tight">{res.categoryId?.name}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-tight">{typeof res.categoryId === 'string' ? 'GENERAL' : (res.categoryId?.name || 'GENERAL')}</span>
                           </div>
-                          <p className="text-[9px] font-bold text-gray-300 mt-1 uppercase tracking-tighter">/ {res.subCategoryId?.name || 'GENERIC'}</p>
+                          <p className="text-[9px] font-bold text-gray-300 mt-1 uppercase tracking-tighter">/ {typeof res.subCategoryId === 'string' ? 'GENERIC' : (res.subCategoryId?.name || 'GENERIC')}</p>
                         </td>
                         <td className="px-6 py-5 text-center">
                           <div className="flex flex-col items-center">

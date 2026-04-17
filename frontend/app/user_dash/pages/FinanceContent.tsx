@@ -37,6 +37,8 @@ interface Resource {
   publishedAt?: string;
 }
 
+type ViewerResource = React.ComponentProps<typeof ResourceViewer>['resource'];
+
 export default function FinanceContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
@@ -44,7 +46,7 @@ export default function FinanceContent() {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState<string>('');
   const [selectedSub, setSelectedSub] = useState<string>('');
-  const [selectedResource, setSelectedResource] = useState<any>(null);
+  const [selectedResource, setSelectedResource] = useState<ViewerResource | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -88,10 +90,10 @@ export default function FinanceContent() {
     setViewerLoading(true);
     try {
       const res = await apiAdmin.get(`/api/finance-content/${resource.slug}`);
-      setSelectedResource(res.data);
+      setSelectedResource(res.data as ViewerResource);
     } catch (err) {
       // Fallback to list data if slug fetch fails
-      setSelectedResource(resource as any);
+      setSelectedResource(resource as ViewerResource);
       console.error('Full resource fetch failed, using list data');
     } finally {
       setViewerLoading(false);

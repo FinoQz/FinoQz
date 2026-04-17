@@ -21,10 +21,16 @@ interface Category {
   order: number;
 }
 
+interface ShowAddModalState {
+  type: 'category' | 'subcategory';
+  parentId?: string;
+  edit?: Category | Subcategory;
+}
+
 export default function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState<any>(null); // { type: 'category' | 'subcategory', parentId?: string, edit?: any }
+  const [showAddModal, setShowAddModal] = useState<ShowAddModalState | null>(null);
   const [formData, setFormData] = useState({ name: '', icon: 'BookOpen', order: 0 });
 
   useEffect(() => {
@@ -44,6 +50,8 @@ export default function CategoryManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!showAddModal) return;
+
     try {
       if (showAddModal.edit) {
         if (showAddModal.type === 'category') {
@@ -72,8 +80,16 @@ export default function CategoryManagement() {
       if (type === 'category') await apiAdmin.delete(`/api/finance-content/categories/${id}`);
       else await apiAdmin.delete(`/api/finance-content/subcategories/${id}`);
       fetchCategories();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Error deleting item');
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : 'Error deleting item';
+
+      alert(message);
     }
   };
 

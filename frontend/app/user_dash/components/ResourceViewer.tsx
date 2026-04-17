@@ -1,17 +1,49 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { 
-  X, ExternalLink, Download, ArrowLeft, Clock, 
-  Eye, BookOpen, Video, FileText, FileSpreadsheet,
-  Share2, Bookmark, BarChart3, Globe, Youtube,
+  ExternalLink, Download, ArrowLeft,
+  Eye, FileText, FileSpreadsheet,
+  Share2, Bookmark, Youtube,
   Calendar, User
 } from 'lucide-react';
 import DiscussionBoard from './DiscussionBoard';
 
+type ResourceType = 'blog' | 'video' | 'pdf' | 'excel';
+
+interface ResourceViewerResource {
+  _id: string;
+  title: string;
+  type: ResourceType;
+  excerpt?: string;
+  content?: string;
+  createdAt?: string;
+  publishedAt?: string;
+  authorName?: string;
+  analytics?: {
+    views?: number;
+  };
+  categoryId?: {
+    name?: string;
+  };
+  subCategoryId?: {
+    name?: string;
+  };
+  blogData?: {
+    images?: string[];
+  };
+  videoData?: {
+    url?: string;
+  };
+  fileData?: {
+    url?: string;
+  };
+}
+
 interface ResourceViewerProps {
-  resource: any;
+  resource: ResourceViewerResource | null;
   onClose: () => void;
 }
 
@@ -41,6 +73,9 @@ function getYouTubeEmbedUrl(url: string): string {
 
 export default function ResourceViewer({ resource, onClose }: ResourceViewerProps) {
   if (!resource) return null;
+
+  const publishedDate = resource.publishedAt || resource.createdAt;
+  const blogImages = resource.blogData?.images ?? [];
 
   return (
     <motion.div
@@ -94,7 +129,7 @@ export default function ResourceViewer({ resource, onClose }: ResourceViewerProp
                  <div className="flex items-center gap-4 text-gray-400">
                     <div className="flex items-center gap-1.5">
                        <Calendar className="w-3.5 h-3.5 opacity-50" />
-                       <span className="text-[11px] font-bold uppercase tracking-widest">{new Date(resource.publishedAt || resource.createdAt).toLocaleDateString()}</span>
+                       <span className="text-[11px] font-bold uppercase tracking-widest">{publishedDate ? new Date(publishedDate).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-blue-600">
                        <Eye className="w-3.5 h-3.5" />
@@ -113,15 +148,21 @@ export default function ResourceViewer({ resource, onClose }: ResourceViewerProp
               {resource.type === 'blog' && (
                 <div className="space-y-10">
                    {/* Contextual Images Grid */}
-                   {resource.blogData?.images?.length > 0 && (
+                   {blogImages.length > 0 && (
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {resource.blogData.images.map((img: string, i: number) => (
-                           <motion.div 
+                        {blogImages.map((img: string, i: number) => (
+                          <motion.div 
                              key={i} 
                              whileHover={{ scale: 1.02 }}
-                             className={`rounded-[32px] overflow-hidden border border-gray-100 shadow-sm ${i === 0 && resource.blogData.images.length % 2 !== 0 ? 'md:col-span-2' : ''}`}
+                             className={`rounded-[32px] overflow-hidden border border-gray-100 shadow-sm ${i === 0 && blogImages.length % 2 !== 0 ? 'md:col-span-2' : ''}`}
                            >
-                              <img src={img} className="w-full h-full object-cover max-h-[400px]" alt={`Expert visual ${i + 1}`} />
+                            <Image
+                              src={img}
+                              width={1200}
+                              height={800}
+                              className="w-full h-full object-cover max-h-[400px]"
+                              alt={`Expert visual ${i + 1}`}
+                            />
                            </motion.div>
                         ))}
                      </div>
