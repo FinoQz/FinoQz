@@ -17,11 +17,11 @@ const financeContentSchema = new mongoose.Schema({
   excerpt: {
     type: String,
     trim: true,
-    maxlength: 300
+    maxlength: 500
   },
+  // Main content (Markdown/HTML) - Optional: videos/pdf/excel don't have text body
   content: {
-    type: String,
-    required: true
+    type: String
   },
   thumbnail: {
     type: String,
@@ -38,22 +38,47 @@ const financeContentSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  category: {
-    type: String,
-    enum: ['Investment', 'Trading', 'Personal Finance', 'Market News', 'Crypto', 'Tax Planning', 'Other'],
-    default: 'Other',
+  // New Hierarchical Categories
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FinanceCategory',
+    required: true,
+    index: true
+  },
+  subCategoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FinanceSubcategory',
     index: true
   },
   tags: [{
     type: String,
     trim: true
   }],
+  // Multimodal Types
   type: {
     type: String,
-    enum: ['article', 'video', 'pdf', 'tool'],
-    default: 'article',
+    enum: ['blog', 'video', 'pdf', 'excel', 'article'],
+    default: 'blog',
     index: true
   },
+  // Type-specific data
+  blogData: {
+    images: [{ type: String }] // Array for multi-image support
+  },
+  videoData: {
+    url: { type: String, trim: true },
+    thumbnail: { type: String, trim: true },
+    title: { type: String, trim: true },
+    duration: { type: String, trim: true },
+    platform: { type: String, default: 'youtube' }
+  },
+  fileData: {
+    url: { type: String, trim: true },
+    filename: { type: String, trim: true },
+    size: { type: Number }, // In bytes
+    mimeType: { type: String }
+  },
+  // Status & Visibility
   isPublished: {
     type: Boolean,
     default: false,
@@ -69,30 +94,25 @@ const financeContentSchema = new mongoose.Schema({
     default: false,
     index: true
   },
-  views: {
-    type: Number,
-    default: 0
+  // SaaS Analytics
+  analytics: {
+    views: { type: Number, default: 0 },
+    shares: { type: Number, default: 0 },
+    downloads: { type: Number, default: 0 },
+    engagementScore: { type: Number, default: 0 }
   },
-  likes: {
-    type: Number,
-    default: 0
-  },
-  videoLink: {
-    type: String,
-    trim: true
-  },
-  toolLink: {
-    type: String,
-    trim: true
-  },
+  // Track unique views (could be userIds or simple counter with logic in controller)
+  uniqueViewers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   publishedAt: {
     type: Date
   }
 }, { timestamps: true });
 
-// Auto-generate slug from title before saving
-financeContentSchema.pre('save', async function(next) {
-  // Always regenerate slug when title is modified
+// Auto-generate slug from title
+financeContentSchema.pre('save', async function (next) {
   if (this.isModified('title')) {
     let baseSlug = this.title
       .toLowerCase()
@@ -100,31 +120,28 @@ financeContentSchema.pre('save', async function(next) {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim();
-    
-    // Ensure uniqueness
+
     let slug = baseSlug;
     let counter = 1;
+    // Note: This relies on the model being registered. For pre-save on sub-docs use counter differently, 
+    // but here it's a top-level model.
     while (await mongoose.models.FinanceContent.findOne({ slug, _id: { $ne: this._id } })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
-    
     this.slug = slug;
   }
-  
-  // Set publishedAt when first published
+
   if (this.isModified('isPublished') && this.isPublished && !this.publishedAt) {
     this.publishedAt = new Date();
   }
-  
+
   next();
 });
 
-// Compound indexes for performance
+// Compound indexes
 financeContentSchema.index({ isPublished: 1, publishedAt: -1 });
-financeContentSchema.index({ category: 1, isPublished: 1, publishedAt: -1 });
-financeContentSchema.index({ isFeatured: 1, isPublished: 1, publishedAt: -1 });
-financeContentSchema.index({ isVisible: 1, isPublished: 1, publishedAt: -1 });
-financeContentSchema.index({ type: 1, isPublished: 1, publishedAt: -1 });
+financeContentSchema.index({ categoryId: 1, subCategoryId: 1, isPublished: 1 });
+financeContentSchema.index({ type: 1, isPublished: 1 });
 
-export default mongoose.model('FinanceContent', financeContentSchema);
+export default mongoose.models.FinanceContent || mongoose.model('FinanceContent', financeContentSchema);

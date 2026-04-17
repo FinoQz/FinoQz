@@ -40,6 +40,7 @@ import financeContentRoutes from './routes/financeContentRoutes.js';
 import bannerRoutes from './routes/bannerRoutes.js';
 import userDashboardRoutes from './routes/userDashboardRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
+import forumTagRoutes from './routes/forumTagRoutes.js';
 import chatRoutes from './routes/chat.js';
 
 
@@ -157,6 +158,7 @@ app.use('/api/finance-content', financeContentRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/user/dashboard', userDashboardRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+app.use('/api/forum-tags', forumTagRoutes);
 app.use('/api/public/chat', chatRoutes);
 
 

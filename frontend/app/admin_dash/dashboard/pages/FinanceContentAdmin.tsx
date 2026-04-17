@@ -1,335 +1,336 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Search, Edit, Trash2, Eye, EyeOff, BookOpen,
-  FileText, Calendar, Tag, TrendingUp
+  Plus, Search, Edit, Trash2, Eye, EyeOff, Layout,
+  BarChart3, Folders, BookOpen, Filter, ArrowUpDown, MoreVertical,
+  ChevronRight, Globe, CheckCircle2, Clock, MessageSquare, User
 } from 'lucide-react';
 import apiAdmin from '@/lib/apiAdmin';
+import CategoryManagement from '../components/financecontent/CategoryManagement';
+import ResourceEditor from '../components/financecontent/ResourceEditor';
+import FinanceAnalyticsPanel from '../components/financecontent/FinanceAnalyticsPanel';
 
-interface FinanceContent {
+interface FinanceResource {
   _id: string;
   title: string;
   slug: string;
-  excerpt: string;
-  content: string;
-  thumbnail: string;
-  authorName: string;
-  category: string;
-  tags: string[];
+  type: 'blog' | 'video' | 'pdf' | 'excel';
+  categoryId: { name: string; icon: string };
+  subCategoryId: { name: string };
   isPublished: boolean;
-  views: number;
+  isVisible: boolean;
+  analytics: { views: number; engagementScore: number };
   createdAt: string;
-  publishedAt?: string;
 }
 
-interface Analytics {
-  totalPublished: number;
-  totalDrafts: number;
-  totalViews: number;
-}
-
-export default function FinanceContentManagement() {
-  const [contents, setContents] = useState<FinanceContent[]>([]);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingContent, setEditingContent] = useState<FinanceContent | null>(null);
+export default function FinanceContentAdmin() {
+  const [activeTab, setActiveTab] = useState<'insights' | 'hub' | 'hierarchy' | 'discussions'>('hub');
+  const [resources, setResources] = useState<FinanceResource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingResource, setEditingResource] = useState<any>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [discussions, setDiscussions] = useState<any[]>([]);
+  const [discussionsLoading, setDiscussionsLoading] = useState(false);
 
   useEffect(() => {
-    fetchContents();
-  }, [filter, searchQuery]);
+    fetchResources();
+  }, [search]);
 
-  const fetchContents = async () => {
+  const fetchResources = async () => {
     try {
-      const response = await apiAdmin.get(
-        `/api/finance-content/admin/all`,
-        {
-          params: {
-            filter: filter !== "all" ? filter : undefined,
-            search: searchQuery || undefined,
-            limit: 50,
-          },
-        }
-      );
-
-
-      setContents(response.data.content || []);
-      setAnalytics(response.data.analytics);
-    } catch (error) {
-      console.error('Error fetching content:', error);
+      const res = await apiAdmin.get('/api/finance-content/admin/all', { params: { search } });
+      setResources(res.data.content || []);
+    } catch (err) {
+      console.error('Fetch Resources Error');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleTogglePublish = async (id: string) => {
+  const handleTogglePublished = async (id: string) => {
     try {
       await apiAdmin.patch(`/api/finance-content/admin/${id}/publish`);
-      fetchContents();
-    } catch (error) {
-      console.error('Error toggling publish:', error);
-      alert('Failed to update content');
-    }
+      fetchResources();
+    } catch (err) { alert('Update failed'); }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this content?')) return;
-
+    if (!confirm('Destroy this asset forever?')) return;
     try {
-
       await apiAdmin.delete(`/api/finance-content/admin/${id}`);
-      fetchContents();
-    } catch (error) {
-      console.error('Error deleting content:', error);
-      alert('Failed to delete content');
-    }
+      fetchResources();
+    } catch (err) { alert('Delete failed'); }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading finance content...</div>
-      </div>
-    );
-  }
+  const fetchDiscussions = async () => {
+    setDiscussionsLoading(true);
+    try {
+      const res = await apiAdmin.get('/api/finance-content/admin/discussions');
+      setDiscussions(res.data.discussions || []);
+    } catch (err) { console.error('Discussion fetch error'); }
+    finally { setDiscussionsLoading(false); }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment permanently?')) return;
+    try {
+      await apiAdmin.delete(`/api/finance-content/admin/discussions/${commentId}`);
+      fetchDiscussions();
+    } catch (err) { alert('Delete comment failed'); }
+  };
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Finance Content Management</h1>
-          <p className="text-gray-600 mt-2">Create and manage educational finance articles</p>
+    <div className="min-h-screen bg-[#FDFDFD] p-8 space-y-8">
+      {/* SaaS Dashboard Header */}
+      <header className="flex justify-between items-start">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <span>Admin</span>
+            <ChevronRight className="w-2.5 h-2.5" />
+            <span className="text-[#253A7B]">Finance Intelligence</span>
+          </div>
+          <h1 className="text-[24px] font-bold text-gray-800 tracking-tight">Resource Management</h1>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-        >
-          <Plus className="w-5 h-5" />
-          Create Content
-        </button>
-      </div>
 
-      {/* Analytics Stats */}
-      {analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="text-sm text-gray-600 mb-1">Total Published</div>
-            <div className="text-3xl font-bold text-green-600">{analytics.totalPublished}</div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="text-sm text-gray-600 mb-1">Drafts</div>
-            <div className="text-3xl font-bold text-yellow-600">{analytics.totalDrafts}</div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="text-sm text-gray-600 mb-1">Total Views</div>
-            <div className="text-3xl font-bold text-blue-600">{analytics.totalViews}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters and Search */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <div className="flex items-center gap-3">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 group-focus-within:text-[#253A7B] transition-colors" />
             <input
               type="text"
-              placeholder="Search content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Query assets..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-[12px] font-medium outline-none focus:ring-2 focus:ring-[#253A7B]/5 focus:border-[#253A7B]/20 w-64 transition-all"
             />
           </div>
-
-          {/* Filter */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter('published')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'published'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-            >
-              Published
-            </button>
-            <button
-              onClick={() => setFilter('draft')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'draft'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-            >
-              Drafts
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Content Grid */}
-      {contents.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-200 text-center">
-          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No finance content yet</p>
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            onClick={() => setShowEditor(true)}
+            className="px-5 py-2.5 bg-[#253A7B] text-white rounded-xl text-[12px] font-bold shadow-xl shadow-blue-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
           >
-            Create First Content
+            <Plus className="w-4 h-4" />
+            Post New Content
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {contents.map((content) => (
-            <div key={content._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Thumbnail */}
-              {content.thumbnail ? (
-                <img
-                  src={content.thumbnail}
-                  alt={content.title}
-                  className="w-full h-48 object-cover"
-                />
-              ) : (
-                <div className="w-full h-48 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
-                  <FileText className="w-16 h-16 text-white opacity-50" />
-                </div>
-              )}
+      </header>
 
-              {/* Content */}
-              <div className="p-6">
-                {/* Category Badge */}
-                <div className="mb-3">
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    {content.category}
-                  </span>
-                  {content.isPublished ? (
-                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      Published
-                    </span>
-                  ) : (
-                    <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                      Draft
-                    </span>
+      {/* Tabs Navigation */}
+      <nav className="flex items-center gap-1 bg-slate-100/50 p-1.5 rounded-2xl w-fit border border-gray-100">
+        {[
+          { id: 'insights', label: 'Platform Insights', icon: BarChart3 },
+          { id: 'hub', label: 'Content Hub', icon: Layout },
+          { id: 'hierarchy', label: 'Folders & Hierarchy', icon: Folders },
+          { id: 'discussions', label: 'Discussions', icon: MessageSquare }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setActiveTab(tab.id as any);
+              if (tab.id === 'discussions') fetchDiscussions();
+            }}
+            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[11px] font-bold transition-all ${activeTab === tab.id
+                ? 'bg-white text-[#253A7B] shadow-sm ring-1 ring-black/5'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'
+              }`}
+          >
+            <tab.icon className="w-3.5 h-3.5" />
+            {tab.label.toUpperCase()}
+          </button>
+        ))}
+      </nav>
+
+      <main className="min-h-[60vh]">
+        <AnimatePresence mode="wait">
+          {activeTab === 'insights' && (
+            <motion.div key="insights" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+              <FinanceAnalyticsPanel />
+            </motion.div>
+          )}
+
+          {activeTab === 'hierarchy' && (
+            <motion.div key="hierarchy" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+              <CategoryManagement />
+            </motion.div>
+          )}
+
+          {activeTab === 'discussions' && (
+            <motion.div key="discussions" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-4">
+              <div className="flex justify-between items-center">
+                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">All Community Discussions</p>
+                <button onClick={fetchDiscussions} className="px-4 py-2 bg-slate-50 border border-gray-100 rounded-xl text-[11px] font-bold text-gray-500 hover:bg-white transition-all">Refresh</button>
+              </div>
+              {discussionsLoading ? (
+                <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-[#253A7B]/20 border-t-[#253A7B] rounded-full animate-spin" /></div>
+              ) : discussions.length === 0 ? (
+                <div className="text-center py-20 bg-slate-50 rounded-[32px] border border-dashed border-gray-100">
+                  <MessageSquare className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+                  <p className="text-[11px] font-bold text-gray-300 uppercase tracking-widest">No discussions yet</p>
+                </div>
+              ) : discussions.map((d) => (
+                <div key={d._id} className="bg-white border border-gray-100 rounded-[24px] p-6 space-y-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-slate-50 border border-gray-100 flex items-center justify-center text-gray-400 font-bold text-[11px] flex-shrink-0">
+                        {d.userAvatar ? <img src={d.userAvatar} className="w-full h-full object-cover rounded-xl" /> : d.userName?.[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-bold text-gray-800">{d.userName}</span>
+                          <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">{new Date(d.createdAt).toLocaleDateString()}</span>
+                          {d.resourceId?.title && (
+                            <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-full">{d.resourceId.title.slice(0, 25)}...</span>
+                          )}
+                        </div>
+                        <p className="text-[13px] font-medium text-gray-700 leading-relaxed mt-1">{d.text}</p>
+                        <div className="flex items-center gap-3 mt-2 text-[10px] font-bold text-gray-300">
+                          <span>{d.likes?.length || 0} likes</span>
+                          <span>{d.replies?.length || 0} replies</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => handleDeleteComment(d._id)} className="flex-shrink-0 p-2 hover:bg-red-50 hover:text-red-600 text-gray-300 rounded-xl transition-all">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {d.replies?.length > 0 && (
+                    <div className="pl-11 space-y-3 pt-3 border-t border-gray-50">
+                      {d.replies.map((r: any) => (
+                        <div key={r._id} className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-slate-50 border border-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 flex-shrink-0">
+                              {r.userName?.[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="text-[11px] font-bold text-gray-700">{r.userName}</span>
+                              <p className="text-[12px] font-medium text-gray-500 leading-relaxed">{r.text}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => handleDeleteComment(r._id)} className="flex-shrink-0 p-1.5 hover:bg-red-50 hover:text-red-500 text-gray-200 rounded-lg transition-all">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
+              ))}
+            </motion.div>
+          )}
 
-                {/* Title */}
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                  {content.title}
-                </h3>
-
-                {/* Excerpt */}
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{content.excerpt}</p>
-
-                {/* Meta */}
-                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    <span>{content.views} views</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {new Date(content.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {content.tags && content.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {content.tags.slice(0, 3).map((tag, idx) => (
-                      <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                        {tag}
-                      </span>
+          {activeTab === 'hub' && (
+            <motion.div key="hub" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-6">
+              <div className="bg-white border border-gray-100 rounded-[28px] overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-gray-50">
+                      <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">Asset Details</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono text-center">Classification</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono text-center">Network Stats</th>
+                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono text-center">Status</th>
+                      <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono text-right text-center">Control</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {loading ? (
+                      [1, 2, 3, 4, 5].map(i => (
+                        <tr key={i} className="animate-pulse">
+                          <td colSpan={5} className="px-8 py-6 h-16 bg-white" />
+                        </tr>
+                      ))
+                    ) : resources.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-8 py-20 text-center">
+                          <div className="flex flex-col items-center gap-3">
+                            <BookOpen className="w-8 h-8 text-gray-200" />
+                            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">No assets deployed</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : resources.map((res) => (
+                      <tr key={res._id} className="group hover:bg-slate-50/50 transition-all">
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 border border-gray-100 flex items-center justify-center text-[#253A7B]">
+                              {res.type === 'blog' && <BookOpen className="w-4 h-4" />}
+                              {res.type === 'video' && <Globe className="w-4 h-4" />}
+                              {res.type === 'pdf' && <BarChart3 className="w-4 h-4" />}
+                              {res.type === 'excel' && <BarChart3 className="w-4 h-4" />}
+                            </div>
+                            <div>
+                              <h4 className="text-[13px] font-bold text-gray-800 tracking-tight leading-snug">{res.title}</h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{res.type}</span>
+                                <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                                <span className="text-[9px] font-bold text-gray-400">ID: {res._id.slice(-6)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/50 text-[#253A7B] rounded-lg border border-blue-100/30">
+                            <span className="text-[10px] font-bold uppercase tracking-tight">{res.categoryId?.name}</span>
+                          </div>
+                          <p className="text-[9px] font-bold text-gray-300 mt-1 uppercase tracking-tighter">/ {res.subCategoryId?.name || 'GENERIC'}</p>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <div className="flex flex-col items-center">
+                            <span className="text-[14px] font-bold text-gray-800">{res.analytics?.views || 0}</span>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">REACH</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${res.isPublished ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
+                            {res.isPublished ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            <span className="text-[9px] font-bold uppercase tracking-widest">{res.isPublished ? 'Live' : 'Draft'}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-5 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => { setEditingResource(res); setShowEditor(true); }}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-white hover:text-blue-600 border border-transparent hover:border-blue-100 hover:shadow-sm transition-all"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleTogglePublished(res._id)}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center border border-transparent transition-all ${res.isPublished ? 'text-amber-500 hover:bg-amber-50 hover:border-amber-100' : 'text-emerald-500 hover:bg-emerald-50 hover:border-emerald-100'
+                                }`}
+                            >
+                              {res.isPublished ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(res._id)}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleTogglePublish(content._id)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition ${content.isPublished
-                        ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                        : 'bg-green-100 text-green-600 hover:bg-green-200'
-                      }`}
-                  >
-                    {content.isPublished ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    {content.isPublished ? 'Unpublish' : 'Publish'}
-                  </button>
-                  <button
-                    onClick={() => setEditingContent(content)}
-                    className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(content._id)}
-                    className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                  </tbody>
+                </table>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
 
-      {/* Create/Edit Modal Placeholder */}
-      {(showCreateModal || editingContent) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              {editingContent ? 'Edit Content' : 'Create New Content'}
-            </h2>
-            <p className="text-gray-600 mb-4">
-              This feature requires a rich text editor component. Please implement the form with:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 mb-6 space-y-2">
-              <li>Title input</li>
-              <li>Excerpt textarea</li>
-              <li>Rich text editor for content</li>
-              <li>Thumbnail URL input</li>
-              <li>Category dropdown</li>
-              <li>Tags input</li>
-            </ul>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setEditingContent(null);
-                }}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-              >
-                Cancel
-              </button>
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                {editingContent ? 'Update' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modern SaaS Editor */}
+      <AnimatePresence>
+        {showEditor && (
+          <ResourceEditor
+            content={editingResource}
+            onClose={() => { setShowEditor(false); setEditingResource(null); }}
+            onSave={() => { setShowEditor(false); setEditingResource(null); fetchResources(); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

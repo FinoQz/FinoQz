@@ -100,7 +100,7 @@ const getInsightsAnalytics = async (req, res) => {
 // POST /api/admin/insights - Admin creates insight
 const createAdminInsight = async (req, res) => {
   try {
-    const { content, images, category, tags, isPinned } = req.body;
+    const { content, images, category, tags, isPinned, title, forumCategory, forumAction } = req.body;
     
     if (!content || content.trim().length === 0) {
       return res.status(400).json({ message: 'Content is required' });
@@ -118,6 +118,9 @@ const createAdminInsight = async (req, res) => {
       images: images || [],
       category: category || '',
       tags: tags || [],
+      title: title || '',
+      forumCategory: forumCategory || '',
+      forumAction: forumAction || '',
       isPinned: isPinned || false
     });
     

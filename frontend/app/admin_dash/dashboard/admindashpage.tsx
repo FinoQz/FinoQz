@@ -5,7 +5,6 @@ import DashboardOverview from './pages/DashboardOverview';
 import UserManagement from './pages/UserManagement';
 import QuizManagement from './pages/QuizManagement';
 import EditLandingPage from './pages/EditLandingPage';
-import FinanceContent from './pages/FinanceContent';
 import FianaceContentManagement from './pages/FinanceContentAdmin';
 import PaymentsRevenue from './pages/PaymentsRevenue';
 import CommunityPosts from './pages/CommunityPosts';
@@ -29,18 +28,16 @@ export default function AdminDashPage() {
         return <QuizManagement />;
       case 'landing':
         return <EditLandingPage />;
-      case 'content':
-        return <FinanceContent />;
       case 'financeContent':
         return <FianaceContentManagement />;
       case 'revenue':
         return <PaymentsRevenue />;
       case 'community':
-        return <CommunityPosts/>;
+        return <CommunityPosts />;
       case 'reports':
-        return <QuizReports/>;
+        return <QuizReports />;
       case 'analytics':
-        return <Analytics/>;
+        return <Analytics />;
       case 'activity':
         return <ActivityLogsPage />;
       case 'reviews':

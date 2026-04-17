@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, TrendingUp, MessageSquare, Eye, ThumbsUp, FileText, Edit2, Trash2, Pin } from 'lucide-react';
+import { Plus, Search, TrendingUp, MessageSquare, Eye, ThumbsUp, FileText, Edit2, Trash2, Pin, Tag, FolderTree } from 'lucide-react';
 import StatusMessage from '../components/community/StatusMessage'
 import apiAdmin from '@/lib/apiAdmin';
 
@@ -9,217 +9,310 @@ interface Post {
   _id: string;
   title: string;
   content: string;
-  author: {
-    _id?: string;
-    fullName?: string;
-    name?: string;
-    email?: string;
-    role?: 'Admin' | 'Moderator' | 'User';
-  };
-  category: 'Announcements' | 'Tips' | 'Updates' | 'General' | 'Discussions' | 'Q&A';
-  status: 'published' | 'draft' | 'archived' | 'flagged';
+  forumCategory: string;
+  forumAction: string;
+  authorName: string;
+  authorModel: string;
+  isActive: boolean;
   isPinned: boolean;
-  likes: number;
-  comments?: number;
-  views: number;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
   createdAt: string;
-  updatedAt?: string;
 }
 
-type TabType = 'all' | 'published' | 'draft' | 'flagged' | 'create-new';
+interface ForumTag {
+  _id: string;
+  name: string;
+  type: 'category' | 'action';
+}
+
+type TabType = 'posts' | 'create-new' | 'tags';
 
 export default function CommunityPosts() {
-  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [activeTab, setActiveTab] = useState<TabType>('posts');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [actionStatus, setActionStatus] = useState('');
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [forumTags, setForumTags] = useState<ForumTag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
+  // New Post Form
+  const [newPost, setNewPost] = useState({ title: '', content: '', forumCategory: '', forumAction: '' });
+  
+  // New Tag Form
+  const [newTag, setNewTag] = useState({ name: '', type: 'category' });
+
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, selectedCategory, searchQuery]);
+  }, [searchQuery, selectedCategory]);
 
-  // Fetch posts from backend API
+  const fetchTags = async () => {
+    try {
+      const res = await apiAdmin.get('/api/forum-tags');
+      setForumTags(res.data.tags || []);
+    } catch (err) {
+      console.error('Failed to fetch tags', err);
+    }
+  };
+
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     setError('');
-    
     try {
       const params: Record<string, string | number> = {
         page: currentPage,
         limit: 10
       };
       
-      if (activeTab !== 'all' && activeTab !== 'create-new') {
-        params.status = activeTab;
-      }
-      
-      if (selectedCategory !== 'all') {
-        params.category = selectedCategory;
-      }
-      
       if (searchQuery.trim()) {
         params.search = searchQuery.trim();
       }
+      // Note: Backend might not support category filtering directly yet, but we'll try to pass it if implemented
       
-      const response = await apiAdmin.get('/api/community/posts', { params });
+      const response = await apiAdmin.get('/api/insights/admin/all', { params });
       
-      setPosts(response.data.posts);
+      let fetchedPosts = response.data.insights || [];
+      // Client side filter by category if needed
+      if (selectedCategory !== 'all') {
+        fetchedPosts = fetchedPosts.filter((p: Post) => p.forumCategory === selectedCategory);
+      }
+      
+      setPosts(fetchedPosts);
       setTotalPages(response.data.totalPages);
       setTotal(response.data.total);
     } catch (err) {
-      const error = err as { response?: { data?: { message?: string } } };
       console.error('Failed to fetch posts:', err);
-      setError(error.response?.data?.message || 'Failed to load posts');
+      setError('Failed to load posts');
       setPosts([]);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, selectedCategory, searchQuery, currentPage]);
+  }, [searchQuery, currentPage, selectedCategory]);
 
   useEffect(() => {
-    if (activeTab !== 'create-new') {
+    fetchTags();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'posts') {
       fetchPosts();
     }
   }, [activeTab, fetchPosts]);
 
-  // Stats calculation
-  const stats = {
-    total: total,
-    published: posts.filter(p => p.status === 'published').length,
-    draft: posts.filter(p => p.status === 'draft').length,
-    flagged: posts.filter(p => p.status === 'flagged' || p.status === 'archived').length,
-    totalEngagement: posts.reduce((sum, p) => sum + p.likes + (p.comments || 0), 0),
-    totalViews: posts.reduce((sum, p) => sum + p.views, 0)
-  };
-
+  // Actions
   const handleDeletePost = async (postId: string) => {
+    if(!confirm("Delete this post?")) return;
     try {
-      await apiAdmin.delete(`/api/community/posts/${postId}`);
+      await apiAdmin.delete(`/api/insights/admin/${postId}`);
       setActionStatus('Post deleted successfully');
       setTimeout(() => setActionStatus(''), 3000);
       fetchPosts();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setActionStatus(error.response?.data?.message || 'Failed to delete post');
+    } catch (err) {
+      setActionStatus('Failed to delete post');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
 
   const handleTogglePin = async (postId: string) => {
     try {
-      await apiAdmin.patch(`/api/community/posts/${postId}/pin`);
+      await apiAdmin.patch(`/api/insights/admin/${postId}/pin`);
       setActionStatus('Post pin status updated');
       setTimeout(() => setActionStatus(''), 3000);
       fetchPosts();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setActionStatus(error.response?.data?.message || 'Failed to update pin status');
+    } catch (err) {
+      setActionStatus('Failed to update pin status');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
 
-  const handleApprovePost = async (postId: string) => {
+  const handleCreatePost = async () => {
+    if(!newPost.title || !newPost.content) return;
     try {
-      await apiAdmin.put(`/api/community/posts/${postId}`, { status: 'published' });
-      setActionStatus('Post approved and published');
+      await apiAdmin.post('/api/insights/admin/create', newPost);
+      setActionStatus('Post published successfully!');
+      setActiveTab('posts');
+      setNewPost({ title: '', content: '', forumCategory: '', forumAction: '' });
       setTimeout(() => setActionStatus(''), 3000);
-      fetchPosts();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setActionStatus(error.response?.data?.message || 'Failed to approve post');
+    } catch (err) {
+      setActionStatus('Failed to create post');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
 
-  const handleRejectPost = async (postId: string) => {
+  const handleCreateTag = async () => {
+    if(!newTag.name) return;
     try {
-      await apiAdmin.delete(`/api/community/posts/${postId}`);
-      setActionStatus('Post rejected and removed');
+      await apiAdmin.post('/api/forum-tags', newTag);
+      setActionStatus('Tag created successfully!');
+      setNewTag({ name: '', type: 'category' });
+      fetchTags();
       setTimeout(() => setActionStatus(''), 3000);
-      fetchPosts();
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setActionStatus(error.response?.data?.message || 'Failed to reject post');
+    } catch (err) {
+      setActionStatus('Failed to create tag');
       setTimeout(() => setActionStatus(''), 3000);
     }
   };
 
-  // Render create new post form
+  const handleDeleteTag = async (tagId: string) => {
+    if(!confirm('Delete this tag?')) return;
+    try {
+      await apiAdmin.delete(`/api/forum-tags/${tagId}`);
+      setActionStatus('Tag deleted');
+      fetchTags();
+      setTimeout(() => setActionStatus(''), 3000);
+    } catch (err) {
+      setActionStatus('Failed to delete tag');
+      setTimeout(() => setActionStatus(''), 3000);
+    }
+  };
+
+  const categories = forumTags.filter(t => t.type === 'category');
+  const actions = forumTags.filter(t => t.type === 'action');
+
+  if (activeTab === 'tags') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <button onClick={() => setActiveTab('posts')} className="text-[#253A7B] hover:underline text-sm mb-2">← Back to Posts</button>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Manage Forum Categories & Actions</h1>
+          </div>
+          {actionStatus && <StatusMessage message={actionStatus} />}
+          
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Add New Tag</h3>
+            <div className="flex gap-4">
+              <input 
+                type="text" 
+                value={newTag.name}
+                onChange={(e) => setNewTag({...newTag, name: e.target.value})}
+                placeholder="Tag Name (e.g. Finance, Diagnose)" 
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+              />
+              <select 
+                value={newTag.type}
+                onChange={(e) => setNewTag({...newTag, type: e.target.value as 'category' | 'action'})}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+              >
+                <option value="category">Category (Topic)</option>
+                <option value="action">Action (Goal)</option>
+              </select>
+              <button 
+                onClick={handleCreateTag} 
+                className="px-6 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2"><FolderTree className="w-5 h-5 text-[#253A7B]" /> Categories</h3>
+              <ul className="divide-y divide-gray-100">
+                {categories.length === 0 ? <p className="text-gray-500 text-sm">No categories defined yet.</p> : null}
+                {categories.map(tag => (
+                  <li key={tag._id} className="py-3 flex items-center justify-between">
+                    <span className="font-medium text-gray-700">{tag.name}</span>
+                    <button onClick={() => handleDeleteTag(tag._id)} className="text-red-500 hover:text-red-700 text-sm"><Trash2 className="w-4 h-4"/></button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2"><Tag className="w-5 h-5 text-green-600" /> Actions</h3>
+              <ul className="divide-y divide-gray-100">
+                {actions.length === 0 ? <p className="text-gray-500 text-sm">No actions defined yet.</p> : null}
+                {actions.map(tag => (
+                  <li key={tag._id} className="py-3 flex items-center justify-between">
+                    <span className="font-medium text-gray-700">{tag.name}</span>
+                    <button onClick={() => handleDeleteTag(tag._id)} className="text-red-500 hover:text-red-700 text-sm"><Trash2 className="w-4 h-4"/></button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (activeTab === 'create-new') {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
-            <button
-              onClick={() => setActiveTab('all')}
-              className="text-[#253A7B] hover:underline text-sm mb-2"
-            >
-              ← Back to Posts
-            </button>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Create New Post</h1>
+            <button onClick={() => setActiveTab('posts')} className="text-[#253A7B] hover:underline text-sm mb-2">← Back to Posts</button>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Create Decision Forum Post</h1>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Post Title</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Scenario Title</label>
                 <input
                   type="text"
-                  placeholder="Enter post title"
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+                  placeholder="e.g. Profit increasing but cash flow negative. What's wrong?"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
-                <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]">
-                  <option value="Announcements">Announcements</option>
-                  <option value="Tips">Tips</option>
-                  <option value="Updates">Updates</option>
-                  <option value="General">General</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                  <select 
+                    value={newPost.forumCategory}
+                    onChange={(e) => setNewPost({...newPost, forumCategory: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                  >
+                    <option value="">Select Category...</option>
+                    {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Action / Goal</label>
+                  <select 
+                    value={newPost.forumAction}
+                    onChange={(e) => setNewPost({...newPost, forumAction: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+                  >
+                    <option value="">Select Action...</option>
+                    {actions.map(a => <option key={a._id} value={a.name}>{a.name}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Content</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Detailed Description</label>
                 <textarea
                   rows={8}
-                  placeholder="Write your post content..."
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                  placeholder="Describe your scenario..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
                 />
               </div>
 
               <div className="flex items-center gap-3 pt-4">
                 <button
-                  onClick={() => {
-                    setActionStatus('Post published successfully!');
-                    setActiveTab('all');
-                    setTimeout(() => setActionStatus(''), 3000);
-                  }}
-                  className="px-6 py-2.5 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium"
+                  onClick={handleCreatePost}
+                  disabled={!newPost.title || !newPost.content}
+                  className="px-6 py-2.5 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium disabled:opacity-50"
                 >
                   Publish Post
                 </button>
                 <button
-                  onClick={() => {
-                    setActionStatus('Post saved as draft');
-                    setActiveTab('all');
-                    setTimeout(() => setActionStatus(''), 3000);
-                  }}
-                  className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
-                >
-                  Save as Draft
-                </button>
-                <button
-                  onClick={() => setActiveTab('all')}
+                  onClick={() => setActiveTab('posts')}
                   className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
                 >
                   Cancel
@@ -235,92 +328,25 @@ export default function CommunityPosts() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Community Posts</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-2">Manage community content and engagement</p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Decision Forum</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">Manage forum posts and categories</p>
+        </div>
+        <button
+          onClick={() => setActiveTab('tags')}
+          className="px-4 py-2 bg-white border border-gray-300 text-[#253A7B] rounded-lg hover:bg-gray-50 transition font-medium flex items-center gap-2"
+        >
+          <FolderTree className="w-4 h-4" />
+          Manage Categories
+        </button>
       </div>
 
-      {/* Status Message */}
       {actionStatus && <StatusMessage message={actionStatus} />}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase">Total Posts</h3>
-            <FileText className="w-4 h-4 text-[#253A7B]" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase">Published</h3>
-            <TrendingUp className="w-4 h-4 text-green-600" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.published}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase">Drafts</h3>
-            <FileText className="w-4 h-4 text-gray-600" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.draft}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase">Flagged</h3>
-            <FileText className="w-4 h-4 text-red-600" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.flagged}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase">Engagement</h3>
-            <ThumbsUp className="w-4 h-4 text-[#253A7B]" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalEngagement}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase">Total Views</h3>
-            <Eye className="w-4 h-4 text-[#253A7B]" />
-          </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalViews.toLocaleString()}</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6">
-        <div className="border-b border-gray-200 px-4">
-          <nav className="flex space-x-8 overflow-x-auto">
-            {[
-              { key: 'all', label: 'All Posts', count: stats.total },
-              { key: 'published', label: 'Published', count: stats.published },
-              { key: 'draft', label: 'Drafts', count: stats.draft },
-              { key: 'flagged', label: 'Flagged', count: stats.flagged }
-            ].map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key as TabType)}
-                className={`py-4 px-2 border-b-2 font-medium text-sm whitespace-nowrap transition ${
-                  activeTab === tab.key
-                    ? 'border-[#253A7B] text-[#253A7B]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label} ({tab.count})
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Filters & Search */}
-        <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3">
+        {/* Filters */}
+        <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3 bg-gray-50 rounded-t-xl">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -328,23 +354,20 @@ export default function CommunityPosts() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search posts..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
             />
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
           >
             <option value="all">All Categories</option>
-            <option value="Announcements">Announcements</option>
-            <option value="Tips">Tips</option>
-            <option value="Updates">Updates</option>
-            <option value="General">General</option>
+            {categories.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
           </select>
           <button
             onClick={() => setActiveTab('create-new')}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 justify-center"
+            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 justify-center text-sm shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Create Post
@@ -354,131 +377,46 @@ export default function CommunityPosts() {
         {/* Posts List */}
         <div className="divide-y divide-gray-200">
           {loading ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#253A7B] mx-auto mb-3"></div>
-              <p className="text-gray-600">Loading posts...</p>
-            </div>
+            <div className="p-12 text-center text-gray-600">Loading posts...</div>
           ) : error ? (
-            <div className="p-12 text-center">
-              <FileText className="w-12 h-12 text-red-400 mx-auto mb-3" />
-              <p className="text-red-600 mb-2">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="text-sm text-[#253A7B] hover:underline"
-              >
-                Try again
-              </button>
-            </div>
+            <div className="p-12 text-center text-red-600">{error}</div>
           ) : posts.length === 0 ? (
-            <div className="p-12 text-center">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No posts found matching your criteria</p>
-            </div>
+            <div className="p-12 text-center text-gray-500">No posts found</div>
           ) : (
             posts.map(post => (
-              <div key={post._id} className="p-4 hover:bg-gray-50 transition">
-                <div className="flex items-start gap-4">
-                  {/* Post Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {post.isPinned && (
-                            <Pin className="w-4 h-4 text-[#253A7B] fill-current" />
-                          )}
-                          <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
-                            {post.title}
-                          </h3>
-                        </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">{post.content}</p>
-                        
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span className="font-medium text-gray-700">
-                            {post.author.fullName || post.author.name || post.author.email || 'Unknown'}
-                          </span>
-                          {post.author.role && (
-                            <span className={`px-2 py-1 rounded-full font-semibold ${
-                              post.author.role === 'Admin' ? 'bg-purple-100 text-purple-700' :
-                              post.author.role === 'Moderator' ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {post.author.role}
-                            </span>
-                          )}
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-semibold">
-                            {post.category}
-                          </span>
-                          <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-
-                      {/* Status Badge */}
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                        post.status === 'published' ? 'bg-green-100 text-green-700' :
-                        post.status === 'draft' ? 'bg-gray-100 text-gray-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-                      </span>
+              <div key={post._id} className="p-5 hover:bg-gray-50 transition">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                       {post.isPinned && <Pin className="w-3 h-3 text-[#253A7B] fill-current" />}
+                       {post.forumCategory && <span className="bg-[#eef2ff] border border-[#c7d2fe] text-[#3730a3] px-2 py-0.5 rounded text-xs font-semibold">{post.forumCategory}</span>}
+                       {post.forumAction && <span className="bg-[#f0fdf4] border border-[#bbf7d0] text-[#166534] px-2 py-0.5 rounded text-xs font-semibold">{post.forumAction}</span>}
                     </div>
-
-                    {/* Metrics */}
-                    <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="w-4 h-4" />
-                        <span>{post.likes}</span>
-                      </div>
-                      {post.comments !== undefined && (
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className="w-4 h-4" />
-                          <span>{post.comments}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4" />
-                        <span>{post.views}</span>
-                      </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{post.title || 'Untitled'}</h3>
+                    <p className="text-sm text-gray-700 line-clamp-2 mb-3">{post.content}</p>
+                    
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="font-semibold text-gray-800">By {post.authorName} ({post.authorModel})</span>
+                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3"/> {post.likeCount}</span>
+                      <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3"/> {post.commentCount}</span>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleTogglePin(post._id)}
-                        className="px-3 py-1.5 text-xs bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
-                      >
-                        {post.isPinned ? 'Unpin' : 'Pin'}
-                      </button>
-                      <button
-                        onClick={() => setEditingPost(post)}
-                        className="px-3 py-1.5 text-xs bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        Edit
-                      </button>
-                      {post.status === 'flagged' && (
-                        <>
-                          <button
-                            onClick={() => handleApprovePost(post._id)}
-                            className="px-3 py-1.5 text-xs bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition font-medium"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleRejectPost(post._id)}
-                            className="px-3 py-1.5 text-xs bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition font-medium"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleDeletePost(post._id)}
-                        className="px-3 py-1.5 text-xs bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition font-medium flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Delete
-                      </button>
-                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 items-end">
+                    <button
+                      onClick={() => handleTogglePin(post._id)}
+                      className="px-3 py-1 text-xs font-medium border rounded hover:bg-gray-100"
+                    >
+                      {post.isPinned ? 'Unpin' : 'Pin'}
+                    </button>
+                    <button
+                      onClick={() => handleDeletePost(post._id)}
+                      className="px-3 py-1 text-xs font-medium border border-red-200 text-red-600 rounded hover:bg-red-50 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
@@ -486,28 +424,10 @@ export default function CommunityPosts() {
           )}
         </div>
 
-        {/* Pagination */}
-        {!loading && !error && totalPages > 1 && (
-          <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        )}
+        {/* Pagination placeholder */}
+        <div className="p-4 border-t border-gray-200 flex justify-end">
+          <span className="text-sm text-gray-600">Total {total} posts</span>
+        </div>
       </div>
     </div>
   );

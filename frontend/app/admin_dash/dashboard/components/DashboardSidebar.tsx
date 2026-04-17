@@ -3,14 +3,14 @@
 import React from 'react';
 import Image from 'next/image';
 import apiAdmin from '@/lib/apiAdmin';
-import { 
-  LayoutDashboard, 
-  Users, 
-  BookOpen, 
-  FileText, 
-  DollarSign, 
-  MessageSquare, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  FileText,
+  DollarSign,
+  MessageSquare,
+  BarChart3,
   TrendingUp,
   LogOut,
   X,
@@ -31,7 +31,6 @@ const menuItems = [
   { id: 'quiz', label: 'Quiz Management', icon: BookOpen },
   { id: 'landing', label: 'Landing Page', icon: ImageIcon },
   { id: 'banners', label: 'Banners', icon: ImageIcon },
-  { id: 'content', label: 'Finance Content', icon: FileText },
   { id: 'financeContent', label: 'Finance Management', icon: FileText },
   { id: 'revenue', label: 'Payments & Revenue', icon: DollarSign },
   { id: 'community', label: 'Community Posts', icon: MessageSquare },
@@ -43,15 +42,15 @@ const menuItems = [
 ];
 
 export default function DashboardSidebar({ activePage, onPageChange, isOpen, onClose }: SidebarProps) {
-const handleLogout = async () => {
-  try {
-    await apiAdmin.post('/api/admin/logout', {}, { withCredentials: true });
-  } catch (err) {
-    console.warn('Logout failed:', err);
-  } finally {
-    window.location.href = '/landing';
-  }
-};
+  const handleLogout = async () => {
+    try {
+      await apiAdmin.post('/api/admin/logout', {}, { withCredentials: true });
+    } catch (err) {
+      console.warn('Logout failed:', err);
+    } finally {
+      window.location.href = '/landing';
+    }
+  };
 
 
 
@@ -67,9 +66,8 @@ const handleLogout = async () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 flex flex-col transform transition-transform duration-300 lg:transform-none ${
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 border-r border-gray-200 flex flex-col transform transition-transform duration-300 lg:transform-none ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
         {/* Mobile Close Button */}
         <button
@@ -82,11 +80,11 @@ const handleLogout = async () => {
         {/* Logo/Brand */}
         <div className="p-6 border-b border-gray-200 bg-white/50 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <Image 
-              src="/finoqz.ico" 
-              alt="FinoQz Logo" 
-              width={48} 
-              height={48} 
+            <Image
+              src="/finoqz.ico"
+              alt="FinoQz Logo"
+              width={48}
+              height={48}
               className="rounded-lg"
             />
             <div>
@@ -109,11 +107,10 @@ const handleLogout = async () => {
                       onPageChange(item.id);
                       onClose();
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
-                      isActive
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${isActive
                         ? 'bg-[#253A7B] text-white shadow-md'
                         : 'text-gray-700 hover:bg-white hover:shadow-sm'
-                    }`}
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="text-sm">{item.label}</span>

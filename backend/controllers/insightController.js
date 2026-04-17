@@ -93,7 +93,7 @@ const getInsightById = async (req, res) => {
 // POST /api/insights - Create new insight (authenticated users)
 const createInsight = async (req, res) => {
   try {
-    const { content, images, category, tags } = req.body;
+    const { content, images, category, tags, title, forumCategory, forumAction } = req.body;
     
     if (!content || content.trim().length === 0) {
       return res.status(400).json({ message: 'Content is required' });
@@ -120,7 +120,10 @@ const createInsight = async (req, res) => {
       content,
       images: images || [],
       category: category || '',
-      tags: tags || []
+      tags: tags || [],
+      title: title || '',
+      forumCategory: forumCategory || '',
+      forumAction: forumAction || ''
     });
     
     res.status(201).json({
@@ -281,7 +284,7 @@ const likeComment = async (req, res) => {
 const editInsight = async (req, res) => {
   try {
     const { id } = req.params;
-    const { content, images, category, tags } = req.body;
+    const { content, images, category, tags, title, forumCategory, forumAction } = req.body;
     const userId = req.user._id || req.user.id;
     
     if (!content || content.trim().length === 0) {
@@ -304,6 +307,9 @@ const editInsight = async (req, res) => {
     if (images !== undefined) insight.images = images;
     if (category !== undefined) insight.category = category;
     if (tags !== undefined) insight.tags = tags;
+    if (title !== undefined) insight.title = title;
+    if (forumCategory !== undefined) insight.forumCategory = forumCategory;
+    if (forumAction !== undefined) insight.forumAction = forumAction;
     
     await insight.save();
     

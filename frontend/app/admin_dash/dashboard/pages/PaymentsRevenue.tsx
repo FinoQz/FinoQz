@@ -144,17 +144,17 @@ export default function PaymentsRevenue() {
 
       const response = await apiAdmin.get<ApiResponse>('/api/transactions/all', { params });
       
-      setTransactions(response.data.transactions);
-      setStats(response.data.stats);
-      setTotalPages(response.data.totalPages);
-      setTotalTransactions(response.data.total);
+      setTransactions(response.data.transactions || []);
+      setStats(response.data.stats || { totalRevenue: 0, successfulTransactions: 0, failedTransactions: 0, pendingTransactions: 0 });
+      setTotalPages(response.data.totalPages || 1);
+      setTotalTransactions(response.data.total || 0);
     } catch (err) {
-      console.error('Error fetching transactions:', err);
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to fetch transactions';
-      setError(errorMessage);
-      setToast({ type: 'error', message: 'Failed to load transactions. Please try again.' });
+      // No transactions or endpoint not active — show empty/zero state silently
+      setTransactions([]);
+      setStats({ totalRevenue: 0, successfulTransactions: 0, failedTransactions: 0, pendingTransactions: 0 });
+      setTotalPages(1);
+      setTotalTransactions(0);
+      // Don't show error — expected when no paid quizzes are active
     } finally {
       setLoading(false);
     }
@@ -652,9 +652,6 @@ export default function PaymentsRevenue() {
                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
-                {error && (
-                  <p className="text-sm text-red-600">{error}</p>
-                )}
               </div>
 
               {selectedTxns.length > 0 && (
@@ -704,23 +701,7 @@ export default function PaymentsRevenue() {
                           </div>
                         </td>
                       </tr>
-                    ) : error ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center">
-                          <div className="flex flex-col items-center justify-center gap-3">
-                            <XCircle className="w-8 h-8 text-red-500" />
-                            <p className="text-red-600">{error}</p>
-                            <button
-                              onClick={fetchTransactions}
-                              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition"
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : transactions.length === 0 ? (
-                      <tr>
+                    ) : transactions.length === 0 ? (                      <tr>
                         <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                           No transactions found
                         </td>

@@ -17,9 +17,22 @@ const communityInsightSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  title: {
+    type: String,
+    trim: true,
+    maxlength: 200
+  },
   content: {
     type: String,
     required: true,
+    trim: true
+  },
+  forumCategory: {
+    type: String,
+    trim: true
+  },
+  forumAction: {
+    type: String,
     trim: true
   },
   images: [{
