@@ -42,6 +42,7 @@ import userDashboardRoutes from './routes/userDashboardRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
 import forumTagRoutes from './routes/forumTagRoutes.js';
 import chatRoutes from './routes/chat.js';
+import messageRoutes from './routes/messageRoutes.js';
 
 
 const app = express();
@@ -160,6 +161,7 @@ app.use('/api/user/dashboard', userDashboardRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/forum-tags', forumTagRoutes);
 app.use('/api/public/chat', chatRoutes);
+app.use('/api/messages', messageRoutes);
 
 
 // ✅ Celebrate validation errors (with console logging for debugging)

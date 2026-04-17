@@ -12,7 +12,7 @@ import QuizReports from './pages/QuizReports';
 import Analytics from './pages/Analytics';
 import ActivityLogsPage from './pages/ActivityLogsPage';
 import ReviewManagement from './pages/ReviewManagement';
-import InsightsManagement from './pages/InsightsManagement';
+import LiveChatAdmin from './pages/LiveChatAdmin';
 import BannerManagement from './pages/BannerManagement';
 
 export default function AdminDashPage() {
@@ -42,8 +42,8 @@ export default function AdminDashPage() {
         return <ActivityLogsPage />;
       case 'reviews':
         return <ReviewManagement />;
-      case 'insights':
-        return <InsightsManagement />;
+      case 'liveChat':
+        return <LiveChatAdmin />;
       case 'banners':
         return <BannerManagement />;
       default:

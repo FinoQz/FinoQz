@@ -15,7 +15,8 @@ import {
   LogOut,
   X,
   Image as ImageIcon,
-  Star
+  Star,
+  MessageCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,7 +36,7 @@ const menuItems = [
   { id: 'revenue', label: 'Payments & Revenue', icon: DollarSign },
   { id: 'community', label: 'Community Posts', icon: MessageSquare },
   { id: 'reviews', label: 'Review Management', icon: Star },
-  { id: 'insights', label: 'Insights', icon: FileText },
+  { id: 'liveChat', label: 'Live Chat', icon: MessageCircle },
   { id: 'reports', label: 'Quiz Reports', icon: BarChart3 },
   { id: 'analytics', label: 'Analytics', icon: TrendingUp },
   { id: 'activity', label: 'Activity Logs', icon: FileText },

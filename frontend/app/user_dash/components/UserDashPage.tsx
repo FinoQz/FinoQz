@@ -9,6 +9,7 @@ import Wallet from '../pages/Wallet';
 import Community from '../pages/Community';
 import FinanceContent from '../pages/FinanceContent';
 import Profile from '../pages/Profile';
+import ChatWidget from './ChatWidget';
 
 export default function UserDashPage() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -35,8 +36,11 @@ export default function UserDashPage() {
   };
 
   return (
-    <UserDashboardLayout activePage={activePage} onPageChange={setActivePage}>
-      {renderPage()}
-    </UserDashboardLayout>
+    <>
+      <UserDashboardLayout activePage={activePage} onPageChange={setActivePage}>
+        {renderPage()}
+      </UserDashboardLayout>
+      <ChatWidget />
+    </>
   );
 }

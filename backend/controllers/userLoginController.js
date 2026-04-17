@@ -1,5 +1,6 @@
 
 import User from '../models/User.js';
+import Message from '../models/Message.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import redis from '../utils/redis.js';
@@ -299,6 +300,14 @@ export const logout = async (req, res) => {
         redis.srem("liveUsers", userId),
         redis.del(`liveUser:${userId}`),
       ]);
+      // Clear all chat history relating to this user
+      await Message.deleteMany({
+        $or: [
+          { sender: userId },
+          { receiver: userId }
+        ]
+      });
+
     }
 
     const isProd = process.env.NODE_ENV === "production";
