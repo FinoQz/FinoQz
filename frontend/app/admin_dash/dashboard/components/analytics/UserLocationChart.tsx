@@ -62,14 +62,16 @@ export default function UserLocationChart({ cities }: UserLocationChartProps) {
 
         {/* Source Toggle */}
         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-          {[
-            { key: 'total', label: 'All' },
-            { key: 'profile', label: 'Profile' },
-            { key: 'activity', label: 'IP' },
-          ].map(tab => (
+          {(
+            [
+              { key: 'total', label: 'All' },
+              { key: 'profile', label: 'Profile' },
+              { key: 'activity', label: 'IP' },
+            ] as { key: 'total' | 'profile' | 'activity'; label: string }[]
+          ).map(tab => (
             <button
               key={tab.key}
-              onClick={() => setViewMode(tab.key as any)}
+              onClick={() => setViewMode(tab.key)}
               className={`px-2 py-1 rounded text-[10px] font-semibold transition-all ${
                 viewMode === tab.key
                   ? 'bg-white text-[#253A7B] shadow-sm'
