@@ -58,6 +58,7 @@ import Quiz from '../models/Quiz.js';
 import User from '../models/User.js';
 import Transaction from '../models/Transaction.js';
 import Certificate from '../models/Certificate.js';
+import ActivityLog from '../models/ActivityLog.js';
 import redis from '../utils/redis.js';
 import mongoose from 'mongoose';
 
@@ -975,6 +976,87 @@ const getAttemptAnalysis = async (req, res) => {
   }
 };
 
+/**
+ * Get city-wise user distribution (two sources: profile + IP geo)
+ * @route GET /api/analytics/user-locations
+ */
+const getUserLocations = async (req, res) => {
+  try {
+    // Source 1: Users who filled their city in profile
+    const profileCities = await User.aggregate([
+      { $match: { city: { $exists: true, $nin: [null, ''] } } },
+      { $group: { _id: { $trim: { input: '$city' } }, count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 20 }
+    ]);
+
+    // Source 2: ActivityLogs with geo-resolved locations (format: "City, Country")
+    const activityLocations = await ActivityLog.aggregate([
+      {
+        $match: {
+          location: { $exists: true, $nin: [null, '', 'Unknown', 'Localhost'] },
+          actorType: 'user'
+        }
+      },
+      // Extract just the city part (before the comma)
+      {
+        $addFields: {
+          city: {
+            $trim: {
+              input: {
+                $arrayElemAt: [{ $split: ['$location', ','] }, 0]
+              }
+            }
+          }
+        }
+      },
+      { $match: { city: { $nin: ['Unknown City', 'Unknown', ''] } } },
+      // Count unique users per city (deduplicate by actorId per day)
+      {
+        $group: {
+          _id: { city: '$city', actorId: '$actorId' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.city',
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 20 }
+    ]);
+
+    // Merge both sources - prefer profile cities if available, supplement with activity
+    const cityMap = new Map();
+
+    profileCities.forEach(c => {
+      if (c._id) cityMap.set(c._id, { city: c._id, profileCount: c.count, activityCount: 0, total: c.count });
+    });
+
+    activityLocations.forEach(c => {
+      if (!c._id) return;
+      if (cityMap.has(c._id)) {
+        const existing = cityMap.get(c._id);
+        existing.activityCount = c.count;
+        existing.total = existing.profileCount + c.count;
+        cityMap.set(c._id, existing);
+      } else {
+        cityMap.set(c._id, { city: c._id, profileCount: 0, activityCount: c.count, total: c.count });
+      }
+    });
+
+    const merged = Array.from(cityMap.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15);
+
+    res.json({ cities: merged });
+  } catch (error) {
+    console.error('Get user locations error:', error);
+    res.status(500).json({ message: 'Failed to fetch user location data' });
+  }
+};
+
 export {
   getDashboardStats,
   getUserGrowth,
@@ -988,5 +1070,6 @@ export {
   getQuizRegisteredUsers,
   getQuizEnrolledUsers,
   getQuizParticipants,
-  getAttemptAnalysis
+  getAttemptAnalysis,
+  getUserLocations
 };

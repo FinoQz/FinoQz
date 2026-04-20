@@ -12,7 +12,8 @@ import {
   getQuizRegisteredUsers,
   getQuizEnrolledUsers,
   getQuizParticipants,
-  getAttemptAnalysis
+  getAttemptAnalysis,
+  getUserLocations
 } from '../controllers/analyticsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import requireAdmin from '../middlewares/requireAdmin.js';
@@ -60,5 +61,8 @@ router.get('/quiz-participants', getQuizParticipants);
 
 // Get specific attempt analysis including question-level details
 router.get('/attempt-analysis/:attemptId', getAttemptAnalysis);
+
+// Get city-wise user location distribution
+router.get('/user-locations', getUserLocations);
 
 export default router;

@@ -23,6 +23,7 @@ import ActiveQuizzesWidget from '../components/dashboard/ActiveQuizzesWidget';
 // Zone 4
 import UpcomingQuizzes from '../components/dashboard/UpcomingQuizzes';
 import PlatformPulse from '../components/dashboard/PlatformPulse';
+import CityHeatmapWidget from '../components/dashboard/CityHeatmapWidget';
 
 interface DashboardStats {
   totalUsers: number;
@@ -352,6 +353,12 @@ export default function DashboardOverview() {
           <TodayRevenueWidget />
           <ActiveQuizzesWidget />
         </div>
+      </section>
+
+      {/* ════ ZONE 3.5 — User Geography ════ */}
+      <section>
+        <SectionLabel label="User Geography" />
+        <CityHeatmapWidget />
       </section>
 
       {/* ════ ZONE 4 — Scheduling & Activity ════ */}

@@ -32,6 +32,7 @@ import RecentEvents from '../components/analytics/RecentEvents';
 import Toast from '../components/analytics/Toast';
 import QuizPicker from '../components/analytics/QuizPicker';
 import QuizDetailAnalytics from '../components/analytics/QuizDetailAnalytics';
+import UserLocationChart from '../components/analytics/UserLocationChart';
 import apiAdmin from '@/lib/apiAdmin';
 
 // TypeScript interfaces for API responses
@@ -91,6 +92,9 @@ export default function Analytics() {
   const [attemptsData, setAttemptsData] = useState<Array<{ day: string; attempts: number }>>([]);
   const [topCategories, setTopCategories] = useState<Array<{ name: string; count: number }>>([]);
   const [topQuizzes, setTopQuizzes] = useState<Array<{ id: string; title: string; attempts: number }>>([]);
+  const [userLocationCities, setUserLocationCities] = useState<Array<{
+    city: string; profileCount: number; activityCount: number; total: number;
+  }>>([]);
 
   const hourlyEngagement: Array<{ hour: string; engagement: number }> = [];
   const recentEvents: Array<{ id: string; type: 'revenue' | 'quiz' | 'user'; title: string; description: string; timestamp: string }> = [];
@@ -103,12 +107,16 @@ export default function Analytics() {
         setError(null);
 
         // Fetch all analytics data in parallel
-        const [statsResponse, growthResponse, quizStatsResponse, categoryResponse] = await Promise.all([
+        const [statsResponse, growthResponse, quizStatsResponse, categoryResponse, locationResponse] = await Promise.all([
           apiAdmin.get<DashboardStats>('api/analytics/dashboard-stats'),
           apiAdmin.get<UserGrowthData[]>(`api/analytics/user-growth?dateRange=${dateRange}`),
           apiAdmin.get('api/analytics/quiz-stats'),
-          apiAdmin.get('api/analytics/category-performance')
+          apiAdmin.get('api/analytics/category-performance'),
+          apiAdmin.get('api/analytics/user-locations').catch(() => ({ data: { cities: [] } }))
         ]);
+
+        // Set location data
+        setUserLocationCities(locationResponse.data?.cities || []);
 
         setDashboardStats(statsResponse.data);
         
@@ -336,6 +344,9 @@ export default function Analytics() {
                    </div>
                    <QuizPicker onSelect={handleQuizSelect} />
                 </div>
+
+                {/* User Location Chart */}
+                <UserLocationChart cities={userLocationCities} />
 
                 <div className="bg-gray-900 p-6 rounded-xl text-white relative overflow-hidden group shadow-lg">
                    <div className="relative z-10">
