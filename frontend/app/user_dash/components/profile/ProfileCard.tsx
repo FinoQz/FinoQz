@@ -1,15 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Camera, Edit, Mail, Phone, MapPin, Key } from 'lucide-react';
+import React from 'react';
+import { Camera, Edit, ShieldCheck } from 'lucide-react';
+import Image from 'next/image';
 
 interface ProfileCardProps {
   userData: {
     fullName: string;
     email: string;
-    phone: string;
-    city?: string;
-    country?: string;
     profileImage?: string;
   };
   onImageUpload: (file: File) => void;
@@ -23,114 +21,78 @@ export default function ProfileCard({
   onEditProfile, 
   onChangePassword 
 }: ProfileCardProps) {
-  const [imagePreview, setImagePreview] = useState<string | undefined>(userData.profileImage);
-  const [isHovering, setIsHovering] = useState(false);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
       onImageUpload(file);
     }
   };
 
-  const getInitials = () => {
-    if (!userData.fullName) return 'U';
-    const parts = userData.fullName.trim().split(' ');
-    const initials = parts.map(p => p[0]).join('');
-    return initials.toUpperCase() || 'U';
-  };
-
-  const location = userData.city && userData.country
-    ? `${userData.city}, ${userData.country}`
-    : userData.city || userData.country || 'Location not set';
-
   return (
-    <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
-      <div className="flex flex-col items-center">
-        {/* Profile Image */}
-        <div 
-          className="relative mb-4 group"
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-        >
-          {imagePreview ? (
-            <img 
-              src={imagePreview} 
-              alt="Profile" 
-              className="w-32 h-32 rounded-full object-cover border-4 border-gray-100 shadow-md"
-            />
-          ) : (
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] flex items-center justify-center text-white text-4xl font-bold border-4 border-gray-100 shadow-md">
-              {getInitials()}
-            </div>
-          )}
-          
-          {/* Camera Icon Overlay */}
-          <label 
-            htmlFor="profile-image-upload"
-            className={`absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg cursor-pointer transition-all ${
-              isHovering ? 'scale-110 shadow-xl' : ''
-            } hover:bg-gray-50`}
-          >
-            <Camera className="w-5 h-5 text-[#253A7B]" />
-            <input
-              id="profile-image-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageChange}
-            />
-          </label>
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm sticky top-24">
+      {/* Profile Header */}
+      <div className="flex flex-col items-center text-center">
+        <div className="relative group mb-4">
+          <div className="w-32 h-32 rounded-3xl bg-gray-50 border-4 border-white shadow-lg overflow-hidden relative group">
+            {userData.profileImage ? (
+              <Image
+                src={userData.profileImage}
+                alt={userData.fullName}
+                width={128}
+                height={128}
+                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#253A7B] to-[#1a2a5e] flex items-center justify-center text-white text-4xl font-bold">
+                {userData.fullName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            
+            <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+              <Camera className="w-8 h-8 text-white" />
+              <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </label>
+          </div>
+          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-emerald-500 border-4 border-white rounded-full flex items-center justify-center shadow-lg">
+            <ShieldCheck className="w-4 h-4 text-white" />
+          </div>
         </div>
 
-        {/* User Info */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-1">{userData.fullName}</h2>
-        
-        {/* Edit Profile Button */}
-        <button 
+        <h2 className="text-xl font-bold text-gray-900 leading-tight">{userData.fullName}</h2>
+        <p className="text-sm text-gray-500 mt-1 font-medium italic">{userData.email}</p>
+      </div>
+
+      {/* Profile Stats */}
+      <div className="grid grid-cols-2 gap-3 mt-8 pt-6 border-t border-gray-50">
+        <div className="p-3 bg-gray-50 rounded-xl text-center">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Type</p>
+          <p className="text-sm font-bold text-[#253A7B]">Student</p>
+        </div>
+        <div className="p-3 bg-gray-50 rounded-xl text-center">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Level</p>
+          <p className="text-sm font-bold text-gray-700">Beginner</p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="space-y-3 mt-8">
+        <button
           onClick={onEditProfile}
-          className="w-full px-4 py-2.5 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] transition font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#253A7B] text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-[#1a2a5e] transition-all shadow-md active:scale-95"
         >
           <Edit className="w-4 h-4" />
-          Edit Profile
+          Update Details
         </button>
-      </div>
-
-      {/* Contact Info */}
-      <div className="mt-6 pt-6 border-t-2 border-gray-100 space-y-4">
-        <div className="flex items-center gap-3 text-sm group hover:bg-gray-50 p-2 rounded-lg transition">
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <Mail className="w-4 h-4 text-[#253A7B]" />
-          </div>
-          <span className="text-gray-700">{userData.email}</span>
-        </div>
-        
-        <div className="flex items-center gap-3 text-sm group hover:bg-gray-50 p-2 rounded-lg transition">
-          <div className="p-2 bg-green-50 rounded-lg">
-            <Phone className="w-4 h-4 text-green-600" />
-          </div>
-          <span className="text-gray-700">{userData.phone}</span>
-        </div>
-        
-        <div className="flex items-center gap-3 text-sm group hover:bg-gray-50 p-2 rounded-lg transition">
-          <div className="p-2 bg-orange-50 rounded-lg">
-            <MapPin className="w-4 h-4 text-orange-600" />
-          </div>
-          <span className="text-gray-700">{location}</span>
-        </div>
-      </div>
-
-      {/* Change Password Button */}
-      <div className="mt-6 pt-6 border-t-2 border-gray-100">
-        <button 
+        <button
           onClick={onChangePassword}
-          className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition font-medium flex items-center justify-center gap-2"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-100 text-gray-600 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-all"
         >
-          <Key className="w-4 h-4" />
-          Change Password
+          Reset Password
         </button>
       </div>
     </div>

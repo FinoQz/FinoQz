@@ -10,10 +10,11 @@ import StatusMessage from '../components/user_management/StatusMessage';
 import AddNewUserForm from '../components/user_management/AddNewUserForm';
 import EmailManagement from '../components/user_management/EmailManagement';
 import GroupManagement from '../components/user_management/GroupManagement';
-import { UserPlus, Mail, Users, Clock, UserCheck, UserX, FileText } from 'lucide-react';
+import { UserPlus, Mail, Users, Clock, UserCheck, UserX, FileText, Trash2 } from 'lucide-react';
 import { useSearchParams } from "next/navigation";
 import { io, Socket } from 'socket.io-client';
 import ManagementSkeleton from '../components/user_management/ManagementSkeleton';
+import DeletionRequestTable from '../components/user_management/DeletionRequestTable';
 
 interface User {
   _id: string;
@@ -35,7 +36,7 @@ interface RejectedUser extends User {
 }
 
 type UserAction = 'approve' | 'reject';
-type TabType = 'pending' | 'approved' | 'rejected' | 'all' | 'add-new' | 'email-users' | 'groups';
+type TabType = 'pending' | 'approved' | 'rejected' | 'all' | 'add-new' | 'email-users' | 'groups' | 'deletion-requests';
 
 export default function UserManagement() {
   const searchParams = useSearchParams();
@@ -45,6 +46,7 @@ export default function UserManagement() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [rejectedUsers, setRejectedUsers] = useState<RejectedUser[]>([]);
+  const [deletionRequests, setDeletionRequests] = useState<any[]>([]);
 
   // Track loading per category
   const [loadingStates, setLoadingStates] = useState({
@@ -71,6 +73,9 @@ export default function UserManagement() {
         } else if (activeTab === 'rejected') {
           const res = await apiAdmin.get('api/admin/panel/rejected-users');
           setRejectedUsers(res.data || []);
+        } else if (activeTab === 'deletion-requests') {
+          const res = await apiAdmin.get('api/admin/panel/deletion-requests');
+          setDeletionRequests(res.data || []);
         } else if (activeTab === 'all') {
           // AllUsersTable handles its own fetching
         }
@@ -240,6 +245,7 @@ export default function UserManagement() {
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {[
             { id: 'all', label: 'All Users', icon: Users },
+            { id: 'deletion-requests', label: `Deletions (${deletionRequests.length})`, icon: Trash2 },
             { id: 'add-new', label: 'Add User', icon: UserPlus },
             { id: 'email-users', label: 'Email', icon: Mail },
             { id: 'groups', label: 'Groups', icon: Users },
@@ -267,6 +273,15 @@ export default function UserManagement() {
       {activeTab === 'add-new' && <AddNewUserForm onSuccess={handleAddUserSuccess} onStatusChange={setActionStatus} />}
       {activeTab === 'email-users' && <EmailManagement onStatusChange={setActionStatus} />}
       {activeTab === 'groups' && <GroupManagement />}
+      {activeTab === 'deletion-requests' && (
+        <DeletionRequestTable 
+          requests={deletionRequests} 
+          onRefresh={() => {
+             apiAdmin.get('api/admin/panel/deletion-requests').then(res => setDeletionRequests(res.data || []));
+          }}
+          onStatusChange={setActionStatus}
+        />
+      )}
 
       {/* Pending Tab */}
       {activeTab === 'pending' && (

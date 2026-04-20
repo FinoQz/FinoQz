@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Group from '../models/Group.js';
 import ScheduledEmail from '../models/ScheduledEmail.js';
+import DeletionRequest from '../models/AccountDeletionRequest.js';
 import bcrypt from "bcrypt";
 import sendEmail from '../utils/sendEmail.js';
 import approvalSuccessTemplate from '../emailTemplates/userApprovalSuccessTemplate.js';
@@ -993,3 +994,89 @@ export const scheduleEmail = async (req, res) => {
 
 
 
+// ✅ GET ALL DELETION REQUESTS
+export const getDeletionRequests = async (req, res) => {
+  try {
+    const requests = await DeletionRequest.find({ status: 'pending' })
+      .populate('user', 'fullName email mobile status')
+      .sort({ requestedAt: -1 });
+
+    res.json(requests);
+  } catch (err) {
+    console.error("❌ getDeletionRequests error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ APPROVE DELETION REQUEST
+export const approveDeletionRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const request = await DeletionRequest.findById(requestId).populate('user');
+
+    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (request.status !== 'pending') return res.status(400).json({ message: "Request already processed" });
+
+    const user = request.user;
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const deletedEmail = user.email;
+    const deletedName = user.fullName;
+
+    // 1. Delete the user
+    await User.findByIdAndDelete(user._id);
+
+    // 2. Mark request as approved
+    request.status = 'approved';
+    request.processedAt = new Date();
+    request.processedBy = req.adminId;
+    await request.save();
+
+    await logActivity({
+      req,
+      actorType: "admin",
+      actorId: req.adminId,
+      action: "approve_account_deletion",
+      meta: { userId: user._id, email: deletedEmail }
+    });
+
+    // 3. Notify User
+    await emailQueue.add("sendMail", {
+      to: deletedEmail,
+      subject: "Your FinoQz Account Has Been Deleted",
+      html: userDeletedTemplate({
+        fullName: deletedName,
+        email: deletedEmail
+      })
+    });
+
+    // 4. Emit Updates
+    await emitDashboardStats(req);
+    await emitUsersUpdate(req);
+
+    res.json({ message: "Account deletion approved and processed" });
+  } catch (err) {
+    console.error("❌ approveDeletionRequest error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ REJECT DELETION REQUEST
+export const rejectDeletionRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const request = await DeletionRequest.findById(requestId);
+
+    if (!request) return res.status(404).json({ message: "Request not found" });
+
+    request.status = 'rejected';
+    request.processedAt = new Date();
+    request.processedBy = req.adminId;
+    await request.save();
+
+    res.json({ message: "Deletion request rejected" });
+  } catch (err) {
+    console.error("❌ rejectDeletionRequest error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

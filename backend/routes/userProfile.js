@@ -1,6 +1,6 @@
 import express from "express";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { getMe, updateMe, uploadProfileImage } from "../controllers/userProfileController.js";
+import { getMe, updateMe, uploadProfileImage, requestDeletion } from "../controllers/userProfileController.js";
 
 const router = express.Router();
 
@@ -12,5 +12,8 @@ router.patch("/me", authMiddleware(), updateMe);
 
 // Upload profile image
 router.post("/me/profile-image", authMiddleware(), uploadProfileImage);
+
+// Request account deletion
+router.post("/deletion-request", authMiddleware(), requestDeletion);
 
 export default router;

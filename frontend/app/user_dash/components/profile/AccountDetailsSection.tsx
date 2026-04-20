@@ -12,7 +12,7 @@ interface AccountDetailsSectionProps {
 
 export default function AccountDetailsSection({ accountData }: AccountDetailsSectionProps) {
   return (
-    <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 shadow-sm">
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-purple-50 rounded-lg">
           <Shield className="w-5 h-5 text-purple-600" />
@@ -32,7 +32,7 @@ export default function AccountDetailsSection({ accountData }: AccountDetailsSec
               type="text"
               value={accountData.accountCreated}
               readOnly
-              className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
             />
           </div>
         </div>
@@ -48,7 +48,7 @@ export default function AccountDetailsSection({ accountData }: AccountDetailsSec
               type="text"
               value={accountData.lastLogin}
               readOnly
-              className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
             />
           </div>
         </div>

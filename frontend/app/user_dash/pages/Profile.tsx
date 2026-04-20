@@ -47,13 +47,6 @@ export default function Profile() {
     lastLogin: ''
   });
 
-  const [preferences, setPreferences] = useState({
-    quizReminders: true,
-    newQuizAlerts: true,
-    certificateUpdates: false,
-    darkMode: false,
-    language: 'en'
-  });
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -122,13 +115,6 @@ useEffect(() => {
     }
   };
 
-  const handlePreferenceToggle = (field: string, value: boolean) => {
-    setPreferences(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleLanguageChange = (value: string) => {
-    setPreferences(prev => ({ ...prev, language: value }));
-  };
 
   const handleImageUpload = async (file: File) => {
   try {
@@ -196,9 +182,16 @@ useEffect(() => {
     showToast('success', 'Password updated successfully!');
   };
 
-  const handleDeleteAccount = () => {
-    console.log('Account deletion requested');
-    showToast('success', 'Account deleted successfully');
+  const handleDeleteAccount = async (reason: string) => {
+    try {
+      const res = await apiUser.post('api/user/profile/deletion-request', { reason });
+      if (res.status === 200) {
+        showToast('success', 'Deletion request submitted to admin for review.');
+      }
+    } catch (err: any) {
+      console.error('❌ Deletion request error:', err);
+      showToast('error', err.response?.data?.message || 'Failed to submit deletion request');
+    }
   };
 
   const showToast = (type: 'success' | 'error' | 'warning', message: string) => {
@@ -214,11 +207,11 @@ useEffect(() => {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-50">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-transparent max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Profile Settings</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-2">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Profile Settings</h1>
+        <p className="text-xs text-gray-400 mt-1 font-medium italic">
           Manage your account information and preferences
         </p>
       </div>
@@ -307,5 +300,3 @@ async function uploadToCloud(file: File): Promise<{ secure_url: string }> {
 
   return { secure_url: data.secure_url };
 }
-
-

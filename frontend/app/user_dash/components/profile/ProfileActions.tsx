@@ -40,7 +40,7 @@ export default function ProfileActions({
           onClick={onCancel}
           disabled={isSaving}
           aria-label="Cancel changes"
-          className="flex-1 sm:flex-initial px-6 py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 sm:flex-initial px-6 py-2.5 border border-gray-100 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <X className="w-4 h-4" />
           Cancel

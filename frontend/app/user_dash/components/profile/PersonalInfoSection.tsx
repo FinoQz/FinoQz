@@ -22,7 +22,7 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
   const [isEditingFullName, setIsEditingFullName] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 shadow-sm">
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-blue-50 rounded-lg">
           <User className="w-5 h-5 text-[#253A7B]" />
@@ -42,9 +42,9 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
               value={formData.fullName}
               onChange={(e) => onChange('fullName', e.target.value)}
               readOnly={!isEditingFullName}
-              className={`w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl transition 
+              className={`w-full px-4 py-2.5 border border-gray-100 rounded-xl transition 
                 ${isEditingFullName 
-                  ? 'focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent' 
+                  ? 'focus:outline-none focus:ring-2 focus:ring-[#253A7B]/20 focus:border-[#253A7B]' 
                   : 'bg-gray-50 text-gray-600 cursor-not-allowed'}
               `}
               placeholder="Enter full name"
@@ -73,11 +73,11 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
               type="email"
               value={formData.email}
               readOnly
-              className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
               placeholder="your.email@example.com"
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+          <p className="text-[10px] text-gray-400 mt-1 font-medium select-none">Email cannot be changed</p>
         </div>
 
         {/* Phone */}
@@ -90,14 +90,12 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
             <input
               type="tel"
               value={formData.phone}
-              onChange={(e) => onChange('phone', e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+              readOnly
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
               placeholder="+91 98765 43210"
             />
           </div>
-          {errors?.phone && (
-            <p className="text-xs text-red-500 mt-1">{errors.phone}</p>
-          )}
+          <p className="text-[10px] text-gray-400 mt-1 font-medium select-none">Contact number cannot be changed</p>
         </div>
 
         {/* Location Row */}
@@ -112,7 +110,7 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
                 type="text"
                 value={formData.city}
                 onChange={(e) => onChange('city', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B]/20 focus:border-[#253A7B] transition"
                 placeholder="Mumbai"
               />
             </div>
@@ -125,7 +123,7 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
             <select
               value={formData.country}
               onChange={(e) => onChange('country', e.target.value)}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+              className="w-full px-4 py-2.5 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B]/20 focus:border-[#253A7B] transition bg-white"
             >
               <option value="">Select Country</option>
               <option value="India">India</option>
@@ -149,7 +147,7 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => onChange('dateOfBirth', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
+                className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B]/20 focus:border-[#253A7B] transition"
               />
             </div>
           </div>
@@ -163,7 +161,7 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
               <select
                 value={formData.gender}
                 onChange={(e) => onChange('gender', e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition bg-white"
+                className="w-full pl-11 pr-4 py-2.5 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B]/20 focus:border-[#253A7B] transition bg-white"
               >
                 <option value="">Prefer not to say</option>
                 <option value="Male">Male</option>
@@ -183,7 +181,7 @@ export default function PersonalInfoSection({ formData, onChange, errors }: Pers
             rows={4}
             value={formData.bio}
             onChange={(e) => onChange('bio', e.target.value)}
-            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition resize-none"
+            className="w-full px-4 py-2.5 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#253A7B]/20 focus:border-[#253A7B] transition resize-none"
             placeholder="Tell us a little about yourself..."
             maxLength={500}
           />

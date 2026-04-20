@@ -23,7 +23,10 @@ import {
   getScheduledEmails,
   updateScheduledEmail,
   cancelScheduledEmail,
-  deleteScheduledEmail
+  deleteScheduledEmail,
+  getDeletionRequests,
+  approveDeletionRequest,
+  rejectDeletionRequest
 } from '../controllers/adminPanelController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import requireAdmin from '../middlewares/requireAdmin.js';
@@ -71,6 +74,11 @@ router.get('/groups', authMiddleware('admin'), requireAdmin, getGroups);
 router.put('/groups/:id', authMiddleware('admin'), requireAdmin, updateGroup);
 
 router.delete('/groups/:id', authMiddleware('admin'), requireAdmin, deleteGroup);
+
+// ✅ Account Deletion Request Routes
+router.get('/deletion-requests', authMiddleware('admin'), requireAdmin, getDeletionRequests);
+router.post('/deletion-requests/:requestId/approve', authMiddleware('admin'), requireAdmin, approveDeletionRequest);
+router.post('/deletion-requests/:requestId/reject', authMiddleware('admin'), requireAdmin, rejectDeletionRequest);
 
 
 export default router;
