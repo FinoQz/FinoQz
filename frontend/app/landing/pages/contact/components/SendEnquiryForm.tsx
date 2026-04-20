@@ -4,6 +4,14 @@ import { useState } from "react";
 import { Send, Loader2, CheckCircle2 } from "lucide-react";
 import api from "@/lib/api";
 
+interface ApiErrorLike {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 export default function SendEnquiryForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,8 +33,9 @@ export default function SendEnquiryForm() {
     try {
       await api.post("api/contact", data);
       setSubmitted(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to send message. Please try again.");
+    } catch (err: unknown) {
+      const apiError = err as ApiErrorLike;
+      setError(apiError.response?.data?.message || "Failed to send message. Please try again.");
     } finally {
       setLoading(false);
     }

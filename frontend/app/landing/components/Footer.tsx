@@ -5,6 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import api from "@/lib/api";
 
+interface ApiErrorLike {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
 export default function Footer() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -25,10 +33,11 @@ export default function Footer() {
       setStatus({ type: 'success', message: 'Subscribed successfully!' });
       setEmail("");
       setName("");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiError = err as ApiErrorLike;
       setStatus({ 
         type: 'error', 
-        message: err.response?.data?.message || 'Failed to subscribe.' 
+        message: apiError.response?.data?.message || 'Failed to subscribe.' 
       });
     } finally {
       setLoading(false);
