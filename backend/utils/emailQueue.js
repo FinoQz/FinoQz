@@ -5,7 +5,9 @@ const isSecure = process.env.REDIS_URL?.startsWith('rediss://');
 const emailQueue = new Queue('emailQueue', {
   connection: {
     url: process.env.REDIS_URL,
-    ...(isSecure ? { tls: {} } : {}), // ✅ only add TLS if using rediss://
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    ...(isSecure ? { tls: {} } : {}),
   },
   defaultJobOptions: {
     attempts: 3,

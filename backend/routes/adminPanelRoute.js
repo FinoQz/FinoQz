@@ -14,14 +14,10 @@ import {
   deleteUser,
   addNewUser,
   sendBulkEmail,
-  getMonthlyUsers,
-  getDashboardStats,
   createGroup,
   getGroups,
   updateGroup,
   deleteGroup,
-  getUserGrowthData,
-  getLiveUsers,
   generateBulkEmailDraft,
   scheduleEmail,
   getScheduledEmails,
@@ -33,6 +29,7 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 import requireAdmin from '../middlewares/requireAdmin.js';
 import verifyToken from "../middlewares/verifyToken.js";
 import upload from '../utils/upload.js';
+import emailUpload from '../utils/emailUpload.js';
 
 const router = express.Router();
 
@@ -55,19 +52,17 @@ router.delete('/user/:userId', authMiddleware('admin'), requireAdmin, deleteUser
 
 router.post("/add-user", authMiddleware("admin"), requireAdmin, upload.single("profilePicture"), addNewUser);
 
-router.post("/send-email", authMiddleware("admin"), requireAdmin, sendBulkEmail);
+router.post("/send-email", authMiddleware("admin"), requireAdmin, emailUpload.fields([{ name: 'heroImage', maxCount: 1 }, { name: 'attachments' }]), sendBulkEmail);
 router.post("/generate-email-draft", authMiddleware("admin"), requireAdmin, generateBulkEmailDraft);
 
 // ✅ Scheduled Email Routes
-router.post("/schedule-email", authMiddleware("admin"), requireAdmin, scheduleEmail);
+router.post("/schedule-email", authMiddleware("admin"), requireAdmin, emailUpload.fields([{ name: 'heroImage', maxCount: 1 }, { name: 'attachments' }]), scheduleEmail);
 router.get("/scheduled-emails", authMiddleware("admin"), requireAdmin, getScheduledEmails);
 router.put("/scheduled-emails/:scheduledEmailId", authMiddleware("admin"), requireAdmin, updateScheduledEmail);
 router.post("/scheduled-emails/:scheduledEmailId/cancel", authMiddleware("admin"), requireAdmin, cancelScheduledEmail);
 router.delete("/scheduled-emails/:scheduledEmailId", authMiddleware("admin"), requireAdmin, deleteScheduledEmail);
 
 
-router.get('/monthly-users', authMiddleware('admin'), requireAdmin, getMonthlyUsers);
-router.get('/dashboard-stats', authMiddleware('admin'), requireAdmin, getDashboardStats);
 
 router.post('/groups', authMiddleware('admin'), requireAdmin, createGroup);
 
@@ -77,8 +72,5 @@ router.put('/groups/:id', authMiddleware('admin'), requireAdmin, updateGroup);
 
 router.delete('/groups/:id', authMiddleware('admin'), requireAdmin, deleteGroup);
 
-router.get('/analytics/user-growth', authMiddleware('admin'), requireAdmin, getUserGrowthData);
-
-router.get('/analytics/live-users', authMiddleware('admin'), requireAdmin, getLiveUsers);
 
 export default router;

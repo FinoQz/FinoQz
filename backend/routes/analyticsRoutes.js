@@ -11,7 +11,8 @@ import {
   getQuizRevenue,
   getQuizRegisteredUsers,
   getQuizEnrolledUsers,
-  getQuizParticipants
+  getQuizParticipants,
+  getAttemptAnalysis
 } from '../controllers/analyticsController.js';
 import verifyToken from '../middlewares/verifyToken.js';
 import requireAdmin from '../middlewares/requireAdmin.js';
@@ -56,5 +57,8 @@ router.get('/quiz-enrolled-users', getQuizEnrolledUsers);
 
 // Get participants (all attempted users) for a quiz with full details
 router.get('/quiz-participants', getQuizParticipants);
+
+// Get specific attempt analysis including question-level details
+router.get('/attempt-analysis/:attemptId', getAttemptAnalysis);
 
 export default router;

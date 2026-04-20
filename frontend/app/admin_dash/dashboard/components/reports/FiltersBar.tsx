@@ -14,8 +14,9 @@ interface FiltersBarProps {
   onTypeChange: (type: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onApply: () => void;
+  onApply?: () => void;
   onClear: () => void;
+  quizzes?: Array<{ id: string; title: string }>;
 }
 
 export default function FiltersBar({
@@ -30,7 +31,8 @@ export default function FiltersBar({
   searchQuery,
   onSearchChange,
   onApply,
-  onClear
+  onClear,
+  quizzes = []
 }: FiltersBarProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm mb-6">
@@ -47,9 +49,9 @@ export default function FiltersBar({
           className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
         >
           <option value="all">All Quizzes</option>
-          <option value="quiz1">Financial Management Basics</option>
-          <option value="quiz2">Stock Market Analysis</option>
-          <option value="quiz3">Advanced Accounting</option>
+          {quizzes.map((q) => (
+            <option key={q.id} value={q.id}>{q.title}</option>
+          ))}
         </select>
 
         {/* Date Range */}

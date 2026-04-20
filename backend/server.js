@@ -43,6 +43,8 @@ import suggestionRoutes from './routes/suggestionRoutes.js';
 import forumTagRoutes from './routes/forumTagRoutes.js';
 import chatRoutes from './routes/chat.js';
 import messageRoutes from './routes/messageRoutes.js';
+import contactRoutes from './routes/contactRoutes.js';
+import newsletterRoutes from './routes/newsletterRoutes.js';
 
 
 const app = express();
@@ -162,6 +164,8 @@ app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/forum-tags', forumTagRoutes);
 app.use('/api/public/chat', chatRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 
 // ✅ Celebrate validation errors (with console logging for debugging)

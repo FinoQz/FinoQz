@@ -12,10 +12,15 @@ import adminBulkEmailTemplate from "../emailTemplates/adminBulkEmail.js";
 import logActivity from '../utils/logActivity.js';
 import emailQueue from '../utils/emailQueue.js';
 import userDeletedTemplate from "../emailTemplates/userDeletedTemplate.js";
+import { emitDashboardStats, getDashboardStats, getMonthlyUsers } from './dashboardAnalyticsController.js';
+export { emitDashboardStats, getDashboardStats, getMonthlyUsers };
 import cloudinary from '../utils/cloudinary.js';
 import redis from '../utils/redis.js';
 import mongoose from 'mongoose';
 import Groq from 'groq-sdk';
+import fs from 'fs';
+import crypto from 'crypto';
+import MediaVault from '../models/MediaVault.js';
 
 let groqClient = null;
 const getGroqClient = () => {
@@ -29,276 +34,100 @@ const getGroqClient = () => {
 };
 
 
-const buildDashboardStats = async () => {
-  const [
-    totalUsers,
-    activeUsers,
-    pendingApprovals,
-    totalRevenueAgg,
-    totalPaidUsers,
-    freeQuizAttemptsAgg,
-  ] = await Promise.all([
-    User.countDocuments({}),
-    User.countDocuments({ status: "approved" }),
-    User.countDocuments({ status: "awaiting_admin_approval" }),
-    User.aggregate([{ $group: { _id: null, total: { $sum: "$totalSpent" } } }]),
-    User.countDocuments({ isPaidUser: true }),
-    User.aggregate([{ $group: { _id: null, total: { $sum: "$freeQuizAttempts" } } }]),
-  ]);
-
-  return {
-    totalUsers,
-    activeUsers,
-    pendingApprovals,
-    totalRevenue: (Array.isArray(totalRevenueAgg) && totalRevenueAgg[0]?.total) || 0,
-    totalPaidUsers,
-    freeQuizAttempts: (Array.isArray(freeQuizAttemptsAgg) && freeQuizAttemptsAgg[0]?.total) || 0,
-  };
-};
-
-async function emitDashboardStats(req) {
-  console.log("📊 emitDashboardStats triggered");
-
-  try {
-    const cached = await redis.get("dashboard:stats");
-    const io = req.app.get("io");
-
-    if (cached) {
-      const stats = JSON.parse(cached);
-      if (io) {
-        io.to('admin-room').emit('dashboard:stats', stats);
-        console.log("📡 Emitted cached dashboard:stats", stats);
-      }
-      return;
-    }
-
-    const stats = await buildDashboardStats();
-    await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
-
-    if (io) {
-      io.to('admin-room').emit('dashboard:stats', stats);
-      console.log("📡 Emitted fresh dashboard:stats", stats);
-    }
-  } catch (err) {
-    console.error("❌ emitDashboardStats error:", err);
-  }
-}
-
-export { emitDashboardStats };
-
-export const getDashboardStats = async (req, res) => {
-  try {
-    const cached = await redis.get("dashboard:stats");
-    if (cached) {
-      return res.json(JSON.parse(cached));
-    }
-
-    const stats = await buildDashboardStats();
-    await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
-    return res.json(stats);
-  } catch (err) {
-    console.error("❌ getDashboardStats error:", err);
-    return res.status(500).json({ message: 'Failed to fetch dashboard stats' });
-  }
-};
 
 import { emitLiveUserStats, emitAnalyticsUpdate, emitUsersUpdate } from '../utils/emmiters.js';
 import userApprovalSuccessTemplate from '../emailTemplates/userApprovalSuccessTemplate.js';
 
-// ✅ Get monthly user registrations (current & last month)
-export const getMonthlyUsers = async (req, res) => {
-  try {
-    const io = req.app.get('io');
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-indexed
-
-    const startOfCurrentMonth = new Date(year, month, 1);
-    const startOfLastMonth = new Date(year, month - 1, 1);
-    const endOfLastMonth = new Date(year, month, 0);
-
-    const cacheKey = `dashboard:monthlyUsers:${year}-${month + 1}`;
-
-    // ✅ Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (io) {
-        await emitAnalyticsUpdate(io, {
-          type: 'monthlyUsers',
-          ...parsed,
-        });
-      }
-      return res.json({ type: 'monthlyUsers', ...parsed });
-    }
-
-    // 🔍 Fresh counts
-    const [currentMonthCount, lastMonthCount] = await Promise.all([
-      User.countDocuments({ createdAt: { $gte: startOfCurrentMonth } }),
-      User.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
-    ]);
-
-    const payload = {
-      currentMonth: currentMonthCount,
-      lastMonth: lastMonthCount,
-    };
-
-    // 💾 Cache for 1 hour
-    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
-
-    // 📡 Emit via WebSocket
-    if (io) {
-      await emitAnalyticsUpdate(io, {
-        type: 'monthlyUsers',
-        ...payload,
-      });
-    }
-
-    return res.json({ type: 'monthlyUsers', ...payload });
-  } catch (err) {
-    console.error('❌ Error fetching monthly users:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-
-export const getUserGrowthData = async (req, res) => {
-  try {
-    const io = req.app.get('io');
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth(); // 0-indexed
-    const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, month + 1, 0);
-    const cacheKey = `dashboard:userGrowth:${year}-${month + 1}`; // e.g., dashboard:userGrowth:2026-01
-
-    // ✅ Try cache first
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (io) {
-        await emitAnalyticsUpdate(io, {
-          type: 'userGrowth',
-          labels: parsed.labels,
-          values: parsed.values,
-        });
-      }
-      return res.json({ type: 'userGrowth', ...parsed });
-    }
-
-    // 🔍 MongoDB aggregation
-    const pipeline = [
-      {
-        $match: {
-          createdAt: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
-
-    const results = await User.aggregate(pipeline);
-    const resultMap = Object.fromEntries(results.map(r => [r._id, r.count]));
-
-    const labels = [];
-    const values = [];
-    const totalDays = endDate.getDate();
-
-    for (let i = 1; i <= totalDays; i++) {
-      const date = new Date(year, month, i);
-      const isoDate = date.toISOString().split('T')[0];
-      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      labels.push(label);
-      values.push(resultMap[isoDate] || 0);
-    }
-
-    const payload = { labels, values };
-
-    // 💾 Cache for 1 hour
-    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
-
-    // 📡 Emit via WebSocket
-    if (io) {
-      await emitAnalyticsUpdate(io, {
-        type: 'userGrowth',
-        labels,
-        values,
-      });
-    }
-
-    return res.json({ type: 'userGrowth', ...payload });
-  } catch (err) {
-    console.error('❌ Error fetching user growth data:', err);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
 
 
 
-export const getLiveUsers = async (req, res) => {
-  try {
-    // ✅ Get count from Redis Set
-    const liveUserCount = await redis.scard('liveUsers');
 
-    // ✅ Push to sparkline list
-    await redis.lpush('liveUserSparkline', liveUserCount);
-    await redis.ltrim('liveUserSparkline', 0, 19); // Keep last 20 entries
 
-    // ✅ Fetch sparkline
-    const sparklineRaw = await redis.lrange('liveUserSparkline', 0, -1);
-    const sparkline = sparklineRaw.map(Number).reverse();
-
-    const data = {
-      type: 'liveUsers',
-      liveUsers: liveUserCount,
-      sparkline,
-    };
-
-    // ✅ Emit to admin-room
-    const io = req.app.get('io');
-    if (io) {
-      await emitLiveUserStats(io);
-    }
-
-    return res.json(data);
-  } catch (err) {
-    console.error('❌ Live user fetch error:', err);
-    return res.status(500).json({ message: 'Failed to fetch live users' });
-  }
-};
-
-// ✅ Get all users
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({})
-      .select('_id fullName email mobile status createdAt lastLoginAt')
-      .sort({ createdAt: -1 });
+    const { page = 1, limit = 10, search = "", status = "All" } = req.query;
+    const pageNumber = parseInt(page, 10) || 1;
+    const pageSize = parseInt(limit, 10) || 10;
+
+    // 1. Match constraints
+    const matchStage = {};
+    
+    // Search
+    if (search.trim()) {
+      matchStage.$or = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { mobile: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // Status filter mapping (frontend -> backend enum mapping)
+    if (status !== "All") {
+      if (status === "Active") matchStage.status = "approved";
+      else if (status === "Inactive") matchStage.status = { $ne: "approved" };
+      else if (status === "Blocked") matchStage.status = "blocked";
+    }
+
+    // 2. Build Aggregation Pipeline
+    const pipeline = [
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      { $skip: (pageNumber - 1) * pageSize },
+      { $limit: pageSize },
+      // Lookup wallet balance
+      {
+        $lookup: {
+          from: "wallets",
+          localField: "_id",
+          foreignField: "userId",
+          as: "walletData"
+        }
+      },
+      // Flatten wallet data
+      {
+        $addFields: {
+          walletBalance: {
+            $ifNull: [{ $arrayElemAt: ["$walletData.balance", 0] }, 0]
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          fullName: 1,
+          email: 1,
+          mobile: 1,
+          status: 1,
+          createdAt: 1,
+          lastLoginAt: 1,
+          walletBalance: 1
+        }
+      }
+    ];
+
+    const [users, totalCount] = await Promise.all([
+      User.aggregate(pipeline),
+      User.countDocuments(matchStage)
+    ]);
 
     const formatted = users.map(u => ({
       _id: u._id,
       fullName: u.fullName,
       email: u.email,
       mobile: u.mobile || 'N/A',
-      status: u.status === 'approved' ? 'Active' : 'Inactive',
-      createdAt: u.createdAt ? u.createdAt.toISOString() : null,
-      lastLoginAt: u.lastLoginAt
-        ? u.lastLoginAt.toISOString()
-        : (u.createdAt ? u.createdAt.toISOString() : null)
+      status: u.status === 'approved' ? 'Active' : u.status === 'blocked' ? 'Blocked' : 'Inactive',
+      registrationDate: u.createdAt ? new Date(u.createdAt).toISOString() : "N/A",
+      lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : (u.createdAt ? new Date(u.createdAt).toISOString() : "N/A"),
+      walletBalance: u.walletBalance
     }));
 
-    return res.json(formatted);
+    return res.json({
+      users: formatted,
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+      currentPage: pageNumber
+    });
 
   } catch (err) {
     console.error("❌ getAllUsers error:", err);
@@ -633,7 +462,7 @@ export const addNewUser = async (req, res) => {
 
     // ✅ Emit real-time dashboard stats
     await emitDashboardStats(req);
-    await emitUsersUpdate(req);   
+    await emitUsersUpdate(req);
 
     // ✅ Queue welcome email
     try {
@@ -755,65 +584,7 @@ export const getGroups = async (req, res) => {
 // ✅ SCHEDULED EMAIL FUNCTIONS
 
 // Create/Schedule an email
-export const scheduleEmail = async (req, res) => {
-  try {
-    const { subject, body, recipients, scheduledFor } = req.body;
 
-    if (!subject || !body || !recipients || recipients.length === 0) {
-      return res.status(400).json({ message: 'Subject, body, and recipients are required' });
-    }
-
-    if (!scheduledFor) {
-      return res.status(400).json({ message: 'Schedule date and time are required' });
-    }
-
-    const scheduledDate = new Date(scheduledFor);
-    if (scheduledDate < new Date()) {
-      return res.status(400).json({ message: 'Cannot schedule email for past date/time' });
-    }
-
-    // Get recipient emails
-    const users = await User.find({ _id: { $in: recipients } }).select('email');
-    const recipientEmails = users.map(u => u.email);
-
-    const scheduledEmail = new ScheduledEmail({
-      subject,
-      body,
-      recipients,
-      recipientEmails,
-      scheduledFor: scheduledDate,
-      createdBy: req.adminId,
-      status: 'pending',
-    });
-
-    await scheduledEmail.save();
-
-    const delayMs = Math.max(0, scheduledDate.getTime() - Date.now());
-    const scheduledJob = await emailQueue.add(
-      'scheduledBulkEmail',
-      {
-        scheduledEmailId: String(scheduledEmail._id),
-      },
-      {
-        delay: delayMs,
-        jobId: `scheduled-email-${scheduledEmail._id}`,
-      }
-    );
-
-    scheduledEmail.jobId = String(scheduledJob.id);
-    await scheduledEmail.save();
-
-    console.log('📅 Email scheduled for:', scheduledDate, 'job:', scheduledEmail.jobId);
-
-    res.status(201).json({
-      message: 'Email scheduled successfully',
-      scheduledEmail,
-    });
-  } catch (err) {
-    console.error('❌ Schedule email error:', err);
-    res.status(500).json({ message: 'Failed to schedule email' });
-  }
-};
 
 // Get all scheduled emails for admin
 export const getScheduledEmails = async (req, res) => {
@@ -989,29 +760,86 @@ export const deleteGroup = async (req, res) => {
   }
 };
 
+/**
+ * Smart Cloudinary Upload with Fingerprint Deduplication
+ */
+const getSmartCloudinaryUrl = async (file) => {
+  if (!file) return null;
+
+  try {
+    const fileBuffer = fs.readFileSync(file.path);
+    const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+    // 1. Check Vault
+    const existing = await MediaVault.findOne({ fileHash: hash });
+    if (existing) {
+      // Cleanup the temp file since we don't need to upload
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      return existing.cloudinaryUrl;
+    }
+
+    // 2. Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder: 'finoqz/campaigns',
+      resource_type: 'auto',
+    });
+
+    // 3. Store in Vault
+    await MediaVault.create({
+      fileHash: hash,
+      cloudinaryUrl: result.secure_url,
+      publicId: result.public_id,
+      originalName: file.originalname,
+      fileSize: file.size,
+      contentType: file.mimetype,
+    });
+
+    // Cleanup temp file
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+
+    return result.secure_url;
+  } catch (err) {
+    console.error("Smart upload error:", err);
+    return null;
+  }
+};
+
 // ✅ Send bulk email to users
 export const sendBulkEmail = async (req, res) => {
   try {
-    const { recipients, subject, body } = req.body;
+    const { recipients, subject, body, ctaText, ctaUrl } = req.body;
 
-    if (!recipients || recipients.length === 0) {
+    // Multi-field files from Multer
+    const heroImageFile = req.files?.heroImage?.[0];
+    const attachmentFiles = req.files?.attachments || [];
+
+    if (!recipients || (Array.isArray(recipients) && recipients.length === 0)) {
       return res.status(400).json({ message: "No recipients provided" });
     }
 
     if (!subject || !body) {
       return res.status(400).json({ message: "Subject and body are required" });
     }
-    console.log("📩 Incoming recipients:", recipients);
+
+    // Process Hero Image (File -> Smart Cloudinary URL / Deduplication)
+    const finalHeroImageUrl = await getSmartCloudinaryUrl(heroImageFile);
+
+    const attachments = attachmentFiles.map(file => ({
+      filename: file.originalname,
+      path: file.path,
+      contentType: file.mimetype
+    }));
 
     // ✅ Add ONE bulk job to queue
     await emailQueue.add("bulkEmail", {
       recipients,
       subject,
-      html: adminBulkEmailTemplate(body),
+      html: adminBulkEmailTemplate({ message: body, heroImage: finalHeroImageUrl, ctaText, ctaUrl }),
+      attachments
     });
 
     return res.json({
-      message: `Bulk email queued for ${recipients.length} users`,
+      message: `Bulk email queued with ${attachments.length} attachments`,
     });
   } catch (err) {
     console.error("Bulk email error:", err);
@@ -1104,6 +932,7 @@ Rules:
       return res.status(500).json({ message: 'AI could not generate a valid email draft' });
     }
 
+
     return res.json({ subject, body });
   } catch (err) {
     console.error('generateBulkEmailDraft error:', err);
@@ -1111,7 +940,54 @@ Rules:
   }
 };
 
+// ✅ Schedule email for later
+export const scheduleEmail = async (req, res) => {
+  try {
+    const { recipients, recipientEmails, subject, body, scheduledFor, ctaText, ctaUrl } = req.body;
+    const heroImageFile = req.files?.heroImage?.[0];
+    const attachmentFiles = req.files?.attachments || [];
 
+    if (!subject || !body || !scheduledFor) {
+      return res.status(400).json({ message: "Incomplete schedule data" });
+    }
+
+    const finalHeroImageUrl = await getSmartCloudinaryUrl(heroImageFile);
+
+    const attachments = attachmentFiles.map(file => ({
+      filename: file.originalname,
+      path: file.path,
+      contentType: file.mimetype
+    }));
+
+    const scheduledEmail = await ScheduledEmail.create({
+      subject,
+      body,
+      recipients: Array.isArray(recipients) ? recipients : (recipients ? [recipients] : []),
+      recipientEmails: Array.isArray(recipientEmails) ? recipientEmails : (recipientEmails ? [recipientEmails] : []),
+      scheduledFor: new Date(scheduledFor),
+      createdBy: req.user._id,
+      heroImage: finalHeroImageUrl,
+      ctaText,
+      ctaUrl,
+      attachments
+    });
+
+    const delayMs = Math.max(0, new Date(scheduledFor).getTime() - Date.now());
+    const job = await emailQueue.add(
+      "scheduledBulkEmail",
+      { scheduledEmailId: String(scheduledEmail._id) },
+      { delay: delayMs, jobId: `scheduled-email-${scheduledEmail._id}` }
+    );
+
+    scheduledEmail.jobId = String(job.id);
+    await scheduledEmail.save();
+
+    return res.json({ message: "Email scheduled successfully", scheduledEmail });
+  } catch (err) {
+    console.error("Scheduling error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 
 

@@ -210,7 +210,8 @@ const getDashboardStats = async (req, res) => {
       activeQuizzes,
       totalAttempts,
       totalRevenue,
-      certificatesIssued
+      certificatesIssued,
+      participationSplit
     ] = await Promise.all([
       User.countDocuments({ status: { $in: ['approved', 'email_verified'] } }),
       User.countDocuments({ 
@@ -228,8 +229,32 @@ const getDashboardStats = async (req, res) => {
         { $match: { status: 'success' } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
-      Certificate.countDocuments()
+      Certificate.countDocuments(),
+      // New: Participation Split (Free vs Paid Attempts)
+      QuizAttempt.aggregate([
+        { $match: { status: 'submitted' } },
+        {
+          $lookup: {
+            from: 'quizzes',
+            localField: 'quizId',
+            foreignField: '_id',
+            as: 'quiz'
+          }
+        },
+        { $unwind: '$quiz' },
+        {
+          $group: {
+            _id: '$quiz.pricingType',
+            count: { $sum: 1 }
+          }
+        }
+      ])
     ]);
+
+    const participationMap = new Map();
+    participationSplit.forEach(item => {
+      participationMap.set(item._id, item.count);
+    });
 
     const stats = {
       totalUsers,
@@ -238,7 +263,11 @@ const getDashboardStats = async (req, res) => {
       activeQuizzes,
       totalAttempts,
       totalRevenue: totalRevenue[0]?.total || 0,
-      certificatesIssued
+      certificatesIssued,
+      participationSplit: {
+        free: participationMap.get('free') || 0,
+        paid: participationMap.get('paid') || 0
+      }
     };
 
     // Cache for 5 minutes
@@ -262,34 +291,95 @@ const getUserGrowth = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const growth = await User.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: startDate }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' },
-            day: { $dayOfMonth: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
-      }
+    const [userGrowth, attemptGrowth, revenueGrowth] = await Promise.all([
+      // 1. User Growth
+      User.aggregate([
+        { $match: { createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+      ]),
+      // 2. Attempt Growth
+      QuizAttempt.aggregate([
+        { $match: { createdAt: { $gte: startDate }, status: 'submitted' } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+      ]),
+      // 3. Revenue Growth
+      Transaction.aggregate([
+        { $match: { createdAt: { $gte: startDate }, status: 'success' } },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+              day: { $dayOfMonth: '$createdAt' }
+            },
+            amount: { $sum: '$amount' }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+      ])
     ]);
 
-    // Format data for frontend
-    const formattedData = growth.map(item => ({
-      date: `${item._id.year}-${String(item._id.month).padStart(2, '0')}-${String(item._id.day).padStart(2, '0')}`,
-      users: item.count
-    }));
+    // Merge into a unified daily timeline with zero-padding for missing days
+    const dailyMap = new Map();
+    
+    // Pre-fill the map with all dates in the range
+    for (let i = 0; i <= days; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        dailyMap.set(key, { date: key, users: 0, attempts: 0, revenue: 0 });
+    }
 
-    res.json(formattedData);
+    const getDayKey = (id) => `${id.year}-${String(id.month).padStart(2, '0')}-${String(id.day).padStart(2, '0')}`;
+
+    userGrowth.forEach(item => {
+      const key = getDayKey(item._id);
+      if (dailyMap.has(key)) {
+        dailyMap.get(key).users = item.count;
+      }
+    });
+
+    attemptGrowth.forEach(item => {
+      const key = getDayKey(item._id);
+      if (dailyMap.has(key)) {
+        dailyMap.get(key).attempts = item.count;
+      } else if (key >= getDayKey({ year: startDate.getFullYear(), month: startDate.getMonth()+1, day: startDate.getDate() })) {
+        // Fallback for dates that might be missed due to timezone shifts
+        dailyMap.set(key, { date: key, users: 0, attempts: item.count, revenue: 0 });
+      }
+    });
+
+    revenueGrowth.forEach(item => {
+      const key = getDayKey(item._id);
+      if (dailyMap.has(key)) {
+        dailyMap.get(key).revenue = item.amount;
+      }
+    });
+
+    // Convert map to sorted array
+    const sortedData = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+    res.json(sortedData);
   } catch (error) {
     console.error('Get user growth error:', error);
     res.status(500).json({ message: 'Failed to fetch user growth data' });
@@ -333,6 +423,26 @@ const getQuizStats = async (req, res) => {
         $unwind: '$quiz'
       },
       {
+        $lookup: {
+          from: 'transactions',
+          let: { quiz_id: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$quizId', '$$quiz_id'] },
+                    { $eq: ['$status', 'success'] }
+                  ]
+                }
+              }
+            },
+            { $group: { _id: null, total: { $sum: '$amount' } } }
+          ],
+          as: 'revenueData'
+        }
+      },
+      {
         $project: {
           quizId: '$_id',
           quizTitle: '$quiz.quizTitle',
@@ -342,7 +452,8 @@ const getQuizStats = async (req, res) => {
           avgPercentage: { $round: ['$avgPercentage', 2] },
           maxScore: 1,
           minScore: 1,
-          avgTimeTaken: { $round: ['$avgTimeTaken', 0] }
+          avgTimeTaken: { $round: ['$avgTimeTaken', 0] },
+          totalRevenue: { $ifNull: [{ $arrayElemAt: ['$revenueData.total', 0] }, 0] }
         }
       },
       { $sort: { totalAttempts: -1 } }
@@ -413,10 +524,12 @@ const getRevenueAnalytics = async (req, res) => {
     }));
 
     res.json({
-      dailyRevenue: formattedData,
-      methodBreakdown,
-      totalRevenue: revenueData.reduce((sum, item) => sum + item.totalRevenue, 0),
-      totalTransactions: revenueData.reduce((sum, item) => sum + item.transactionCount, 0)
+      timeline: formattedData,
+      methodBreakdown: methodBreakdown.map(m => ({
+        method: m._id || 'Unknown',
+        amount: m.total,
+        count: m.count
+      }))
     });
   } catch (error) {
     console.error('Get revenue analytics error:', error);
@@ -506,7 +619,7 @@ const getCategoryPerformance = async (req, res) => {
       },
       {
         $group: {
-          _id: '$quiz.category',
+          _id: { $toObjectId: '$quiz.category' }, // Convert string to ObjectId for lookup
           totalAttempts: { $sum: 1 },
           avgScore: { $avg: '$totalScore' },
           avgPercentage: { $avg: '$percentage' },
@@ -514,8 +627,16 @@ const getCategoryPerformance = async (req, res) => {
         }
       },
       {
+        $lookup: {
+          from: 'categories',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'categoryDoc'
+        }
+      },
+      {
         $project: {
-          category: '$_id',
+          category: { $ifNull: [{ $arrayElemAt: ['$categoryDoc.name', 0] }, 'Uncategorized'] },
           totalAttempts: 1,
           avgScore: { $round: ['$avgScore', 2] },
           avgPercentage: { $round: ['$avgPercentage', 2] },
@@ -685,25 +806,30 @@ const getQuizParticipants = async (req, res) => {
     const enriched = attempts.map(a => {
       const uid = String(a.userId?._id || a.userId || '');
       const txn = txnMap.get(uid);
-      const pStatus = txn?.status === 'success' ? 'paid' : txn?.status === 'pending' ? 'pending' : 'unpaid';
+      const isFreeQuiz = quiz.pricingType === 'free';
+      const pStatus = isFreeQuiz ? 'free' : (txn?.status === 'success' ? 'paid' : txn?.status === 'pending' ? 'pending' : 'unpaid');
+      
       const correctCount = (a.answers || []).filter(ans => ans.isCorrect).length;
       const incorrectCount = (a.answers || []).filter(ans => !ans.isCorrect).length;
       const totalQ = (a.answers || []).length;
-      const rawUserId = String(a.userId?._id || a.userId || '');
-      const name = a.userId?.fullName || a.userId?.name || a.userId?.email?.split('@')[0] || (a.userId ? `Deleted User (${rawUserId.slice(-6)})` : 'Unknown');
+      const user = a.userId || {};
+      const rawUserId = String(user._id || a.userId || '');
+      
+      // Compute display name from fullName or fallback fields
+      const displayName = user.fullName || user.name || (user.email ? user.email.split('@')[0] : `User-${rawUserId.slice(-4)}`);
       
       return {
         attemptId: String(a._id),
-        userId: uid,
-        name,
-        email: a.userId?.email || 'N/A',
-        phone: a.userId?.mobile || a.userId?.phone || 'N/A', 
-        city: a.userId?.city || '—',
-        country: a.userId?.country || '—',
-        gender: a.userId?.gender || '—',
-        userStatus: a.userId?.status || '—',
-        joinDate: a.userId?.createdAt || null,
-        enrolledAt: a.userId?.createdAt || null,
+        userId: rawUserId,
+        name: displayName,
+        email: user.email || 'N/A',
+        phone: user.mobile || user.phone || 'N/A', 
+        city: user.city || '—',
+        country: user.country || '—',
+        gender: user.gender || '—',
+        userStatus: user.status || '—',
+        joinDate: user.createdAt || null,
+        enrolledAt: user.createdAt || null,
         startedAt: a.startedAt || null,
         submittedAt: a.submittedAt || null,
         timeTaken: a.timeTaken || null,
@@ -715,6 +841,7 @@ const getQuizParticipants = async (req, res) => {
         incorrectCount,
         totalQuestions: totalQ,
         paymentStatus: pStatus,
+        paymentMethod: isFreeQuiz ? 'FREE' : (txn?.paymentMethod || '—'),
         paidAmount: txn?.amount || 0,
       };
     });
@@ -784,6 +911,70 @@ const getQuizParticipants = async (req, res) => {
   }
 };
 
+/**
+ * Get question-by-question analysis for a specific user attempt
+ * @route GET /api/analytics/attempt-analysis/:attemptId
+ */
+const getAttemptAnalysis = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    if (!attemptId) return res.status(400).json({ message: 'attemptId is required' });
+
+    const attempt = await QuizAttempt.findById(attemptId)
+      .populate('userId', 'fullName email')
+      .populate('quizId', 'quizTitle totalMarks pricingType price')
+      .populate({
+        path: 'answers.questionId',
+        select: 'text options correct explanation marks type'
+      })
+      .lean();
+
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+
+    // Transform data for a cleaner frontend experience
+    const analysis = {
+      attemptId: attempt._id,
+      user: {
+        name: attempt.userId?.fullName || 'Unknown',
+        email: attempt.userId?.email || 'N/A'
+      },
+      quiz: {
+        title: attempt.quizId?.quizTitle || 'Deleted Quiz',
+        totalMarks: attempt.quizId?.totalMarks || 0
+      },
+      summary: {
+        score: attempt.totalScore,
+        percentage: attempt.percentage,
+        timeTaken: attempt.timeTaken,
+        submittedAt: attempt.submittedAt,
+        status: attempt.status
+      },
+      questions: (attempt.answers || []).map((ans, idx) => {
+        const q = ans.questionId || {};
+        return {
+          index: idx + 1,
+          questionId: q._id,
+          text: q.text || 'Question text unavailable',
+          type: q.type || 'mcq',
+          options: q.options || [],
+          correctAnswer: q.correct,
+          selectedAnswer: ans.selectedAnswer,
+          isCorrect: ans.isCorrect,
+          marksAwarded: ans.marksAwarded,
+          maxMarks: q.marks || 1,
+          timeSpent: ans.timeSpent || 0,
+          explanation: q.explanation || ''
+        };
+      })
+    };
+
+    res.json(analysis);
+  } catch (error) {
+    console.error('Get attempt analysis error:', error);
+    res.status(500).json({ message: 'Failed to fetch attempt analysis' });
+  }
+};
+
 export {
   getDashboardStats,
   getUserGrowth,
@@ -796,5 +987,6 @@ export {
   getQuizRevenue,
   getQuizRegisteredUsers,
   getQuizEnrolledUsers,
-  getQuizParticipants
+  getQuizParticipants,
+  getAttemptAnalysis
 };

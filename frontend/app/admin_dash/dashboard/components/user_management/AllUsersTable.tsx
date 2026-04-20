@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { exportToExcel, exportToJSON, exportToPDF } from "@/utils/exportUtils";
 import apiAdmin from "@/lib/apiAdmin";
 import { io, Socket } from "socket.io-client";
@@ -148,7 +148,7 @@ function ActionModal({
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300"
+            className="px-4 py-2 rounded-xl text-sm font-bold bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
           >
             Cancel
           </button>
@@ -157,13 +157,15 @@ function ActionModal({
             type === "unblock" ||
             type === "delete" ||
             type === "edit") && (
-            <button
-              onClick={onConfirm}
-              className="px-4 py-2 rounded-xl bg-gray-900 text-white hover:bg-black"
-            >
-              Confirm
-            </button>
-          )}
+              <button
+                onClick={onConfirm}
+                className={`px-4 py-2 rounded-xl text-sm font-bold text-white transition-all shadow-md active:scale-95 ${
+                  type === 'delete' ? 'bg-red-600 hover:bg-red-700 shadow-red-200' : 'bg-[#253A7B] hover:bg-[#1a2b5e] shadow-blue-200'
+                }`}
+              >
+                Confirm
+              </button>
+            )}
         </div>
       </div>
     </div>
@@ -172,20 +174,26 @@ function ActionModal({
 
 export default function AllUsersTable() {
   const [users, setUsers] = useState<AllUser[]>([]);
-  const [walletBalances, setWalletBalances] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "All" | "Active" | "Inactive" | "Blocked"
-  >("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Inactive" | "Blocked">("All");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  
   const [actionPopup, setActionPopup] = useState<{
     userId: string;
     position: { x: number; y: number };
   } | null>(null);
-  const [loading, setLoading] = useState(true);
+  
   const [activeModal, setActiveModal] = useState<{
     type: ModalType;
     user: AllUser | null;
   }>({ type: null, user: null });
+  
   const [editData, setEditData] = useState({
     fullName: "",
     email: "",
@@ -194,9 +202,53 @@ export default function AllUsersTable() {
 
   const socketRef = useRef<Socket | null>(null);
 
-  // ✅ WebSocket-based real-time user sync
-  useEffect(() => {
+  // ✅ Server-side Data Fetching
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
+    try {
+      const res = await apiAdmin.get("/api/admin/panel/all-users", {
+        params: {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: searchQuery,
+          status: statusFilter
+        },
+        headers: { "Cache-Control": "no-store" } // To prevent caching stale data
+      });
+      
+      if (res.data && res.data.users) {
+        setUsers(res.data.users);
+        setTotalPages(res.data.totalPages || 1);
+        setTotalCount(res.data.totalCount || 0);
+      } else {
+        setUsers([]);
+        setTotalPages(1);
+        setTotalCount(0);
+      }
+    } catch (err) {
+      console.error("❌ API failed to fetch users:", err);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, rowsPerPage, searchQuery, statusFilter]);
+
+  // ✅ Debounced Search & Filter Trigger
+  useEffect(() => {
+    // Reset to page 1 ONLY when search or status changes (handled implicitly by React state if needed, better to handle explicit resetting in the onChange handler)
+    const handler = setTimeout(() => {
+      fetchUsers();
+    }, 300); // 300ms debounce
+    return () => clearTimeout(handler);
+  }, [fetchUsers]);
+
+  // Reset to first page when search or status filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  // ✅ WebSocket-based Real-Time Triggers
+  useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     if (!backendUrl) return;
 
@@ -209,119 +261,21 @@ export default function AllUsersTable() {
       console.log("✅ Connected to WebSocket:", socket.id);
     });
 
-    socket.on("users:update", (data) => {
-      console.log("📡 Received users:update:", data);
-      if (Array.isArray(data?.approved)) {
-        type BackendUser = {
-          _id: string;
-          fullName: string;
-          email: string;
-          mobile?: string;
-          createdAt?: string;
-          lastLoginAt?: string;
-        };
-        const formatted = data.approved.map((u: BackendUser) => ({
-          _id: u._id,
-          fullName: u.fullName,
-          email: u.email,
-          mobile: u.mobile || "N/A",
-          status: "Active",
-          registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
-          lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
-            ? u.lastLoginAt
-            : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
-        }));
-        setUsers(formatted);
-        // Fetch wallet balances for these users
-        fetchWalletBalances(formatted);
-      }
-      setLoading(false);
+    socket.on("users:update", () => {
+      console.log("📡 Received users:update, refetching current page...");
+      fetchUsers();
     });
 
     socket.on("disconnect", (reason) => {
       console.warn("❌ WebSocket disconnected:", reason);
     });
 
-    // ✅ Parallel API call (no delay)
-    let fallbackCalled = false;
-    const fallbackFetch = async () => {
-      if (fallbackCalled) return;
-      fallbackCalled = true;
-      try {
-        const res = await apiAdmin.get("/api/admin/panel/all-users", {
-          headers: { "Cache-Control": "no-store" },
-        });
-        // Fallback API mapping:
-        if (Array.isArray(res.data)) {
-          type ApiUser = {
-            _id: string;
-            fullName: string;
-            email: string;
-            mobile?: string;
-            status?: "Active" | "Inactive" | "Blocked";
-            createdAt?: string;
-            lastLoginAt?: string;
-          };
-          const formatted = (res.data as ApiUser[]).map((u) => ({
-            _id: u._id,
-            fullName: u.fullName,
-            email: u.email,
-            mobile: u.mobile || "N/A",
-            status: u.status || "Active",
-            registrationDate: u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A",
-            lastLogin: u.lastLoginAt && !isNaN(new Date(u.lastLoginAt).getTime())
-              ? u.lastLoginAt
-              : (u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? u.createdAt : "N/A"),
-          }));
-          setUsers(formatted);
-          // Fetch wallet balances for these users
-          fetchWalletBalances(formatted);
-        } else {
-          setUsers([]);
-        }
-      } catch (err) {
-        console.error("❌ Fallback API failed:", err);
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // If no users:update event in 500ms, fetch via API
-    const fallbackTimer = setTimeout(fallbackFetch, 500);
-
     return () => {
       socket.off("users:update");
       socket.off("connect");
       socket.off("disconnect");
-      clearTimeout(fallbackTimer);
     };
-  }, []);
-
-  // Fetch wallet balances for users
-  const fetchWalletBalances = async (userList: AllUser[]) => {
-    try {
-      const res = await apiAdmin.get('/api/wallet/all-balances', {
-        params: { limit: userList.length, page: 1 },
-      });
-      interface WalletBalance {
-        userId: string;
-        balance: number;
-      }
-      if (Array.isArray(res.data.balances)) {
-        const balancesMap: Record<string, number> = {};
-        res.data.balances.forEach((b: WalletBalance) => {
-          balancesMap[b.userId] = b.balance;
-        });
-        setWalletBalances(balancesMap);
-        setUsers((prev) => prev.map(u => ({ ...u, walletBalance: balancesMap[u._id] ?? 0 })));
-      }
-    } catch (err) {
-      console.error('❌ Failed to fetch wallet balances:', err);
-    }
-  };
-
-
+  }, [fetchUsers]);
 
   // ...rest of your table rendering logic (search, filter, actions, modals, etc.)
   const formatDate = (dateString: string) => {
@@ -349,33 +303,18 @@ export default function AllUsersTable() {
     });
   };
 
-  // ✅ Search + Filter
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.mobile && user.mobile.includes(searchQuery));
-
-    const matchesStatus =
-      statusFilter === "All" || user.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
   // ✅ Export Functions
   const handleExportPDF = () => {
-    exportToPDF(filteredUsers, "users");
+    exportToPDF(users, "users");
   };
 
-
   const handleExportExcel = () => {
-    exportToExcel(filteredUsers, "users");
+    exportToExcel(users, "users");
   };
 
   const handleExportJSON = () => {
-    exportToJSON(filteredUsers, "users");
+    exportToJSON(users, "users");
   };
-
 
   const handleActionClick = (userId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -475,12 +414,11 @@ export default function AllUsersTable() {
     }
   };
 
-
   // ✅ Helper to get badge classes based on status
   const getStatusClasses = (status: AllUser["status"]) => {
-    if (status === "Active") return "bg-green-600 text-white";
-    if (status === "Blocked") return "bg-red-600 text-white";
-    return "bg-gray-300 text-gray-700"; // Inactive or anything else
+    if (status === "Active") return "bg-green-50 text-green-700 border border-green-100/50";
+    if (status === "Blocked") return "bg-red-50 text-red-700 border border-red-100/50";
+    return "bg-slate-50 text-slate-600 border border-slate-100";
   };
 
   return (
@@ -498,79 +436,82 @@ export default function AllUsersTable() {
       )}
 
       {/* Search + Filter */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
+      <div className="bg-white rounded-xl p-4 sm:p-5 border border-gray-200 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="flex-1 relative group">
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 w-4.5 h-4.5 group-focus-within:text-[#253A7B] transition-colors" />
             <input
               type="text"
               placeholder="Search by name, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300"
+              className="w-full pl-11 pr-4 py-2.5 text-sm border border-gray-100 bg-gray-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100/50 focus:border-[#253A7B]/30 transition-all outline-none"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="text-gray-900 w-5 h-5" />
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value as "All" | "Active" | "Inactive" | "Blocked"
-                )
-              }
-              className="px-3 sm:px-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 w-full sm:w-auto"
-            >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Blocked">Blocked</option>
-            </select>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value as "All" | "Active" | "Inactive" | "Blocked"
+                  )
+                }
+                className="pl-9 pr-8 py-2.5 text-sm border border-gray-100 bg-gray-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100/50 focus:border-[#253A7B]/30 transition-all outline-none appearance-none cursor-pointer w-full sm:w-auto font-medium text-gray-600"
+              >
+                <option value="All">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Blocked">Blocked</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Loading users...</p>
+          <div className="text-center py-20 bg-gray-50/10">
+            <div className="inline-block w-8 h-8 border-4 border-blue-50 border-t-blue-600 rounded-full animate-spin mb-4" />
+            <p className="text-gray-500 font-medium">Loading users...</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <thead className="bg-[#F9FAFB]/80 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                     User Name
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                     Email
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                     Phone
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                     Registration
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
                     Last Login
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                    Wallet Balance
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
+                    Wallet
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] pr-10">
                     Actions
                   </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {filteredUsers.map((user) => (
+                {users.map((user) => (
                   <tr
                     key={user._id}
                     className="hover:bg-gray-50/50 transition-all duration-300"
@@ -624,12 +565,13 @@ export default function AllUsersTable() {
                         ₹{user.walletBalance ?? 0}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right pr-6">
                       <button
                         onClick={(e) => handleActionClick(user._id, e)}
-                        className="px-3 py-1 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+                        className="p-2 text-gray-400 hover:text-[#253A7B] hover:bg-blue-50 rounded-lg transition-all"
+                        title="Actions"
                       >
-                        Actions
+                        <Edit className="w-4.5 h-4.5" />
                       </button>
                     </td>
                   </tr>
@@ -637,9 +579,34 @@ export default function AllUsersTable() {
               </tbody>
             </table>
 
-            {filteredUsers.length === 0 && (
+            {users.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-500">No users found</p>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <p className="text-sm text-gray-500">
+                  Showing <span className="font-medium">{(currentPage - 1) * rowsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * rowsPerPage, totalCount)}</span> of <span className="font-medium">{totalCount}</span> users
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -652,56 +619,83 @@ export default function AllUsersTable() {
           <div className="text-center py-8">
             <p className="text-gray-500 text-sm">Loading users...</p>
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500 text-sm">No users found</p>
           </div>
         ) : (
-          filteredUsers.map((user) => (
-            <div
-              key={user._id}
-              className="bg-white p-4 rounded-2xl shadow border border-gray-200 overflow-hidden"
-            >
-              <div className="flex justify-between items-start gap-3">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-md shrink-0">
-                    <span className="text-gray-900 font-semibold">
-                      {user.fullName.charAt(0).toUpperCase()}
-                    </span>
+          <>
+            {users.map((user) => (
+              <div
+                key={user._id}
+                className="bg-white p-4 rounded-2xl shadow border border-gray-200 overflow-hidden"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-md shrink-0">
+                      <span className="text-gray-900 font-semibold">
+                        {user.fullName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">
+                        {user.fullName}
+                      </p>
+                      <p className="text-sm text-gray-600 truncate">{user.email}</p>
+                      <p className="text-sm text-gray-600 truncate">
+                        {user.mobile || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">
-                      {user.fullName}
-                    </p>
-                    <p className="text-sm text-gray-600 truncate">{user.email}</p>
-                    <p className="text-sm text-gray-600 truncate">
-                      {user.mobile || "N/A"}
-                    </p>
-                  </div>
+
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap shrink-0 ${getStatusClasses(
+                      user.status
+                    )}`}
+                  >
+                    {user.status}
+                  </span>
                 </div>
 
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap shrink-0 ${getStatusClasses(
-                    user.status
-                  )}`}
+                <div className="flex justify-between mt-3 text-xs text-gray-500">
+                  <span className="truncate">Reg: {formatDate(user.registrationDate)}</span>
+                  <span className="truncate">Last: {formatDateTime(user.lastLogin)}</span>
+                </div>
+
+                <button
+                  onClick={(e) => handleActionClick(user._id, e)}
+                  className="mt-3 w-full px-3 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-xl shadow-md transition-all"
                 >
-                  {user.status}
-                </span>
+                  Actions
+                </button>
               </div>
-
-              <div className="flex justify-between mt-3 text-xs text-gray-500">
-                <span className="truncate">Reg: {formatDate(user.registrationDate)}</span>
-                <span className="truncate">Last: {formatDateTime(user.lastLogin)}</span>
+            ))}
+            
+            {/* Mobile Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col gap-3 py-4 border-t border-gray-200 mt-4">
+                <p className="text-xs text-center text-gray-500">
+                  Showing <span className="font-medium">{(currentPage - 1) * rowsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * rowsPerPage, totalCount)}</span> of <span className="font-medium">{totalCount}</span>
+                </p>
+                <div className="flex justify-between gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
-
-              <button
-                onClick={(e) => handleActionClick(user._id, e)}
-                className="mt-3 w-full px-3 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-black rounded-xl shadow-md transition-all"
-              >
-                Actions
-              </button>
-            </div>
-          ))
+            )}
+          </>
         )}
       </div>
 
@@ -768,42 +762,46 @@ export default function AllUsersTable() {
         </>
       )}
 
-      {/* Export */}
-      <div className="bg-white rounded-2xl p-6 border border-blue-200 shadow-lg">
-        <h3 className="text-sm font-semibold text-[#253A7B] mb-4">
-          Export Users Data
-        </h3>
+      {/* Export Section */}
+      <div className="bg-[#F9FAFB]/50 rounded-xl p-6 border border-gray-200/60 transition-all">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
+              <Download className="w-4 h-4 text-[#253A7B]" />
+              Data Intelligence & Export
+            </h3>
+            <p className="text-xs text-gray-500">
+              Download your filtered user results for deep analysis and offline reporting.
+            </p>
+          </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 hover:shadow-lg transition-all duration-300"
-          >
-            <Download className="w-4 h-4" />
-            Export to PDF
-          </button>
-
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-xl hover:bg-gray-800 hover:shadow-lg transition-all duration-300"
-          >
-            <Download className="w-4 h-4" />
-            Export to Excel
-          </button>
-
-          <button
-            onClick={handleExportJSON}
-            className="flex items-center gap-2 px-4 py-2 bg-[#253A7B] text-white rounded-xl hover:bg-[#1e2f63] hover:shadow-lg transition-all duration-300"
-          >
-            <Download className="w-4 h-4" />
-            Export to JSON
-          </button>
-
+          <div className="flex flex-wrap gap-2.5">
+            {[
+              { label: 'Excel (XLSX)', icon: Download, color: 'bg-emerald-600', shadow: 'shadow-emerald-200', action: handleExportExcel },
+              { label: 'PDF Report', icon: Download, color: 'bg-rose-600', shadow: 'shadow-rose-200', action: handleExportPDF },
+              { label: 'Raw JSON', icon: Download, color: 'bg-[#253A7B]', shadow: 'shadow-blue-200', action: handleExportJSON }
+            ].map((btn) => (
+              <button
+                key={btn.label}
+                onClick={btn.action}
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold text-white rounded-lg hover:brightness-110 active:scale-95 transition-all shadow-md ${btn.color} ${btn.shadow}`}
+              >
+                <btn.icon className="w-3.5 h-3.5" />
+                {btn.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <p className="text-xs text-gray-500 mt-3">
-          Showing {filteredUsers.length} of {users.length} users
-        </p>
+        <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-between">
+           <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
+            Showing {users.length} matching users out of {totalCount} total records
+          </p>
+          <div className="flex items-center gap-2">
+             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+             <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">System Synchronized</span>
+          </div>
+        </div>
       </div>
     </div>
   );

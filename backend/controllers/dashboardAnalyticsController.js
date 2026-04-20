@@ -1,14 +1,19 @@
 
-// Dashboard Analytics Controller
-// import { connectDB, dbHealth, logger } from '../config/db.js';
 import Category from '../models/Category.js';
 import Quiz from '../models/Quiz.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import Transaction from '../models/Transaction.js';
 import QuizActivityLog from '../models/QuizActivityLog.js';
+import ActivityLog from '../models/ActivityLog.js';
+import User from '../models/User.js';
+import Admin from '../models/Admin.js';
+import Group from '../models/Group.js';
+import redis from '../utils/redis.js';
+import { emitAnalyticsUpdate, emitLiveUserStats } from '../utils/emmiters.js';
+import { buildDashboardStats, emitDashboardStats } from '../utils/dashboardTelemetry.js';
+import mongoose from 'mongoose';
 
 
-// Example: You should replace these with real DB queries
 const getDailyRevenue = async (req, res) => {
   try {
     const days = [];
@@ -40,8 +45,6 @@ const getDailyRevenue = async (req, res) => {
 
 const getQuizCompletion = async (req, res) => {
   try {
-    // QuizAttempt already imported above
-    // Use aggregation for accurate counts
     const agg = await QuizAttempt.aggregate([
       {
         $group: {
@@ -67,10 +70,7 @@ const getQuizCompletion = async (req, res) => {
 
 const getCategoryParticipation = async (req, res) => {
   try {
-    // 1. Get all categories
     const categories = await Category.find().lean();
-
-    // 2. Get all quizzes, grouped by category
     const quizzes = await Quiz.find().lean();
     const quizMap = {};
     quizzes.forEach(q => {
@@ -79,10 +79,7 @@ const getCategoryParticipation = async (req, res) => {
       quizMap[catId].push(q._id.toString());
     });
 
-    // 3. Get all quiz attempts
     const attempts = await QuizAttempt.find().lean();
-
-    // 4. Build result for each category
     const palette = [
       '#a78bfa', '#f472b6', '#facc15', '#34d399', '#60a5fa', '#fb7185', '#fbbf24', '#10b981'
     ];
@@ -103,11 +100,8 @@ const getCategoryParticipation = async (req, res) => {
         };
       }
 
-      // All attempts for quizzes in this category
       const attemptsInCat = attempts.filter(a => quizzesInCat.includes(a.quizId?.toString()));
-      // Unique participants
       const uniqueParticipants = new Set(attemptsInCat.map(a => a.userId?.toString()));
-      // Total enrollments (sum of all quizzes' enrollments)
       const totalEnroll = quizzes
         .filter(q => q.category?.toString() === catId)
         .reduce((sum, q) => sum + (q.enrolledUsers?.length || 0), 0);
@@ -134,9 +128,8 @@ const getTopUsers = async (req, res) => {
     const { quizId, limit = 5 } = req.query;
     if (!quizId) return res.status(400).json({ message: 'quizId required' });
 
-    // Aggregate top performers by average percentage
     const top = await QuizAttempt.aggregate([
-      { $match: { quizId: (await import('mongoose')).default.Types.ObjectId(quizId), status: 'submitted' } },
+      { $match: { quizId: new mongoose.Types.ObjectId(quizId), status: 'submitted' } },
       {
         $group: {
           _id: '$userId',
@@ -174,21 +167,20 @@ const getTopUsers = async (req, res) => {
 const getUpcomingQuizzes = async (req, res) => {
   try {
     const now = new Date();
-    // Find published quizzes with startAt in the future
     const quizzes = await Quiz.find({
       status: 'published',
       startAt: { $gt: now }
     })
       .sort({ startAt: 1 })
-      .limit(10)
-      .select('_id quizTitle startAt');
+      .limit(10);
 
-    // Format for frontend
     const upcomingQuizzes = quizzes.map(q => ({
       id: q._id,
       title: q.quizTitle,
       date: q.startAt,
-      time: q.startAt ? q.startAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : undefined
+      time: q.startAt ? q.startAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : undefined,
+      pricingType: q.pricingType,
+      visibility: q.visibility,
     }));
 
     res.json({ upcomingQuizzes });
@@ -198,17 +190,12 @@ const getUpcomingQuizzes = async (req, res) => {
   }
 };
 
-// Only quiz-related admin actions from QuizActivityLog
 const getRecentQuizAdminActions = async (req, res) => {
   try {
     let logs = await QuizActivityLog.find({})
       .sort({ createdAt: -1 })
       .limit(20)
       .populate('adminId', 'fullName email');
-
-    if (!logs.length) {
-      return res.json({ actions: [] });
-    }
 
     const actions = logs.map(log => ({
       admin: log.adminId?.fullName || log.adminId?.email || 'Admin',
@@ -224,7 +211,6 @@ const getRecentQuizAdminActions = async (req, res) => {
   }
 };
 
-// Helper to format time ago
 function timeAgo(date) {
   const now = new Date();
   const seconds = Math.floor((now.getTime() - new Date(date).getTime()) / 1000);
@@ -239,12 +225,10 @@ function timeAgo(date) {
 
 const getTodayRevenue = async (req, res) => {
   try {
-    // Calculate today's revenue
     const now = new Date();
     const startOfToday = new Date(now.setHours(0, 0, 0, 0));
     const endOfToday = new Date(now.setHours(23, 59, 59, 999));
 
-    // Revenue for today
     const todayAgg = await Transaction.aggregate([
       {
         $match: {
@@ -256,7 +240,6 @@ const getTodayRevenue = async (req, res) => {
     ]);
     const todayRevenue = todayAgg[0]?.sum || 0;
 
-    // Revenue for yesterday
     const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
     const endOfYesterday = new Date(startOfToday.getTime() - 1);
     const yesterdayAgg = await Transaction.aggregate([
@@ -270,7 +253,6 @@ const getTodayRevenue = async (req, res) => {
     ]);
     const yesterdayRevenue = yesterdayAgg[0]?.sum || 0;
 
-    // Calculate percentage increase
     let percentageIncrease = 0;
     if (yesterdayRevenue > 0) {
       percentageIncrease = Math.round(((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100);
@@ -278,7 +260,6 @@ const getTodayRevenue = async (req, res) => {
       percentageIncrease = 100;
     }
 
-    // Sparkline: revenue for each hour of today
     const sparkline = [];
     for (let h = 0; h < 24; h++) {
       const hourStart = new Date(startOfToday.getTime() + h * 60 * 60 * 1000);
@@ -303,15 +284,8 @@ const getTodayRevenue = async (req, res) => {
 
 const getQuizAdminDashboard = async (req, res) => {
   try {
-    // Quiz and QuizAttempt already imported above
-
-    // Total quizzes
     const totalQuizzes = await Quiz.countDocuments();
-
-    // Total attempts
     const totalAttempts = await QuizAttempt.countDocuments();
-
-    // Active quizzes (status: published, startAt <= now, endAt >= now)
     const now = new Date();
     const activeQuizzes = await Quiz.countDocuments({
       status: 'published',
@@ -319,7 +293,6 @@ const getQuizAdminDashboard = async (req, res) => {
       endAt: { $gte: now }
     });
 
-    // Most attempted quiz
     const mostAttempted = await QuizAttempt.aggregate([
       { $group: { _id: '$quizId', attempts: { $sum: 1 } } },
       { $sort: { attempts: -1 } },
@@ -334,14 +307,12 @@ const getQuizAdminDashboard = async (req, res) => {
       };
     }
 
-    // Quizzes today
     const startOfDay = new Date(now.setHours(0, 0, 0, 0));
     const endOfDay = new Date(now.setHours(23, 59, 59, 999));
     const quizzesToday = await Quiz.countDocuments({
       createdAt: { $gte: startOfDay, $lte: endOfDay }
     });
 
-    // Avg attempts per quiz
     const avgAttemptsPerQuiz = totalQuizzes > 0 ? (totalAttempts / totalQuizzes) : 0;
 
     res.json({
@@ -357,7 +328,6 @@ const getQuizAdminDashboard = async (req, res) => {
   }
 };
 
-// Active Quizzes for dashboard widget
 const getActiveQuizzes = async (req, res) => {
   try {
     const now = new Date();
@@ -374,7 +344,6 @@ const getActiveQuizzes = async (req, res) => {
 
 const getTopUsersCardData = async (req, res) => {
   try {
-    // Get top 5 users by total score (sum of all quiz attempts)
     const agg = await QuizAttempt.aggregate([
       { $match: { status: 'submitted' } },
       {
@@ -402,7 +371,6 @@ const getTopUsersCardData = async (req, res) => {
         }
       }
     ]);
-    // Fallback avatar if missing
     const topUsers = agg.map(u => ({
       name: u.name || 'User',
       score: u.score || 0,
@@ -411,6 +379,220 @@ const getTopUsersCardData = async (req, res) => {
     res.json({ topUsers });
   } catch (err) {
     res.status(500).json({ topUsers: [] });
+  }
+};
+
+const getConversionFunnel = async (req, res) => {
+  try {
+    const [signups, approvedUsers, paidEnrollments] = await Promise.all([
+      User.countDocuments({}),
+      User.countDocuments({ status: 'approved' }),
+      User.countDocuments({ isPaidUser: true }),
+    ]);
+
+    // Approximate landing visits as Signups * 2.5 until proper tracker is added
+    const landingVisits = Math.round(signups * 2.5);
+
+    res.json({
+      landingVisits,
+      signups,
+      approvedUsers,
+      paidEnrollments
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching funnel' });
+  }
+};
+
+const getPrivateGroupsHealth = async (req, res) => {
+  try {
+    const groups = await Group.find().lean();
+    const totalGroups = groups.length;
+    const totalMembers = groups.reduce((acc, g) => acc + (g.members?.length || 0), 0);
+
+    const groupDetails = await Promise.all(groups.map(async (g) => {
+      const attempts = await QuizAttempt.countDocuments({ userId: { $in: g.members } });
+      const completed = await QuizAttempt.countDocuments({ userId: { $in: g.members }, status: 'submitted' });
+      const completionRate = attempts > 0 ? Math.round((completed / attempts) * 100) : 0;
+      return {
+        name: g.name,
+        members: g.members?.length || 0,
+        completionRate
+      };
+    }));
+
+    const avgCompletion = groupDetails.length > 0 
+      ? Math.round(groupDetails.reduce((acc, g) => acc + g.completionRate, 0) / groupDetails.length)
+      : 0;
+
+    res.json({
+      totalGroups,
+      totalMembers,
+      avgCompletion,
+      groups: groupDetails.sort((a, b) => b.members - a.members)
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching group health' });
+  }
+};
+
+const getPlatformPulse = async (req, res) => {
+  try {
+    const logs = await ActivityLog.find()
+      .sort({ createdAt: -1 })
+      .limit(15)
+      .lean();
+
+    const activities = await Promise.all(logs.map(async (log) => {
+      let userName = 'System';
+      try {
+        if (log.actorId) {
+          // Map 'admin'/'user' actorType string to actual 'Admin'/'User' model names
+          const modelName = log.actorType === 'admin' ? 'Admin' : 'User';
+          const Model = mongoose.model(modelName);
+          const actor = await Model.findById(log.actorId).select('fullName email username').lean();
+          userName = actor?.fullName || actor?.username || actor?.email || 'Unknown';
+        }
+      } catch (e) {
+        console.error("Pulse user fetch error:", e);
+      }
+
+      return {
+        _id: log._id.toString(),
+        type: log.action.includes('approve') ? 'approval' :
+              log.action.includes('reject') ? 'rejection' :
+              log.action.includes('payment') || log.action.includes('transaction') ? 'payment' :
+              log.action.includes('signup') || log.action.includes('register') ? 'enrollment' : 'system',
+        user: userName,
+        detail: log.action.replace(/_/g, ' '),
+        timestamp: log.createdAt
+      };
+    }));
+
+    res.json({ activities });
+  } catch (err) {
+    console.error("❌ getPlatformPulse error:", err);
+    res.status(500).json({ activities: [], message: 'Pulse aggregation failed' });
+  }
+};
+
+const getUserGrowthData = async (req, res) => {
+  try {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
+    const cacheKey = `dashboard:userGrowth:${year}-${month + 1}`;
+
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
+    const results = await User.aggregate([
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const resultMap = Object.fromEntries(results.map(r => [r._id, r.count]));
+    const labels = [];
+    const values = [];
+    for (let i = 1; i <= endDate.getDate(); i++) {
+      const date = new Date(year, month, i);
+      const isoDate = date.toISOString().split('T')[0];
+      labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      values.push(resultMap[isoDate] || 0);
+    }
+
+    const payload = { labels, values };
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
+    return res.json(payload);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const getLiveUsers = async (req, res) => {
+  try {
+    const liveUserCount = await redis.scard('liveUsers');
+    await redis.lpush('liveUserSparkline', liveUserCount);
+    await redis.ltrim('liveUserSparkline', 0, 19);
+    const sparklineRaw = await redis.lrange('liveUserSparkline', 0, -1);
+    const sparkline = sparklineRaw.map(Number).reverse();
+
+    return res.json({ liveUsers: liveUserCount, sparkline });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch live users' });
+  }
+};
+
+const getDashboardStats = async (req, res) => {
+  try {
+    const cached = await redis.get("dashboard:stats");
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
+    const [
+      totalUsers,
+      activeUsers,
+      pendingApprovals,
+      totalRevenueAgg,
+      totalPaidUsers,
+      freeQuizAttemptsAgg,
+    ] = await Promise.all([
+      User.countDocuments({}),
+      User.countDocuments({ status: "approved" }),
+      User.countDocuments({ status: "awaiting_admin_approval" }),
+      User.aggregate([{ $group: { _id: null, total: { $sum: "$totalSpent" } } }]),
+      User.countDocuments({ isPaidUser: true }),
+      User.aggregate([{ $group: { _id: null, total: { $sum: "$freeQuizAttempts" } } }]),
+    ]);
+
+    const stats = {
+      totalUsers,
+      activeUsers,
+      pendingApprovals,
+      totalRevenue: (Array.isArray(totalRevenueAgg) && totalRevenueAgg[0]?.total) || 0,
+      totalPaidUsers,
+      freeQuizAttempts: (Array.isArray(freeQuizAttemptsAgg) && freeQuizAttemptsAgg[0]?.total) || 0,
+    };
+
+    await redis.set("dashboard:stats", JSON.stringify(stats), "EX", 60);
+    return res.json(stats);
+  } catch (err) {
+    console.error("❌ getDashboardStats error:", err);
+    return res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+  }
+};
+
+const getMonthlyUsers = async (req, res) => {
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const startOfCurrentMonth = new Date(year, month, 1);
+    const startOfLastMonth = new Date(year, month - 1, 1);
+    const endOfLastMonth = new Date(year, month, 0);
+    const cacheKey = `dashboard:monthlyUsers:${year}-${month + 1}`;
+
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return res.json(JSON.parse(cached));
+    }
+
+    const [currentMonthCount, lastMonthCount] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: startOfCurrentMonth } }),
+      User.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+    ]);
+
+    const payload = { currentMonth: currentMonthCount, lastMonth: lastMonthCount };
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 3600);
+    return res.json(payload);
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -425,4 +607,13 @@ export {
   getTodayRevenue,
   getQuizAdminDashboard,
   getActiveQuizzes,
+  getConversionFunnel,
+  getPrivateGroupsHealth,
+  getPlatformPulse,
+  getUserGrowthData,
+  getLiveUsers,
+  getDashboardStats,
+  getMonthlyUsers,
+  emitDashboardStats,
+  buildDashboardStats
 };

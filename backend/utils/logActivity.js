@@ -1,5 +1,6 @@
 import ActivityLog from '../models/ActivityLog.js';
 import getDeviceInfo from './getDeviceInfo.js';
+import geoip from 'geoip-lite';
 
 const logActivity = async function ({
   req,
@@ -9,18 +10,28 @@ const logActivity = async function ({
   meta = {}
 }) {
   try {
-    const ip =
-      req?.headers?.['x-forwarded-for'] ||
-      req?.socket?.remoteAddress ||
-      'unknown';
+    const ipHeader = req?.headers?.['x-forwarded-for'];
+    const ip = ipHeader ? ipHeader.split(',')[0].trim() : req?.socket?.remoteAddress || 'unknown';
 
     const device = getDeviceInfo(req);
+
+    // ✅ Resolve Location
+    let location = 'Unknown';
+    if (ip && ip !== 'unknown' && ip !== '::1' && ip !== '127.0.0.1') {
+      const geo = geoip.lookup(ip);
+      if (geo) {
+        location = `${geo.city || 'Unknown City'}, ${geo.country || 'Unknown Country'}`;
+      }
+    } else if (ip === '::1' || ip === '127.0.0.1') {
+      location = 'Localhost';
+    }
 
     await ActivityLog.create({
       actorType,
       actorId,
       action,
       ip,
+      location,
       device,
       userAgent: req?.headers?.['user-agent'] || 'unknown',
       meta

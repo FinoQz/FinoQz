@@ -24,9 +24,7 @@ interface ReportsTableProps {
   onToggleSelectAll: () => void;
   onViewAttempt: (id: string) => void;
   onDownloadScorecard: (id: string) => void;
-  onRegrade: (id: string) => void;
   onBulkExport: () => void;
-  onBulkRegrade: () => void;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -39,9 +37,7 @@ export default function ReportsTable({
   onToggleSelectAll,
   onViewAttempt,
   onDownloadScorecard,
-  onRegrade,
   onBulkExport,
-  onBulkRegrade,
   currentPage,
   totalPages,
   onPageChange
@@ -63,13 +59,6 @@ export default function ReportsTable({
             >
               <Download className="w-4 h-4" />
               Export Selected
-            </button>
-            <button
-              onClick={onBulkRegrade}
-              className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium flex items-center gap-1"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Regrade Selected
             </button>
           </div>
         </div>
@@ -153,13 +142,6 @@ export default function ReportsTable({
                       title="Download Scorecard"
                     >
                       <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onRegrade(attempt.id)}
-                      className="p-1.5 text-gray-600 hover:text-[#253A7B] hover:bg-gray-100 rounded transition"
-                      title="Regrade"
-                    >
-                      <RefreshCw className="w-4 h-4" />
                     </button>
                   </div>
                 </td>

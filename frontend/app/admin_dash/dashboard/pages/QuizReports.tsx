@@ -7,8 +7,7 @@ import KpiCard from '../components/reports/KpiCard';
 import FiltersBar from '../components/reports/FiltersBar';
 import ReportsTable from '../components/reports/ReportsTable';
 import AttemptModal from '../components/reports/AttemptModal';
-import QuestionStats from '../components/reports/QuestionStats';
-import Leaderboard from '../components/reports/Leaderboard';
+import QuizPerformanceCharts from '../components/reports/QuizPerformanceCharts';
 import ExportControls from '../components/reports/ExportControls';
 import ScheduleReportModal, { ScheduleConfig } from '../components/reports/ScheduleReportModal';
 import Toast from '../components/reports/Toast';
@@ -18,6 +17,7 @@ interface QuizAttempt {
   _id: string;
   userId: {
     _id: string;
+    fullName?: string;
     name: string;
     email: string;
   };
@@ -51,12 +51,51 @@ interface AttemptStats {
   avgTimeTaken?: number;
 }
 
-interface AttemptsResponse {
-  attempts: QuizAttempt[];
-  totalPages: number;
-  currentPage: number;
-  total: number;
-  stats: AttemptStats;
+interface QuizStat {
+  quizId: string;
+  quizTitle: string;
+  category?: string;
+  totalAttempts: number;
+  avgPercentage: number;
+  totalRevenue?: number;
+}
+
+interface Category {
+  _id: string;
+  name: string;
+}
+
+interface CategoriesResponse {
+  data: Category[];
+}
+
+interface AttemptAnalysisQuestion {
+  questionId: string;
+  text: string;
+  selectedAnswer?: string | string[];
+  correctAnswer?: string | string[];
+  isCorrect: boolean;
+  marksAwarded: number;
+  maxMarks: number;
+}
+
+interface AttemptAnalysisResponse {
+  attemptId: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  quiz: {
+    title: string;
+    totalMarks: number;
+  };
+  summary: {
+    submittedAt?: string;
+    score: number;
+    percentage: number;
+    timeTaken: number;
+  };
+  questions: AttemptAnalysisQuestion[];
 }
 
 export default function QuizReports() {
@@ -113,6 +152,25 @@ export default function QuizReports() {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<AttemptStats | null>(null);
   const [totalPages, setTotalPages] = useState(1);
+  const [quizStats, setQuizStats] = useState<QuizStat[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // Fetch quiz statistics and categories for overview
+  useEffect(() => {
+    const fetchDashboards = async () => {
+      try {
+        const [statsRes, catRes] = await Promise.all([
+          apiAdmin.get<QuizStat[]>('/api/analytics/quiz-stats'),
+          apiAdmin.get<CategoriesResponse>('/api/categories')
+        ]);
+        setQuizStats(statsRes.data || []);
+        setCategories(catRes.data?.data || []);
+      } catch (err) {
+        console.error('Failed to fetch quiz stats for overview', err);
+      }
+    };
+    fetchDashboards();
+  }, []);
 
   // Fetch quiz attempts from backend
   useEffect(() => {
@@ -146,7 +204,7 @@ export default function QuizReports() {
           const statusLabel = getStatusLabel(attempt.status, attempt.percentage);
           return {
             id: attempt._id,
-            userName: attempt.userId?.name || 'Unknown User',
+            userName: attempt.userId?.fullName || attempt.userId?.name || 'Unknown User',
             email: attempt.userId?.email || '',
             quizTitle: attempt.quizId?.title || 'Unknown Quiz',
             attemptDate: formatDateTime(attempt.submittedAt || attempt.startedAt),
@@ -210,78 +268,6 @@ export default function QuizReports() {
     avgTimeTaken: stats?.avgTimeTaken ? formatTimeTaken(Math.round(stats.avgTimeTaken)) : 'N/A'
   };
 
-  const scoreDistribution = [
-    { range: '0-20%', count: 45 },
-    { range: '21-40%', count: 89 },
-    { range: '41-60%', count: 234 },
-    { range: '61-80%', count: 567 },
-    { range: '81-100%', count: 308 }
-  ];
-
-  const questionAccuracy = [
-    { question: 'What is compound interest?', accuracy: 92 },
-    { question: 'Calculate NPV for given cash flows', accuracy: 68 },
-    { question: 'Define bear market', accuracy: 85 },
-    { question: 'Balance sheet equation', accuracy: 45 },
-    { question: 'Stock valuation methods', accuracy: 71 }
-  ];
-
-  const mostMissedQuestions = [
-    { question: 'Balance sheet equation and its components', missRate: 55 },
-    { question: 'Calculate NPV for given cash flows', missRate: 52 },
-    { question: 'Differences between FIFO and LIFO', missRate: 48 },
-    { question: 'Understanding depreciation methods', missRate: 45 },
-    { question: 'Debt to equity ratio calculation', missRate: 42 }
-  ];
-
-  const topPerformers = [
-    {
-      id: '1',
-      userName: 'Sneha Reddy',
-      avatar: 'SR',
-      score: 45,
-      totalScore: 50,
-      percentage: 90,
-      timeTaken: '15m 25s'
-    },
-    {
-      id: '2',
-      userName: 'Rahul Sharma',
-      avatar: 'RS',
-      score: 42,
-      totalScore: 50,
-      percentage: 84,
-      timeTaken: '18m 45s'
-    },
-    {
-      id: '3',
-      userName: 'Priya Patel',
-      avatar: 'PP',
-      score: 38,
-      totalScore: 50,
-      percentage: 76,
-      timeTaken: '22m 10s'
-    },
-    {
-      id: '4',
-      userName: 'Vikram Singh',
-      avatar: 'VS',
-      score: 31,
-      totalScore: 50,
-      percentage: 62,
-      timeTaken: '28m 50s'
-    },
-    {
-      id: '5',
-      userName: 'Amit Kumar',
-      avatar: 'AK',
-      score: 28,
-      totalScore: 50,
-      percentage: 56,
-      timeTaken: '25m 30s'
-    }
-  ];
-
   const handleToggleSelectAttempt = (id: string) => {
     setSelectedAttempts(prev =>
       prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
@@ -294,71 +280,85 @@ export default function QuizReports() {
     );
   };
 
-  const handleViewAttempt = (_id: string) => {
-    setSelectedAttemptData({
-      userName: 'Rahul Sharma',
-      email: 'rahul.sharma@example.com',
-      quizTitle: 'Financial Management Basics',
-      attemptDate: '2024-11-28 14:32',
-      score: 42,
-      totalScore: 50,
-      percentage: 84,
-      timeTaken: '18m 45s',
-      questions: [
-        {
-          id: 'q1',
-          question: 'What is compound interest?',
-          userAnswer: 'Interest calculated on principal and accumulated interest',
-          correctAnswer: 'Interest calculated on principal and accumulated interest',
-          isCorrect: true,
-          marks: 5,
-          maxMarks: 5
-        },
-        {
-          id: 'q2',
-          question: 'Calculate NPV for given cash flows',
-          userAnswer: '$12,500',
-          correctAnswer: '$15,200',
-          isCorrect: false,
-          marks: 0,
-          maxMarks: 10
-        },
-        {
-          id: 'q3',
-          question: 'Define bear market',
-          userAnswer: 'A market with declining prices over extended period',
-          correctAnswer: 'A market with declining prices over extended period',
-          isCorrect: true,
-          marks: 5,
-          maxMarks: 5
-        }
-      ]
-    });
-    setShowAttemptModal(true);
+  const handleViewAttempt = async (id: string) => {
+    try {
+      const res = await apiAdmin.get<AttemptAnalysisResponse>(`/api/analytics/attempt-analysis/${id}`);
+      const data = res.data;
+      
+      setSelectedAttemptData({
+        id: data.attemptId,
+        userName: data.user.name,
+        email: data.user.email,
+        quizTitle: data.quiz.title,
+        attemptDate: formatDateTime(data.summary.submittedAt || new Date().toISOString()),
+        score: data.summary.score,
+        totalScore: data.quiz.totalMarks,
+        percentage: data.summary.percentage,
+        timeTaken: formatTimeTaken(data.summary.timeTaken),
+        questions: data.questions.map((q) => ({
+          id: q.questionId,
+          question: q.text,
+          userAnswer: Array.isArray(q.selectedAnswer) ? q.selectedAnswer.join(', ') : (q.selectedAnswer || 'Not Answered'),
+          correctAnswer: Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : (q.correctAnswer || 'N/A'),
+          isCorrect: q.isCorrect,
+          marks: q.marksAwarded,
+          maxMarks: q.maxMarks
+        }))
+      });
+      setShowAttemptModal(true);
+    } catch (err) {
+      console.error('Failed to fetch attempt details', err);
+      setToast({ type: 'error', message: 'Failed to load attempt details' });
+    }
+  };
+
+  const generateCSV = (dataToExport: typeof attempts, filename: string) => {
+    const headers = ['Attempt ID', 'Name', 'Email', 'Quiz Title', 'Date', 'Score', 'Total Score', 'Percentage', 'Time Taken', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...dataToExport.map(row => [
+        `"${row.id}"`,
+        `"${row.userName}"`,
+        `"${row.email}"`,
+        `"${row.quizTitle}"`,
+        `"${row.attemptDate}"`,
+        row.score,
+        row.totalScore,
+        `"${row.percentage}%"`,
+        `"${row.timeTaken}"`,
+        `"${row.status}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    setToast({ type: 'success', message: 'Export completed successfully!' });
   };
 
   const handleDownloadScorecard = (id: string) => {
-    setToast({ type: 'success', message: 'Scorecard downloaded successfully!' });
-  };
-
-  const handleRegrade = (id: string) => {
-    setToast({ type: 'success', message: 'Regrading initiated. This may take a few moments.' });
+    const attempt = attempts.find(a => a.id === id);
+    if (attempt) {
+      generateCSV([attempt], `scorecard_${attempt.userName.replace(/\s+/g, '_')}_${attempt.quizTitle.replace(/\s+/g, '_')}.csv`);
+    }
   };
 
   const handleBulkExport = () => {
-    setToast({ type: 'success', message: `Exporting ${selectedAttempts.length} attempts...` });
-  };
-
-  const handleBulkRegrade = () => {
-    setToast({ type: 'success', message: `Regrading ${selectedAttempts.length} attempts...` });
+    const dataToExport = selectedAttempts.length > 0 
+      ? attempts.filter(a => selectedAttempts.includes(a.id))
+      : attempts;
+    generateCSV(dataToExport, `bulk_attempts_export_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const handleExportCSV = () => {
-    setToast({ type: 'success', message: 'CSV export started. Download will begin shortly.' });
+    generateCSV(attempts, `quiz_reports_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const handleExportXLSX = () => {
-    setToast({ type: 'success', message: 'XLSX export started. Download will begin shortly.' });
+    // For simplicity, we trigger CSV here too, just with a different identifier if needed. Real XLSX requires external libs.
+    generateCSV(attempts, `quiz_reports_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const handleApplyFilters = () => {
@@ -379,6 +379,11 @@ export default function QuizReports() {
   const handleScheduleReport = (schedule: ScheduleConfig) => {
     console.log('Scheduling report:', schedule);
     setToast({ type: 'success', message: `Report scheduled ${schedule.frequency}!` });
+  };
+
+  const handleRegrade = (attemptId: string) => {
+    if (!attemptId) return;
+    setToast({ type: 'warning', message: 'Regrade is not implemented yet.' });
   };
 
   return (
@@ -429,6 +434,9 @@ export default function QuizReports() {
         />
       </div>
 
+      {/* Quiz Performance Charts */}
+      {quizStats.length > 0 && <QuizPerformanceCharts data={quizStats} />}
+
       {/* Filters */}
       <FiltersBar
         selectedQuiz={selectedQuiz}
@@ -443,10 +451,50 @@ export default function QuizReports() {
         onSearchChange={setSearchQuery}
         onApply={handleApplyFilters}
         onClear={handleClearFilters}
+        quizzes={quizStats.map(q => ({ id: q.quizId, title: q.quizTitle }))}
       />
+
+      {/* Overview Table: Aggregated by Quiz */}
+      {quizStats.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Category-Wise Quiz Overview</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-600">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-700">
+                <tr>
+                  <th className="px-6 py-3 font-semibold">Quiz Title</th>
+                  <th className="px-6 py-3 font-semibold">Category</th>
+                  <th className="px-6 py-3 font-semibold">Total Attempts</th>
+                  <th className="px-6 py-3 font-semibold">Avg Score</th>
+                  <th className="px-6 py-3 font-semibold text-right">Revenue Generated</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {quizStats.map((qz, idx) => {
+                  const catName = categories.find(c => c._id === qz.category)?.name || 'General';
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-3 font-medium text-gray-900">{qz.quizTitle}</td>
+                      <td className="px-6 py-3">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600">
+                           {catName}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3">{qz.totalAttempts}</td>
+                      <td className="px-6 py-3 font-semibold text-blue-600">{qz.avgPercentage}%</td>
+                      <td className="px-6 py-3 text-right font-medium text-green-600">₹{qz.totalRevenue || 0}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Main Table - Full Width */}
       <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Detailed Attempts Audit</h2>
         {loading ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -475,9 +523,7 @@ export default function QuizReports() {
             onToggleSelectAll={handleToggleSelectAll}
             onViewAttempt={handleViewAttempt}
             onDownloadScorecard={handleDownloadScorecard}
-            onRegrade={handleRegrade}
             onBulkExport={handleBulkExport}
-            onBulkRegrade={handleBulkRegrade}
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
@@ -486,14 +532,7 @@ export default function QuizReports() {
       </div>
 
       {/* Charts & Insights Below Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <QuestionStats
-          scoreDistribution={scoreDistribution}
-          questionAccuracy={questionAccuracy}
-          mostMissedQuestions={mostMissedQuestions}
-        />
-        <Leaderboard topPerformers={topPerformers} />
-      </div>
+
 
       {/* Modals */}
       <AttemptModal
@@ -520,3 +559,4 @@ export default function QuizReports() {
     </div>
   );
 }
+

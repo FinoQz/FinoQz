@@ -2,18 +2,34 @@
 
 import { useState } from "react";
 import { Send, Loader2, CheckCircle2 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function SendEnquiryForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get("name"),
+      email: formData.get("email"),
+      subject: formData.get("subject"),
+      message: formData.get("message"),
+    };
+
+    try {
+      await api.post("api/contact", data);
       setSubmitted(true);
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to send message. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -48,11 +64,18 @@ export default function SendEnquiryForm() {
         Send an Enquiry
       </h2>
 
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="space-y-2">
           <label className="text-sm text-gray-500 ml-1">Full Name</label>
           <input
             type="text"
+            name="name"
             placeholder="John Doe"
             required
             className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-[#253A7B] transition-all placeholder:text-gray-300 text-gray-900 bg-transparent"
@@ -62,6 +85,7 @@ export default function SendEnquiryForm() {
           <label className="text-sm text-gray-500 ml-1">Email Address</label>
           <input
             type="email"
+            name="email"
             placeholder="john@example.com"
             required
             className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-[#253A7B] transition-all placeholder:text-gray-300 text-gray-900 bg-transparent"
@@ -73,6 +97,7 @@ export default function SendEnquiryForm() {
         <label className="text-sm text-gray-500 ml-1">Subject</label>
         <input
           type="text"
+          name="subject"
           placeholder="How can we help you?"
           required
           className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-[#253A7B] transition-all placeholder:text-gray-300 text-gray-900 bg-transparent"
@@ -82,6 +107,7 @@ export default function SendEnquiryForm() {
       <div className="space-y-2 mb-8">
         <label className="text-sm text-gray-500 ml-1">Your Message</label>
         <textarea
+          name="message"
           rows={5}
           placeholder="Tell us more about your enquiry..."
           required

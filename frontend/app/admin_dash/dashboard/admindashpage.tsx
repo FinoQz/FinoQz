@@ -14,6 +14,8 @@ import ActivityLogsPage from './pages/ActivityLogsPage';
 import ReviewManagement from './pages/ReviewManagement';
 import LiveChatAdmin from './pages/LiveChatAdmin';
 import BannerManagement from './pages/BannerManagement';
+import ContactQueries from './pages/ContactQueries';
+import NewsletterSubscribers from './pages/NewsletterSubscribers';
 
 export default function AdminDashPage() {
   const [activePage, setActivePage] = useState('dashboard');
@@ -46,6 +48,10 @@ export default function AdminDashPage() {
         return <LiveChatAdmin />;
       case 'banners':
         return <BannerManagement />;
+      case 'contact':
+        return <ContactQueries />;
+      case 'newsletter':
+        return <NewsletterSubscribers />;
       default:
         return <DashboardOverview />;
     }

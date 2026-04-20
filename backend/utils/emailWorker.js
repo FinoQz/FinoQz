@@ -9,51 +9,38 @@ const isSecure = process.env.REDIS_URL?.startsWith("rediss://");
 
 // Export the job handler as a named export
 export async function handleEmailJob(job) {
+  const { to, subject, html } = job.data;
 
-    // ✅ 1. User Signup Email OTP
-    if (job.name === "userEmailOtp") {
-      const { to, subject, html } = job.data;
+  console.log(`📡 Worker processing [${job.name}] job for:`, to || 'multiple recipients');
 
-      console.log("✅ Worker received USER EMAIL OTP job for:", to);
-
-      if (!to) return console.log("❌ No 'to' field in userEmailOtp job");
-
+  switch (job.name) {
+    case "userEmailOtp":
+    case "sendOtp":
+    case "userLoginOtp":
+    case "userForgotPasswordOtp":
+    case "sendMail":
+    case "userApproved":
+    case "userRejected":
+    case "userAwaitingApproval":
+    case "adminApprovalRequest":
+    case "newUserWelcome":
+    case "contactUsQuery":
+    case "newsletterWelcome":
+    case "adminContactReply":
+      if (!to) {
+        console.log(`❌ No 'to' field in ${job.name} job`);
+        return;
+      }
       try {
         await sendEmail({ to, subject, html });
-        console.log(`✅ User Email OTP sent to ${to}`);
+        console.log(`✅ [${job.name}] Email sent to ${to}`);
       } catch (err) {
-        console.error(`❌ User Email OTP failed to ${to}`, err);
+        console.error(`❌ [${job.name}] Email failed to ${to}`, err);
         throw err;
       }
-      return;
-    }
+      break;
 
-    // ✅ 2. Admin Login OTP
-    if (job.name === "sendOtp") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received ADMIN OTP job for:", to);
-
-      if (!to) return console.log("❌ No 'to' field in sendOtp job");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Admin OTP sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Admin OTP failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ 3. Login Alert Email
-    if (job.name === "loginAlert") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received LOGIN ALERT job for:", to);
-
-      if (!to) return console.log("❌ No 'to' field in loginAlert job");
-
+    case "loginAlert":
       try {
         if (Array.isArray(to)) {
           for (const email of to) {
@@ -68,50 +55,27 @@ export async function handleEmailJob(job) {
         console.error(`❌ Login alert failed`, err);
         throw err;
       }
-      return;
-    }
+      break;
 
-    // ✅ 4. Bulk Email
-    if (job.name === "bulkEmail") {
-      const { recipients, subject, html } = job.data;
-
-      console.log("✅ Worker received BULK EMAIL job");
-
-      if (!Array.isArray(recipients) || recipients.length === 0)
-        return console.log("❌ No recipients found in bulkEmail job");
-
+    case "bulkEmail":
+      const { recipients, attachments } = job.data;
+      if (!Array.isArray(recipients) || recipients.length === 0) {
+        console.log("❌ No recipients found in bulkEmail job");
+        return;
+      }
       for (const email of recipients) {
         if (!email) continue;
         try {
-          await sendEmail({ to: email, subject, html });
-          console.log(`✅ Bulk email sent to ${email}`);
+          await sendEmail({ to: email, subject, html, attachments });
+          console.log(`✅ Bulk email sent to ${email} with ${attachments?.length || 0} attachments`);
         } catch (err) {
           console.error(`❌ Bulk email failed to ${email}`, err);
         }
       }
-      return;
-    }
+      break;
 
-    // ✅ 5. Generic Single Email
-    if (job.name === "sendMail") {
-      const { to, subject, html } = job.data;
-
-      if (!to) return console.log("❌ No 'to' field in sendMail job");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Single email sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Single email failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ Scheduled bulk email (delayed job)
-    if (job.name === "scheduledBulkEmail") {
+    case "scheduledBulkEmail":
       const { scheduledEmailId } = job.data || {};
-
       let scheduledEmail = null;
 
       if (scheduledEmailId && mongoose.Types.ObjectId.isValid(String(scheduledEmailId))) {
@@ -130,7 +94,7 @@ export async function handleEmailJob(job) {
       }
 
       if (!scheduledEmail) {
-        throw new Error(`Scheduled email not found for job ${job.id} (scheduledEmailId=${scheduledEmailId || "N/A"})`);
+        throw new Error(`Scheduled email not found for job ${job.id}`);
       }
 
       if (scheduledEmail.status !== "pending") {
@@ -145,7 +109,18 @@ export async function handleEmailJob(job) {
         throw new Error(`No recipients found for scheduled email ${scheduledEmail._id}`);
       }
 
-      const html = adminBulkEmailTemplate(scheduledEmail.body);
+      const bulkHtml = adminBulkEmailTemplate({ 
+        message: scheduledEmail.body, 
+        heroImage: scheduledEmail.heroImage, 
+        ctaText: scheduledEmail.ctaText, 
+        ctaUrl: scheduledEmail.ctaUrl 
+      });
+
+      const emailAttachments = (scheduledEmail.attachments || []).map(att => ({
+        filename: att.filename,
+        path: att.path,
+        contentType: att.contentType
+      }));
 
       try {
         for (const email of scheduledEmail.recipientEmails || []) {
@@ -153,9 +128,10 @@ export async function handleEmailJob(job) {
           await sendEmail({
             to: email,
             subject: scheduledEmail.subject,
-            html,
+            html: bulkHtml,
+            attachments: emailAttachments
           });
-          console.log(`✅ Scheduled email sent to ${email}`);
+          console.log(`✅ Scheduled email sent to ${email} with ${emailAttachments.length} attachments`);
         }
 
         scheduledEmail.status = "sent";
@@ -169,147 +145,11 @@ export async function handleEmailJob(job) {
         console.error(`❌ Scheduled email failed: ${scheduledEmailId}`, err);
         throw err;
       }
+      break;
 
-      return;
-    }
-
-    // ✅ User Approved Email
-    if (job.name === "userApproved") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received USER APPROVED email job for:", to);
-
-      if (!html) {
-        console.log("❌ userApproved job missing HTML");
-        return;
-      }
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Approval email sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Approval email failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ User Rejected Email
-    if (job.name === "userRejected") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received USER REJECTED email job for:", to);
-
-      if (!html) {
-        console.log("❌ userRejected job missing HTML");
-        return;
-      }
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Rejection email sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Rejection email failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ User Awaiting Approval Email
-    if (job.name === "userAwaitingApproval") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received USER AWAITING APPROVAL job for:", to);
-
-      if (!html) return console.log("❌ userAwaitingApproval job missing HTML");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Awaiting approval email sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Awaiting approval email failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ Admin Approval Request Email
-    if (job.name === "adminApprovalRequest") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received ADMIN APPROVAL REQUEST job for:", to);
-
-      if (!html) return console.log("❌ adminApprovalRequest job missing HTML");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Admin approval request email sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Admin approval request email failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ User Login OTP
-    if (job.name === "userLoginOtp") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received USER LOGIN OTP job for:", to);
-
-      if (!to) return console.log("❌ No 'to' field in userLoginOtp job");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ User Login OTP sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ User Login OTP failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ Forgot Password OTP Email
-    if (job.name === "userForgotPasswordOtp") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received FORGOT PASSWORD OTP job for:", to);
-
-      if (!to) return console.log("❌ No 'to' field in userForgotPasswordOtp job");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ Forgot Password OTP sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ Forgot Password OTP failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    // ✅ New User Welcome Email
-    if (job.name === "newUserWelcome") {
-      const { to, subject, html } = job.data;
-
-      console.log("✅ Worker received NEW USER WELCOME job for:", to);
-
-      if (!to) return console.log("❌ newUserWelcome job missing 'to' field");
-      if (!subject || !html) return console.log("❌ newUserWelcome job missing subject or HTML");
-
-      try {
-        await sendEmail({ to, subject, html });
-        console.log(`✅ New User Welcome email sent to ${to}`);
-      } catch (err) {
-        console.error(`❌ New User Welcome email failed to ${to}`, err);
-        throw err;
-      }
-      return;
-    }
-
-    throw new Error(`Unhandled email job type: ${job.name}`);
-
-
-
+    default:
+      throw new Error(`Unhandled email job type: ${job.name}`);
+  }
 }
 
 const emailWorker = new Worker(
@@ -318,6 +158,8 @@ const emailWorker = new Worker(
   {
     connection: {
       url: process.env.REDIS_URL,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
       ...(isSecure ? { tls: {} } : {}),
     },
     concurrency: 5,

@@ -63,4 +63,11 @@ const userSchema = new mongoose.Schema({
   mobileVerified: { type: Boolean, default: false }
 });
 
+// Indexes for optimization and scalable searching
+userSchema.index({ fullName: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ mobile: 1 });
+userSchema.index({ status: 1 });
+userSchema.index({ createdAt: -1 });
+
 export default mongoose.model('User', userSchema);

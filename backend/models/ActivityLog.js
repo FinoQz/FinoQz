@@ -33,6 +33,7 @@ const activityLogSchema = new mongoose.Schema({
   status: { type: String, enum: ['success', 'failure'], default: 'success' },
 
   ip: String,
+  location: { type: String, default: 'Unknown' },
   device: { type: Object, default: {} },
   userAgent: String,
 

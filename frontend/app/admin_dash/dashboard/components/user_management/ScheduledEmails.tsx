@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import {
   Calendar,
   Clock,
@@ -9,8 +10,16 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
+  ChevronRight,
+  Target
 } from "lucide-react";
 import apiAdmin from "@/lib/apiAdmin";
+
+// Dynamic import for React Quill (No SSR) for editing
+const ReactQuill = dynamic(() => import("react-quill-new"), {
+  ssr: false,
+  loading: () => <div className="h-20 bg-gray-50 animate-pulse rounded-xl" />
+});
 
 interface ScheduledEmail {
   _id: string;
@@ -45,6 +54,14 @@ export default function ScheduledEmails({
   const [editData, setEditData] = useState<Partial<ScheduledEmail> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const modules = useMemo(() => ({
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      ['link'],
+      ['clean']
+    ],
+  }), []);
+
   const fetchScheduledEmails = useCallback(async () => {
     try {
       setLoading(true);
@@ -54,11 +71,10 @@ export default function ScheduledEmails({
       setScheduledEmails(res.data || []);
     } catch (err) {
       console.error("Failed to fetch scheduled emails:", err);
-      onStatusChange?.("Failed to load scheduled emails");
     } finally {
       setLoading(false);
     }
-  }, [onStatusChange]);
+  }, []);
 
   useEffect(() => {
     fetchScheduledEmails();
@@ -69,66 +85,37 @@ export default function ScheduledEmails({
     return date.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { bg: string; text: string; icon: React.ComponentType<{ className?: string }>; label: string }> = {
-      pending: {
-        bg: "bg-blue-100",
-        text: "text-blue-700",
-        icon: Clock,
-        label: "Pending",
-      },
-      sent: {
-        bg: "bg-green-100",
-        text: "text-green-700",
-        icon: CheckCircle,
-        label: "Sent",
-      },
-      failed: {
-        bg: "bg-red-100",
-        text: "text-red-700",
-        icon: AlertCircle,
-        label: "Failed",
-      },
-      cancelled: {
-        bg: "bg-gray-100",
-        text: "text-gray-700",
-        icon: XCircle,
-        label: "Cancelled",
-      },
+    const statusConfig: Record<string, { color: string; label: string }> = {
+      pending: { color: "text-amber-500", label: "Scheduled" },
+      sent: { color: "text-emerald-500", label: "Delivered" },
+      failed: { color: "text-rose-500", label: "Failed" },
+      cancelled: { color: "text-gray-400", label: "Halted" },
     };
 
     const config = statusConfig[status];
     if (!config) return null;
 
-    const Icon = config.icon;
     return (
-      <span
-        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}
-      >
-        <Icon className="w-3 h-3" />
+      <span className={`text-[10px] font-bold uppercase tracking-widest ${config.color}`}>
         {config.label}
       </span>
     );
   };
 
   const handleEdit = (email: ScheduledEmail) => {
-    if (email.status !== "pending") {
-      onStatusChange?.("Can only edit pending scheduled emails");
-      return;
-    }
+    if (email.status !== "pending") return;
     setEditingId(email._id);
     setEditData({ ...email });
   };
 
   const handleSaveEdit = async () => {
     if (!editingId || !editData) return;
-
     setIsSaving(true);
     try {
       await apiAdmin.put(
@@ -140,178 +127,135 @@ export default function ScheduledEmails({
         },
         { withCredentials: true }
       );
-
-      onStatusChange?.("Scheduled email updated successfully");
       setEditingId(null);
       setEditData(null);
       fetchScheduledEmails();
     } catch (err) {
       console.error("Error saving edit:", err);
-      onStatusChange?.("Failed to update scheduled email");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (emailId: string) => {
-    if (!confirm("Are you sure you want to delete this scheduled email?"))
-      return;
-
+    if (!confirm("Remove this schedule?")) return;
     try {
       await apiAdmin.delete(`api/admin/panel/scheduled-emails/${emailId}`, {
         withCredentials: true,
       });
-
-      onStatusChange?.("Scheduled email deleted");
       fetchScheduledEmails();
     } catch (err) {
       console.error("Error deleting email:", err);
-      onStatusChange?.("Failed to delete scheduled email");
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-[#253A7B] rounded-xl">
-            <Calendar className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Scheduled Emails</h3>
-            <p className="text-sm text-gray-600">Manage your queued communications</p>
-          </div>
-        </div>
-        <span className="text-2xl font-bold text-[#253A7B]">
-          {scheduledEmails.length}
+    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden mt-10 shadow-sm">
+      <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/20">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Pipeline Timeline</h3>
+        <span className="text-xs bg-white border border-gray-100 px-3 py-1 rounded-lg font-bold text-gray-400 shadow-sm">
+          {scheduledEmails.length} Campaigns
         </span>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Loading scheduled emails...</p>
-        </div>
-      ) : scheduledEmails.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No scheduled emails yet</p>
-        </div>
-      ) : (
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {scheduledEmails.map((email) => (
-            <div
-              key={email._id}
-              className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4"
-            >
-              {editingId === email._id ? (
-                // Edit Mode
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subject
-                    </label>
+      <div className="divide-y divide-gray-50">
+        {loading ? (
+          <div className="p-16 text-center text-xs text-gray-300 font-bold uppercase tracking-widest animate-pulse">Syncing Database...</div>
+        ) : (
+          scheduledEmails.length === 0 ? (
+            <div className="p-16 text-center">
+              <Calendar className="w-8 h-8 text-gray-100 mx-auto mb-3" />
+              <p className="text-xs text-gray-300 font-bold uppercase tracking-widest">No Active Schedules</p>
+            </div>
+          ) : (
+            scheduledEmails.map((email) => (
+              <div key={email._id} className="p-6 hover:bg-gray-50/50 transition-colors group">
+                {editingId === email._id ? (
+                  <div className="space-y-4 animate-in fade-in duration-300">
                     <input
                       type="text"
                       value={editData?.subject || ""}
-                      onChange={(e) =>
-                        setEditData({ ...editData, subject: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#253A7B]"
+                      onChange={(e) => setEditData({ ...editData, subject: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 rounded-xl text-sm font-bold text-gray-800 outline-none border border-gray-100 focus:bg-white focus:border-indigo-100 transition-all"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Scheduled For
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={
-                        editData?.scheduledFor
-                          ? toLocalInputValue(editData.scheduledFor)
-                          : ""
-                      }
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          scheduledFor: new Date(e.target.value).toISOString(),
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#253A7B]"
-                    />
-                  </div>
-
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      onClick={() => {
-                        setEditingId(null);
-                        setEditData(null);
-                      }}
-                      className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveEdit}
-                      disabled={isSaving}
-                      className="px-3 py-1.5 bg-[#253A7B] text-white rounded-lg text-sm hover:bg-[#1a2a5e] disabled:opacity-60"
-                    >
-                      {isSaving ? "Saving..." : "Save"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // View Mode
-                <>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">
-                        {email.subject}
-                      </h4>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {email.body}
-                      </p>
+                    <div className="quill-minimal-small">
+                      <ReactQuill
+                        theme="snow"
+                        value={editData?.body || ""}
+                        onChange={(val) => setEditData({ ...editData, body: val })}
+                        modules={modules}
+                        className="text-sm bg-gray-50 rounded-xl overflow-hidden border-gray-100"
+                      />
                     </div>
-                    {getStatusBadge(email.status)}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>
-                        {formatDateTime(email.scheduledFor)}
-                      </span>
-                    </div>
-                    <div className="text-gray-600">
-                      {email.recipientEmails.length} recipient
-                      {email.recipientEmails.length > 1 ? "s" : ""}
+                    <div className="flex items-center justify-between gap-4 pt-2">
+                       <div className="flex-1">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 ml-1">Update Execution Time</p>
+                          <input
+                            type="datetime-local"
+                            value={editData?.scheduledFor ? toLocalInputValue(editData.scheduledFor) : ""}
+                            onChange={(e) => setEditData({ ...editData, scheduledFor: new Date(e.target.value).toISOString() })}
+                            className="w-full px-4 py-2 bg-gray-50 rounded-xl text-xs font-bold outline-none border border-gray-100 focus:bg-white focus:border-indigo-100"
+                          />
+                       </div>
+                      <div className="flex gap-2 pt-5">
+                        <button onClick={() => setEditingId(null)} className="px-5 py-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600 transition-colors">Cancel</button>
+                        <button onClick={handleSaveEdit} disabled={isSaving} className="px-6 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200">
+                          {isSaving ? "Saving..." : "Update"}
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-6">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        {getStatusBadge(email.status)}
+                        <span className="text-[10px] text-gray-200 font-bold tracking-tighter">—</span>
+                        <div className="flex items-center gap-1.5 text-gray-400">
+                          <Clock className="w-3 h-3" />
+                          <span className="text-[11px] font-bold uppercase tracking-tighter">{formatDateTime(email.scheduledFor)}</span>
+                        </div>
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-800 mb-1 truncate group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{email.subject}</h4>
+                      <div
+                        className="text-xs text-gray-400 line-clamp-1 pointer-events-none opacity-80"
+                        dangerouslySetInnerHTML={{ __html: email.body }}
+                      />
+                    </div>
 
-                  <div className="flex gap-2 justify-end">
-                    {email.status === "pending" && (
-                      <button
-                        onClick={() => handleEdit(email)}
-                        className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-200 transition flex items-center gap-1"
-                      >
-                        <Edit className="w-3 h-3" />
-                        Edit
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {email.status === "pending" && (
+                        <button onClick={() => handleEdit(email)} className="p-2.5 bg-white hover:bg-indigo-50 rounded-xl text-gray-400 hover:text-indigo-600 border border-gray-100 hover:border-indigo-100 shadow-sm transition-all">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button onClick={() => handleDelete(email._id)} className="p-2.5 bg-white hover:bg-rose-50 rounded-xl text-gray-400 hover:text-rose-600 border border-gray-100 hover:border-rose-100 shadow-sm transition-all">
+                        <Trash2 className="w-4 h-4" />
                       </button>
-                    )}
-                    <button
-                      onClick={() => handleDelete(email._id)}
-                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      Delete
-                    </button>
+                    </div>
                   </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+                )}
+              </div>
+            ))
+          )
+        )}
+      </div>
+
+      <style jsx global>{`
+        .quill-minimal-small .ql-toolbar.ql-snow {
+           border: none;
+           background: #fdfdfd;
+           border-bottom: 1px solid #f9fafb;
+           padding: 8px 12px;
+        }
+        .quill-minimal-small .ql-container.ql-snow {
+           border: none;
+           min-height: 100px;
+           background: #fdfdfd;
+           font-size: 13px;
+        }
+        .quill-minimal-small .ql-editor { padding: 12px 16px; }
+      `}</style>
     </div>
   );
 }

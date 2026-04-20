@@ -86,16 +86,20 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 border border-gray-200 shadow-lg">
-      <h2 className="text-xl sm:text-2xl font-bold text-[#253A7B] mb-6">Add New User</h2>
+    <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 lg:p-8 shadow-sm">
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Add New User</h2>
+        <p className="text-gray-500 text-sm mt-1">Create a new stakeholder or participant account manually</p>
+      </div>
 
-      <div className="mb-4 px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-sm">
-        Users created here can login only after verifying both email and mobile OTP.
+      <div className="mb-6 px-4 py-3 rounded-lg bg-blue-50/50 border border-blue-100 text-[#253A7B] text-xs font-semibold uppercase tracking-wider flex items-center gap-3">
+        <span className="w-2 h-2 bg-[#253A7B] rounded-full animate-pulse" />
+        Verification Required: Initial login requires email & mobile OTP verification.
       </div>
 
       {formError && (
-        <div className="mb-4 px-4 py-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-sm font-medium">
-          {formError}
+        <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs font-bold uppercase tracking-wide">
+          Error: {formError}
         </div>
       )}
 
@@ -104,8 +108,8 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Full Name <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+              Full Name
             </label>
             <input
               type="text"
@@ -113,15 +117,15 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.fullName}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              placeholder="Enter full name"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 outline-none focus:border-[#253A7B] transition-all"
+              placeholder="E.g. Rahul Sharma"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+              Email Address
             </label>
             <input
               type="email"
@@ -129,15 +133,15 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               value={newUserForm.email}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              placeholder="Enter email address"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 outline-none focus:border-[#253A7B] transition-all"
+              placeholder="rahul@example.com"
             />
           </div>
 
           {/* Mobile */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mobile <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+              Mobile Number
             </label>
             <input
               type="tel"
@@ -146,15 +150,15 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               onChange={handleInputChange}
               required
               pattern="[6-9][0-9]{9}"
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              placeholder="10-digit mobile number"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 outline-none focus:border-[#253A7B] transition-all"
+              placeholder="10-digit number"
             />
           </div>
 
           {/* Initial Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Initial Password <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
+              Initial Password
             </label>
             <input
               type="password"
@@ -163,30 +167,29 @@ export default function AddNewUserForm({ onSuccess, onStatusChange }: AddNewUser
               onChange={handleInputChange}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#253A7B] focus:border-transparent transition"
-              placeholder="Minimum 6 characters"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-800 outline-none focus:border-[#253A7B] transition-all"
+              placeholder="Secure password"
             />
           </div>
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex items-center gap-3 pt-6 border-t border-gray-50 flex-wrap">
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`flex-1 sm:flex-none px-6 py-3 bg-[#253A7B] text-white rounded-xl hover:bg-[#1a2a5e] shadow-lg hover:shadow-xl transition-all duration-300 font-medium ${
-              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`px-8 py-2.5 bg-[#253A7B] text-white rounded-lg text-sm font-bold hover:opacity-90 transition-all ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
-            {isSubmitting ? 'Adding...' : 'Add User'}
+            {isSubmitting ? 'Adding User...' : 'Create Account'}
           </button>
           <button
             type="button"
             onClick={handleReset}
             disabled={isSubmitting}
-            className="flex-1 sm:flex-none px-6 py-3 bg-gray-600 text-white rounded-xl hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 font-medium"
+            className="px-8 py-2.5 bg-white text-gray-500 border border-gray-200 rounded-lg text-sm font-bold hover:bg-gray-50 transition-all"
           >
-            Reset
+            Reset Form
           </button>
         </div>
       </form>

@@ -52,7 +52,9 @@ export default function GroupManagement(): JSX.Element {
           apiAdmin.get('api/admin/panel/all-users'),
           apiAdmin.get('api/admin/panel/groups'),
         ]);
-        setAllUsers(usersRes?.data ?? []);
+
+        const usersArray = Array.isArray(usersRes?.data) ? usersRes.data : (usersRes?.data?.users ?? []);
+        setAllUsers(usersArray);
         setGroups(groupsRes?.data ?? []);
       } catch (err) {
         console.error('Error fetching users/groups:', err);
@@ -98,7 +100,9 @@ export default function GroupManagement(): JSX.Element {
         `${u.fullName} ${u.email} ${u.mobile ?? ''}`.toLowerCase().includes(modalDebouncedSearch)
       )
       : allUsers;
-    return pool.filter((u) => !modalSelectedUserIds.has(u._id));
+    return pool.filter((u) => {
+      return !modalSelectedUserIds.has(u._id);
+    });
   }, [allUsers, modalDebouncedSearch, modalSelectedUserIds]);
 
   const toggleUser = (id: string) => {
@@ -231,132 +235,166 @@ export default function GroupManagement(): JSX.Element {
   const getUserById = (id: string): User | undefined => allUsers.find((u) => u._id === id);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-700 flex items-center gap-2">
-          <Users className="w-5 h-5 text-[#253A7B]" />
-          Group Management
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">Create and manage groups of users for broadcasts, permissions or segmentation.</p>
+    <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 border-b border-gray-100 pb-6 sm:pb-8">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-[#253A7B]" />
+            Group Management
+          </h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">Create and manage your user segments and audience groups</p>
+        </div>
+        <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+           <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">{groups.length} active groups</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Create Group Panel */}
-        <div className="lg:col-span-1 bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-700">Create New Group</h3>
-            <div className="text-sm text-gray-500">{selectedCount} selected</div>
+        <div className="lg:col-span-1 bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm flex flex-col h-fit">
+          <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-4">
+            <h3 className="text-md font-semibold text-gray-900">Create New Group</h3>
+            <span className="text-xs text-gray-500 font-medium">{selectedCount} selected</span>
           </div>
 
-          <label className="text-sm text-gray-600">Group name</label>
-          <input
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="E.g. Marketing Team, Beta Testers"
-            className="mt-2 mb-4 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
-          />
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Group Name</label>
+              <input
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="E.g. Marketing Team"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#253A7B]/10 focus:border-[#253A7B] transition-all"
+              />
+            </div>
 
-          <div className="text-sm text-gray-600 mb-2">Members (select from the list)</div>
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={selectAllVisible}
-              className="px-3 py-2 bg-[#253A7B] text-white rounded-lg text-sm hover:opacity-95 flex items-center gap-2"
-            >
-              <PlusCircle className="w-4 h-4" /> Select all visible
-            </button>
-            <button onClick={clearSelection} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
-              Clear
-            </button>
-          </div>
+            <div className="pt-2">
+              <label className="text-xs font-semibold text-gray-700 mb-2 block">Add Members</label>
+              <div className="flex gap-2 mb-3">
+                <button
+                  onClick={selectAllVisible}
+                  className="flex-1 py-1.5 text-xs font-medium text-[#253A7B] bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                >
+                  Select All
+                </button>
+                <button 
+                  onClick={clearSelection} 
+                  className="flex-1 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
 
-          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-            <Search className="w-4 h-4 text-gray-400" />
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search users by name, email or mobile"
-              className="w-full outline-none text-sm"
-            />
-          </div>
+              <div className="relative mb-3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name/email..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#253A7B] transition-all"
+                />
+              </div>
+            </div>
 
-          <div className="mt-3 max-h-56 overflow-auto">
-            {loading ? (
-              <div className="text-center text-gray-500 py-6">Loading users...</div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="text-center text-gray-500 py-6">No users found</div>
-            ) : (
-              <ul className="space-y-2 mt-2">
-                {filteredUsers.map((u) => {
+            <div className="max-h-60 overflow-y-auto border border-gray-50 rounded-lg p-1 space-y-1">
+              {loading ? (
+                <div className="text-center py-6 text-gray-400 text-xs italic">Loading users...</div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-6 text-gray-400 text-xs italic">No users found</div>
+              ) : (
+                filteredUsers.map((u) => {
                   const isSelected = selectedUserIds.has(u._id);
                   return (
-                    <li
+                    <div
                       key={u._id}
-                      className={`flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-gray-50 ${isSelected ? 'bg-[#EEF2FF]' : ''}`}
                       onClick={() => toggleUser(u._id)}
+                      className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                     >
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-800">{u.fullName}</span>
-                        <span className="text-xs text-gray-500">{u.email}</span>
+                      <div className="min-w-0 pr-2">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{u.fullName}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{u.email}</p>
                       </div>
-                      <div className="text-sm text-gray-600">{isSelected ? '✓' : ''}</div>
-                    </li>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-[#253A7B] border-[#253A7B]' : 'bg-white border-gray-200'}`}>
+                        {isSelected && <span className="text-[8px] text-white font-bold">✓</span>}
+                      </div>
+                    </div>
                   );
-                })}
-              </ul>
-            )}
+                })
+              )}
+            </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-gray-600">{selectedCount} members selected</div>
-            <button
-              onClick={handleCreateGroup}
-              disabled={creating}
-              className="px-4 py-2 bg-[#253A7B] text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {creating ? 'Creating...' : 'Create Group'}
-            </button>
-          </div>
+          <button
+            onClick={handleCreateGroup}
+            disabled={creating || !groupName.trim() || selectedUserIds.size === 0}
+            className="mt-6 w-full py-2.5 bg-[#253A7B] text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-all"
+          >
+            {creating ? 'Creating Group...' : 'Create Group'}
+          </button>
         </div>
 
         {/* Groups List */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-700">Existing Groups</h3>
-            <div className="text-sm text-gray-500">{groups.length} groups</div>
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm">
+             <div className="flex items-center justify-between">
+                <h3 className="text-md font-semibold text-gray-900">Existing Groups</h3>
+                <span className="text-xs text-gray-500">{groups.length} groups total</span>
+             </div>
           </div>
 
-          {groupsLoading ? (
-            <div className="text-center py-8 text-gray-500">Working...</div>
-          ) : groups.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">No groups yet. Create your first group.</div>
-          ) : (
-            <div className="space-y-3">
-              {groups.map((g) => (
-                <div key={g._id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:shadow-sm">
-                  <div>
-                    <div className="text-md font-medium text-gray-800">{g.name}</div>
-                    <div className="text-xs text-gray-500">{Array.isArray(g.members) ? g.members.length : 0} members</div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openModalForGroup(g._id)}
-                      className="px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200"
-                    >
-                      Preview / Edit
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteGroup(g._id)}
-                      className="px-3 py-2 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" /> Delete
-                    </button>
-                  </div>
+          <div className="min-h-[400px]">
+            {groupsLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-200 rounded-xl">
+                 <div className="w-8 h-8 border-4 border-gray-100 border-t-[#253A7B] rounded-full animate-spin mb-4" />
+                 <p className="text-gray-500 text-sm font-medium">Updating groups...</p>
+              </div>
+            ) : groups.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+                  <Users className="w-8 h-8 text-gray-300" />
                 </div>
-              ))}
-            </div>
-          )}
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">No groups found</h3>
+                <p className="text-gray-500 text-sm max-w-xs mx-auto">Click Create Group on the left to organize your users.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {groups.map((g) => (
+                  <div key={g._id} className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm hover:border-[#253A7B]/30 transition-all group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-gray-50 text-[#253A7B] transition-colors group-hover:bg-blue-50">
+                          <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm sm:text-md font-bold text-gray-900">{g.name}</h4>
+                          <div className="flex items-center gap-3 mt-0.5">
+                             <p className="text-xs text-gray-500 font-medium">{Array.isArray(g.members) ? g.members.length : 0} members</p>
+                             <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                             <p className="text-[10px] text-gray-400 font-medium">ID: {g._id.slice(-6).toUpperCase()}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openModalForGroup(g._id)}
+                          className="px-4 py-2 text-xs font-semibold text-[#253A7B] bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Manage
+                        </button>
+                        <button
+                          onClick={() => handleDeleteGroup(g._id)}
+                          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -373,131 +411,129 @@ export default function GroupManagement(): JSX.Element {
             onClick={() => {
               if (!modalSaving) closeModal();
             }}
-          />
-
-          <div className="relative z-60 w-full max-w-4xl mx-4 bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          />          <div className="relative z-60 w-full max-w-4xl mx-4 bg-white rounded-xl shadow-xl overflow-hidden flex flex-col h-[85vh] max-h-[750px] border border-gray-100">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="text-lg font-medium text-gray-800">Edit Group</div>
-                <div className="text-sm text-gray-500">Preview and manage members</div>
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[#253A7B]" />
+                </div>
+                <div>
+                  <h3 className="text-md font-bold text-gray-900">Manage Group Members</h3>
+                  <p className="text-xs text-gray-500">{modalSelectedUserIds.size} members in this group</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (!modalSaving) closeModal();
-                  }}
-                  className="p-2 rounded-md hover:bg-gray-100"
-                  title="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              <button onClick={closeModal} className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 transition-all">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left: group info + member list */}
-              <div className="lg:col-span-2">
-                <label className="text-sm text-gray-600">Group name</label>
-                <input
-                  value={modalGroup.name}
-                  onChange={(e) => setModalGroup((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
-                  className="mt-2 mb-4 w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B]"
-                />
-
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm text-gray-700 font-medium">Members ({modalSelectedUserIds.size})</div>
-                  <div className="text-xs text-gray-500">You can remove or add members here</div>
-                </div>
-
-                <div className="max-h-64 overflow-auto border border-gray-100 rounded-lg p-2">
-                  {Array.from(modalSelectedUserIds).length === 0 ? (
-                    <div className="text-center py-6 text-gray-500">No members in this group</div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {Array.from(modalSelectedUserIds).map((id) => {
-                        const u = getUserById(id);
-                        return (
-                          <li key={id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-[#EEF2FF] flex items-center justify-center text-sm font-medium text-[#253A7B]">
-                                {u ? u.fullName.split(' ').map((s) => s[0]).slice(0, 2).join('') : 'U'}
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-800">{u ? u.fullName : 'Unknown User'}</div>
-                                <div className="text-xs text-gray-500">{u ? u.email : id}</div>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => toggleModalMember(id)}
-                              className="px-2 py-1 text-xs bg-red-50 text-red-700 rounded-md hover:bg-red-100"
-                            >
-                              Remove
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              {/* Right: add members via search/suggestions */}
-              <div className="lg:col-span-1">
-                <div className="text-sm text-gray-600 mb-2">Add members</div>
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 mb-3">
-                  <Search className="w-4 h-4 text-gray-400" />
+            <div className="flex-1 overflow-hidden flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+              {/* Left: Active Members */}
+              <div className="lg:w-2/3 flex flex-col h-full bg-white">
+                <div className="p-6 border-b border-gray-50 bg-gray-50/10">
+                  <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Group Name</label>
                   <input
-                    value={modalSearch}
-                    onChange={(e) => setModalSearch(e.target.value)}
-                    placeholder="Search users by name or email"
-                    className="w-full outline-none text-sm"
+                    value={modalGroup.name}
+                    onChange={(e) => setModalGroup((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 outline-none focus:border-[#253A7B] transition-all"
                   />
                 </div>
 
-                <div className="max-h-56 overflow-auto">
-                  {filteredModalUserSuggestions.length === 0 ? (
-                    <div className="text-center text-gray-500 py-6">No suggestions</div>
-                  ) : (
-                    <ul className="space-y-2">
-                      {filteredModalUserSuggestions.slice(0, 40).map((u) => (
-                        <li key={u._id} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-700">
-                              {u.fullName.split(' ').map((s) => s[0]).slice(0, 2).join('')}
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-800">{u.fullName}</div>
-                              <div className="text-xs text-gray-500">{u.email}</div>
-                            </div>
-                          </div>
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col">
+                   <div className="flex items-center justify-between mb-4 px-1">
+                      <p className="text-xs font-bold text-gray-800 uppercase tracking-tight">Active Members</p>
+                      <span className="text-[10px] text-gray-400 font-medium">Changes apply permanently on save</span>
+                   </div>
 
-                          <button
-                            onClick={() => addSuggestedToModal(u._id)}
-                            className="px-2 py-1 text-xs bg-[#253A7B] text-white rounded-md hover:opacity-95"
-                          >
-                            Add
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                   <div className="space-y-2">
+                    {Array.from(modalSelectedUserIds).length === 0 ? (
+                      <div className="text-center py-20 bg-gray-50/30 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center">
+                         <Users className="w-8 h-8 text-gray-200 mb-2" />
+                         <p className="text-xs text-gray-400 font-medium italic">No members found</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {Array.from(modalSelectedUserIds).map((id) => {
+                          const u = getUserById(id);
+                          return (
+                            <div key={id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:border-gray-200 transition-all">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded bg-blue-50 flex items-center justify-center text-[10px] font-bold text-[#253A7B] transition-colors">
+                                  {u ? u.fullName.charAt(0).toUpperCase() : '?'}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold text-gray-900 truncate">{u ? u.fullName : 'Unknown User'}</div>
+                                  <div className="text-[10px] text-gray-500 truncate">{u ? u.email : id}</div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => toggleModalMember(id)}
+                                className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                   </div>
+                </div>
+              </div>
+
+              {/* Right: Search & Add */}
+              <div className="lg:w-1/3 flex flex-col h-full bg-white">
+                <div className="p-6 border-b border-gray-50 bg-gray-50/5">
+                  <p className="text-xs font-semibold text-gray-700 mb-3">Add More Members</p>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      value={modalSearch}
+                      onChange={(e) => setModalSearch(e.target.value)}
+                      placeholder="Find suggestions..."
+                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#253A7B] transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+                  {filteredModalUserSuggestions.length === 0 ? (
+                    <div className="text-center py-10 italic text-xs text-gray-400">No suggestions found</div>
+                  ) : (
+                    filteredModalUserSuggestions.slice(0, 50).map((u) => (
+                      <div key={u._id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-all group">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-7 h-7 rounded bg-gray-50 flex items-center justify-center text-[10px] font-bold text-gray-400 group-hover:bg-blue-50 group-hover:text-[#253A7B] transition-colors">
+                            {u.fullName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold text-gray-800 truncate">{u.fullName}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => addSuggestedToModal(u._id)}
+                          className="px-2 py-1 text-[10px] font-semibold text-[#253A7B] border border-blue-100 bg-blue-50 hover:bg-[#253A7B] hover:text-white rounded transition-all"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    ))
                   )}
                 </div>
 
-                <div className="mt-4 flex flex-col gap-2">
+                <div className="p-6 bg-white border-t border-gray-100 space-y-3">
                   <button
                     onClick={handleSaveModalChanges}
                     disabled={modalSaving}
-                    className="px-4 py-2 bg-[#253A7B] text-white rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 bg-[#253A7B] text-white rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-all shadow-sm"
                   >
-                    {modalSaving ? 'Saving...' : 'Save changes'}
+                    {modalSaving ? 'Saving Changes...' : 'Save Changes'}
                   </button>
-
                   <button
                     onClick={() => modalGroup && handleDeleteGroup(modalGroup._id)}
-                    className="px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100"
+                    className="w-full py-2 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-all"
                   >
-                    Delete group
+                    Delete Group
                   </button>
                 </div>
               </div>

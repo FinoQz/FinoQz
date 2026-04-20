@@ -1,7 +1,25 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, FileText, DollarSign, UserCheck, Calendar, Download } from 'lucide-react';
+import { 
+  Users, 
+  FileText, 
+  DollarSign, 
+  UserCheck, 
+  Calendar, 
+  Download, 
+  BarChart3, 
+  PieChart, 
+  LayoutDashboard, 
+  Database,
+  TrendingUp,
+  Target,
+  ChevronLeft,
+  CheckCircle,
+  File,
+  Clock,
+  Activity
+} from 'lucide-react';
 import KpiCard from '../components/analytics/KpiCard';
 import FiltersBar from '../components/analytics/FiltersBar';
 import UserGrowthChart from '../components/analytics/UserGrowthChart';
@@ -12,6 +30,8 @@ import TopQuizzes from '../components/analytics/TopQuizzes';
 import EngagementHours from '../components/analytics/EngagementHours';
 import RecentEvents from '../components/analytics/RecentEvents';
 import Toast from '../components/analytics/Toast';
+import QuizPicker from '../components/analytics/QuizPicker';
+import QuizDetailAnalytics from '../components/analytics/QuizDetailAnalytics';
 import apiAdmin from '@/lib/apiAdmin';
 
 // TypeScript interfaces for API responses
@@ -23,11 +43,17 @@ interface DashboardStats {
   totalAttempts: number;
   totalRevenue: number;
   certificatesIssued: number;
+  participationSplit: {
+    free: number;
+    paid: number;
+  };
 }
 
 interface UserGrowthData {
   date: string;
   users: number;
+  attempts?: number;
+  revenue?: number;
 }
 
 interface TransformedUserGrowthData {
@@ -54,6 +80,8 @@ export default function Analytics() {
   const [selectedQuiz, setSelectedQuiz] = useState('all');
   const [selectedUserType, setSelectedUserType] = useState('all');
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null);
+  const [view, setView] = useState<'overview' | 'detail'>('overview');
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
 
   // State for API data
   const [loading, setLoading] = useState(true);
@@ -85,11 +113,11 @@ export default function Analytics() {
         setDashboardStats(statsResponse.data);
         
         // Transform user growth data to match chart format
-        const transformedGrowthData = growthResponse.data.map((item, index) => ({
-          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        const transformedGrowthData = growthResponse.data.map((item: UserGrowthData) => ({
+          date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
           users: item.users,
-          attempts: 0, // Placeholder
-          revenue: 0 // Placeholder
+          attempts: item.attempts || 0,
+          revenue: item.revenue || 0,
         }));
         
         setUserGrowthData(transformedGrowthData);
@@ -154,6 +182,12 @@ export default function Analytics() {
     setToast({ type: 'success', message: `Exporting analytics as ${format}...` });
   };
 
+  const handleQuizSelect = (quizId: string) => {
+    setSelectedQuizId(quizId);
+    setView('detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -186,101 +220,144 @@ export default function Analytics() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto min-h-screen">
       {/* Header */}
-      <div className="mb-6 sm:mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 border-b border-gray-100 pb-6 sm:pb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-700">Analytics</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-2">Platform insights and performance metrics</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            {view === 'overview' ? (
+              <>
+                <BarChart3 className="w-6 h-6 text-[#253A7B]" />
+                Analytics & Insights
+              </>
+            ) : (
+              <>
+                <FileText className="w-6 h-6 text-[#253A7B]" />
+                Quiz Performance Report
+              </>
+            )}
+          </h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">
+            {view === 'overview' 
+              ? 'Monitor platform performance and strategic metrics' 
+              : 'Detailed analysis and participant tracking for selected quiz'}
+          </p>
         </div>
+
         <div className="flex flex-wrap items-center gap-3">
-          {/* Date Range Picker */}
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#253A7B] text-sm"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="custom">Custom Range</option>
-          </select>
+          {view === 'overview' && (
+            <>
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 outline-none focus:border-[#253A7B] transition-all"
+              >
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
 
-          {/* Export Button */}
-          <button 
-            onClick={() => handleExport('CSV')}
-            className="px-4 py-2 bg-[#253A7B] text-white rounded-lg hover:bg-[#1a2a5e] transition font-medium flex items-center gap-2 text-sm"
-          >
-            <Download className="w-4 h-4" />
-            Export Analytics
-          </button>
+              <button 
+                onClick={() => handleExport('CSV')}
+                className="flex items-center gap-2 px-4 py-2 bg-[#253A7B] text-white text-xs font-semibold rounded-lg hover:bg-[#1a2a5e] transition-all shadow-sm"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export CSV
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
-        <KpiCard
-          icon={Users}
-          label="Total Users"
-          value={kpiData.totalUsers.toLocaleString()}
-          trend={{ value: '12.5% from last month', isPositive: true }}
+      {view === 'detail' && selectedQuizId ? (
+        <QuizDetailAnalytics 
+          quizId={selectedQuizId} 
+          onBack={() => { setView('overview'); setSelectedQuizId(null); }} 
         />
-        <KpiCard
-          icon={FileText}
-          label="Total Quizzes Created"
-          value={kpiData.totalQuizzes}
-          trend={{ value: '8 new this week', isPositive: true }}
-        />
-        <KpiCard
-          icon={DollarSign}
-          label="Total Purchases"
-          value={kpiData.totalPurchases}
-          trend={{ value: '15.3% from last month', isPositive: true }}
-        />
-        <KpiCard
-          icon={UserCheck}
-          label="Daily Active Users"
-          value={kpiData.dailyActiveUsers.toLocaleString()}
-          suffix="DAU"
-        />
+      ) : (
+        <>
+          {/* Stats Summary - Matching QuizManagement Style */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-5">
+            {([
+              { label: 'Total Users', value: kpiData.totalUsers.toLocaleString(), icon: Users, color: 'text-blue-600' },
+              { label: 'Quiz Inventory', value: kpiData.totalQuizzes, icon: FileText, color: 'text-emerald-600' },
+              { label: 'Gross Revenue', value: kpiData.totalPurchases, icon: DollarSign, color: 'text-amber-600' },
+              { label: 'Active Nodes', value: kpiData.dailyActiveUsers.toLocaleString(), icon: Activity, color: 'text-indigo-600' }
+            ]).map((stat, i) => (
+              <div key={i} className="bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-sm flex items-center gap-4">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-gray-50 ${stat.color}`}>
+                  <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <p className="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-none mt-1">{stat.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+             <div className="lg:col-span-2 space-y-6">
+                {/* User Growth Chart */}
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                   <div className="flex items-center gap-2 mb-6">
+                      <TrendingUp className="w-4 h-4 text-gray-400" />
+                      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-tight">Growth Trend</h3>
+                   </div>
+                   <UserGrowthChart data={userGrowthData} />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                      <div className="flex items-center gap-2 mb-6">
+                          <PieChart className="w-4 h-4 text-gray-400" />
+                          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-tight">Segmentation</h3>
+                      </div>
+                      <FreeVsPaidChart 
+                        freeParticipation={dashboardStats?.participationSplit.free || 0} 
+                        paidParticipation={dashboardStats?.participationSplit.paid || 0} 
+                      />
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                      <div className="flex items-center gap-2 mb-6">
+                          <Database className="w-4 h-4 text-gray-400" />
+                          <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-tight">Categories</h3>
+                      </div>
+                      <TopCategories categories={topCategories} />
+                    </div>
+                </div>
+             </div>
+
+             <div className="space-y-6">
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                   <div className="flex items-center gap-2 mb-4">
+                      <LayoutDashboard className="w-4 h-4 text-[#253A7B]" />
+                      <h3 className="text-sm font-bold text-gray-900">Drill-down Selector</h3>
+                   </div>
+                   <QuizPicker onSelect={handleQuizSelect} />
+                </div>
+
+                <div className="bg-gray-900 p-6 rounded-xl text-white relative overflow-hidden group shadow-lg">
+                   <div className="relative z-10">
+                      <h4 className="text-base font-bold mb-2">Detailed Reports</h4>
+                      <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                        Select a quiz to analyze individual scores, participants, and question-level insights.
+                      </p>
+                   </div>
+                   <Target className="absolute -bottom-4 -right-4 w-24 h-24 text-white opacity-5 group-hover:scale-110 transition-transform duration-500" />
+                </div>
+             </div>
+          </div>
+        </>
+      )}
+
+      {/* Footer */}
+      <div className="pt-8 border-t border-gray-100 flex items-center justify-center">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.2em]">
+          Powered by FinoQz Intelligence Engine
+        </p>
       </div>
 
-      {/* Filters */}
-      <FiltersBar
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        selectedQuiz={selectedQuiz}
-        onQuizChange={setSelectedQuiz}
-        selectedUserType={selectedUserType}
-        onUserTypeChange={setSelectedUserType}
-        onReset={handleResetFilters}
-      />
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <UserGrowthChart data={userGrowthData} />
-        <AttemptsChart data={attemptsData} />
-      </div>
-
-      {/* Free vs Paid & Top Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <FreeVsPaidChart freeParticipation={4532} paidParticipation={6214} />
-        <TopCategories categories={topCategories} />
-      </div>
-
-      {/* Bottom Section - Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <TopQuizzes quizzes={topQuizzes} />
-        <EngagementHours hourlyData={hourlyEngagement} />
-        <RecentEvents events={recentEvents} />
-      </div>
-
-      {/* Data Update Notice */}
-      <div className="text-center">
-        <p className="text-xs text-gray-500">Data updates every 15 minutes • Last updated: 2 minutes ago</p>
-      </div>
-
-      {/* Toast */}
       {toast && (
         <Toast
           type={toast.type}

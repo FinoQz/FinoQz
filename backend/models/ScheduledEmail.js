@@ -50,6 +50,25 @@ const scheduledEmailSchema = new mongoose.Schema(
       type: String,
       default: null, // Store BullMQ job ID for tracking
     },
+    heroImage: {
+      type: String,
+      default: null, // URL for promotional banner
+    },
+    ctaText: {
+      type: String,
+      default: null, // Text for engagement button
+    },
+    ctaUrl: {
+      type: String,
+      default: null, // Link for engagement button
+    },
+    attachments: [
+      {
+        filename: String,
+        path: String,
+        contentType: String,
+      },
+    ],
   },
   { timestamps: true }
 );

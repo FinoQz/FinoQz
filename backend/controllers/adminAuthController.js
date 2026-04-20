@@ -9,7 +9,7 @@ import otpTemplate from '../emailTemplates/otpTemplate.js';
 import loginAlertTemplate from '../emailTemplates/loginAlertTemplate.js';
 import emailQueue from '../utils/emailQueue.js';
 import logActivity from '../utils/logActivity.js';
-import { emitDashboardStats } from './adminPanelController.js';
+import { emitDashboardStats } from './dashboardAnalyticsController.js';
 
 
 const isProd = process.env.NODE_ENV === 'production';

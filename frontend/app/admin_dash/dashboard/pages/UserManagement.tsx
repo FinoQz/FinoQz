@@ -10,7 +10,7 @@ import StatusMessage from '../components/user_management/StatusMessage';
 import AddNewUserForm from '../components/user_management/AddNewUserForm';
 import EmailManagement from '../components/user_management/EmailManagement';
 import GroupManagement from '../components/user_management/GroupManagement';
-import { UserPlus, Mail, Users } from 'lucide-react';
+import { UserPlus, Mail, Users, Clock, UserCheck, UserX, FileText } from 'lucide-react';
 import { useSearchParams } from "next/navigation";
 import { io, Socket } from 'socket.io-client';
 import ManagementSkeleton from '../components/user_management/ManagementSkeleton';
@@ -45,7 +45,7 @@ export default function UserManagement() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [rejectedUsers, setRejectedUsers] = useState<RejectedUser[]>([]);
-  
+
   // Track loading per category
   const [loadingStates, setLoadingStates] = useState({
     pending: false,
@@ -197,55 +197,69 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-3xl font-bold text-gray-700">User Management</h1>
-        <p className="text-sm sm:text-base text-gray-600 mt-2">Review and manage user signups</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-100 pb-6 sm:pb-8">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">User Management</h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">Review and manage user signups and access</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        <button onClick={() => setActiveTab('all')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'all' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>All Users</button>
-
-        <button onClick={() => setActiveTab('add-new')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'add-new' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
-          <UserPlus className="w-4 h-4" /> Add New User
-        </button>
-
-        <button onClick={() => setActiveTab('email-users')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'email-users' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
-          <Mail className="w-4 h-4" /> Send Email
-        </button>
-
-        <button onClick={() => setActiveTab('groups')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${activeTab === 'groups' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>
-          <Users className="w-4 h-4" /> Groups
-        </button>
-
-        <button onClick={() => setActiveTab('pending')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'pending' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Pending ({pendingUsers.length})</button>
-
-        <button onClick={() => setActiveTab('approved')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'approved' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Approved ({approvedUsers.length})</button>
-
-        <button onClick={() => setActiveTab('rejected')} className={`px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'rejected' ? 'bg-[#253A7B] text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}>Rejected ({rejectedUsers.length})</button>
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
+        {[
+          { label: 'Pending Approvals', value: pendingUsers.length, icon: Clock, color: 'text-amber-600' },
+          { 
+            label: 'Approved Today', 
+            value: approvedUsers.filter(u => new Date(u.approvedAt).toDateString() === new Date().toDateString()).length, 
+            icon: UserCheck, 
+            color: 'text-green-600' 
+          },
+          { 
+            label: 'Rejected Today', 
+            value: rejectedUsers.filter(u => new Date(u.rejectedAt).toDateString() === new Date().toDateString()).length, 
+            icon: UserX, 
+            color: 'text-red-500' 
+          }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white border border-gray-200 p-4 sm:p-6 rounded-xl shadow-sm flex items-center gap-3 sm:gap-4">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center bg-gray-50 ${stat.color}`}>
+              <stat.icon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="text-xs sm:text-sm font-medium text-gray-800">Pending Approvals</div>
-          <div className="text-2xl sm:text-3xl font-bold text-[#253A7B] mt-2">{pendingUsers.length}</div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="text-xs sm:text-sm font-medium text-gray-700">Approved Today</div>
-          <div className="text-2xl sm:text-3xl font-bold text-gray-800 mt-2">
-            {approvedUsers.filter(u => new Date(u.approvedAt).toDateString() === new Date().toDateString()).length}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-300 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="text-xs sm:text-sm font-medium text-gray-700">Rejected Today</div>
-          <div className="text-2xl sm:text-3xl font-bold text-[#253A7B] mt-2">
-            {rejectedUsers.filter(u => new Date(u.rejectedAt).toDateString() === new Date().toDateString()).length}
-          </div>
+      {/* Tabs / Filters Section */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          {[
+            { id: 'all', label: 'All Users', icon: Users },
+            { id: 'add-new', label: 'Add User', icon: UserPlus },
+            { id: 'email-users', label: 'Email', icon: Mail },
+            { id: 'groups', label: 'Groups', icon: Users },
+            { id: 'pending', label: `Pending (${pendingUsers.length})`, icon: Clock },
+            { id: 'approved', label: `Approved (${approvedUsers.length})`, icon: UserCheck },
+            { id: 'rejected', label: `Rejected (${rejectedUsers.length})`, icon: UserX },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as TabType)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-blue-50/70 text-[#253A7B] border border-blue-100/50'
+                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-[#253A7B]' : 'text-gray-400'}`} />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -259,9 +273,12 @@ export default function UserManagement() {
         loadingStates.initial && pendingUsers.length === 0 ? (
           <ManagementSkeleton />
         ) : pendingUsers.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-            <div className="text-[#253A7B] text-lg font-medium">No pending users</div>
-            <p className="text-gray-500 text-sm mt-2">All signups have been reviewed</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+              <Clock className="w-8 h-8 text-gray-300" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">No pending users</h3>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto">All signups have been reviewed and processed.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -277,9 +294,12 @@ export default function UserManagement() {
         loadingStates.initial && approvedUsers.length === 0 ? (
           <ManagementSkeleton />
         ) : approvedUsers.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-            <div className="text-gray-600 text-lg font-medium">No approved users yet</div>
-            <p className="text-gray-500 text-sm mt-2">Approved users will appear here</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+              <UserCheck className="w-8 h-8 text-gray-300" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">No approved users</h3>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto">Approved users will appear here after review.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -295,9 +315,12 @@ export default function UserManagement() {
         loadingStates.initial && rejectedUsers.length === 0 ? (
           <ManagementSkeleton />
         ) : rejectedUsers.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-gray-200 shadow-lg">
-            <div className="text-gray-600 text-lg font-medium">No rejected users yet</div>
-            <p className="text-gray-500 text-sm mt-2">Rejected users will appear here</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
+              <UserX className="w-8 h-8 text-gray-300" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">No rejected users</h3>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto">Any rejected user signups will appear here.</p>
           </div>
         ) : (
           <div className="space-y-4">
