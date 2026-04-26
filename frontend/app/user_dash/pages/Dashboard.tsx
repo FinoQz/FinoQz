@@ -195,7 +195,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 tracking-tight">Overview</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Welcome back — here's your learning snapshot.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Welcome back — heres your learning snapshot.</p>
         </div>
       </div>
 

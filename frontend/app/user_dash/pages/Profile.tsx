@@ -188,9 +188,16 @@ useEffect(() => {
       if (res.status === 200) {
         showToast('success', 'Deletion request submitted to admin for review.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Deletion request error:', err);
-      showToast('error', err.response?.data?.message || 'Failed to submit deletion request');
+      const errorMessage =
+        typeof err === 'object' &&
+        err !== null &&
+        'response' in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to submit deletion request'
+          : 'Failed to submit deletion request';
+      showToast('error', errorMessage);
     }
   };
 
