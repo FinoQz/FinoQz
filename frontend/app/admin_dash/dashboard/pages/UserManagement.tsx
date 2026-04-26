@@ -35,6 +35,18 @@ interface RejectedUser extends User {
   rejectedAt: string;
 }
 
+interface DeletionRequest {
+  _id: string;
+  user: {
+    _id: string;
+    fullName: string;
+    email: string;
+    mobile?: string;
+  };
+  reason: string;
+  requestedAt: string;
+}
+
 type UserAction = 'approve' | 'reject';
 type TabType = 'pending' | 'approved' | 'rejected' | 'all' | 'add-new' | 'email-users' | 'groups' | 'deletion-requests';
 
@@ -46,7 +58,7 @@ export default function UserManagement() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [rejectedUsers, setRejectedUsers] = useState<RejectedUser[]>([]);
-  const [deletionRequests, setDeletionRequests] = useState<any[]>([]);
+  const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
 
   // Track loading per category
   const [loadingStates, setLoadingStates] = useState({
