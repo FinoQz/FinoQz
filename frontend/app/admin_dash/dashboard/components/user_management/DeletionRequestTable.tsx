@@ -73,7 +73,7 @@ export default function DeletionRequestTable({ requests, onRefresh, onStatusChan
                         <td className="px-6 py-4 max-w-xs">
                            <div className="flex gap-2">
                               <AlertCircle className="w-3.5 h-3.5 text-gray-300 mt-0.5 shrink-0" />
-                              <p className="text-xs text-gray-600 leading-relaxed italic">"{req.reason}"</p>
+                              <p className="text-xs text-gray-600 leading-relaxed italic">{req.reason}</p>
                            </div>
                         </td>
                         <td className="px-6 py-4">
