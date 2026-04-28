@@ -103,7 +103,7 @@ export default function SigninPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white px-4">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white px-4 py-10">
 
       {/* Logo */}
       <div className="text-center mb-6">
@@ -128,10 +128,10 @@ export default function SigninPage() {
 
           {/* FRONT */}
           {/* FRONT */}
-          <div className="card-face card-front flex flex-col justify-between h-full px-6 py-6">
-
-            {/* TOP CONTENT */}
-            <div>
+          <div className="card-face card-front">
+            <div className="flex flex-col justify-between h-full">
+              {/* TOP CONTENT */}
+              <div>
               <h2 className="text-xl font-semibold mb-2">Login</h2>
               <p className="text-sm text-gray-500 mb-4">
                 Enter your credentials
@@ -194,6 +194,7 @@ export default function SigninPage() {
                 </Link>
               </p>
             )}
+            </div>
           </div>
 
 

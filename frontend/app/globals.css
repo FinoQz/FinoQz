@@ -164,7 +164,7 @@
 .card {
   position: relative;
   width: 100%;
-  min-height: 400px;
+  min-height: 480px;
   transform-style: preserve-3d;
   transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
   border-radius: 14px;

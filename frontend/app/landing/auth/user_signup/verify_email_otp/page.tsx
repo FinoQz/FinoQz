@@ -122,7 +122,7 @@ export default function VerifyEmailOtpPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white px-4">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-gradient-to-b from-indigo-50 to-white px-4 py-10">
 
       {/* Header */}
       <div className="text-center mb-6">
@@ -149,7 +149,7 @@ export default function VerifyEmailOtpPage() {
 
           {/* FRONT */}
           <div className="card-face card-front">
-            <div className="min-h-[425px] flex flex-col justify-start pt-4">
+            <div className="min-h-[450px] flex flex-col justify-start pt-4">
               <h2 className="text-xl font-semibold mb-2">Verify Email</h2>
               <p className="text-sm text-gray-500 mb-6">
                 Step 2: Enter the OTP sent to{' '}

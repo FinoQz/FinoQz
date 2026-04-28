@@ -133,7 +133,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-indigo-100 to-white px-4">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-gradient-to-b from-indigo-100 to-white px-4 py-10">
       {/* Header */}
       <div className="text-center mb-6 flex flex-col items-center justify-center gap-2">
         <div className="flex items-center gap-2">
@@ -155,7 +155,7 @@ export default function SignupPage() {
         <div className={`card ${isFlipped ? 'is-flipped' : ''}`}>
           {/* FRONT */}
           <div className="card-face card-front">
-            <div className="min-h-[420px] flex flex-col justify-start pt-6">
+            <div className="min-h-[450px] flex flex-col justify-start pt-6">
               <h2 className="text-xl font-semibold mb-2">
                 Create Your Account
               </h2>
