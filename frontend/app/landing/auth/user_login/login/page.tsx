@@ -129,7 +129,7 @@ export default function SigninPage() {
           {/* FRONT */}
           {/* FRONT */}
           <div className="card-face card-front">
-            <div className="flex flex-col justify-between h-full">
+            <div className="flex flex-col justify-start h-full pt-2">
               {/* TOP CONTENT */}
               <div>
               <h2 className="text-xl font-semibold mb-2">Login</h2>
@@ -182,9 +182,9 @@ export default function SigninPage() {
               </div>
             </div>
 
-            {/* BOTTOM FIXED */}
-            {activeTab === 'user' && (
-              <p className="text-sm text-gray-500 text-center pt-2">
+            {/* BOTTOM FIXED / ADMIN MESSAGE */}
+            {activeTab === 'user' ? (
+              <p className="text-sm text-gray-500 text-center mt-6">
                 Don&apos;t have an account?{' '}
                 <Link
                   href="/landing/auth/user_signup/signup"
@@ -193,6 +193,13 @@ export default function SigninPage() {
                   Sign up
                 </Link>
               </p>
+            ) : (
+              <div className="mt-8 p-3.5 bg-red-50 border border-red-100 rounded-xl">
+                <p className="text-[11px] text-red-600 font-medium text-center leading-relaxed">
+                  ⚠️ Restricted Access: This portal is for authorized administrators only. 
+                  Users should use the <span className="font-bold underline">User tab</span> to sign in.
+                </p>
+              </div>
             )}
             </div>
           </div>
